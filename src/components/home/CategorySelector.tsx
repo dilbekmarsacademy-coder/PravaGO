@@ -1,6 +1,7 @@
-import RetroButton from "@/components/ui/RetroButton";
-import StampBadge from "@/components/ui/StampBadge";
-import StepShell from "./StepShell";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import Section from "./Section";
 import { CategoryId } from "./types";
 
 interface CategorySelectorProps {
@@ -21,43 +22,42 @@ export default function CategorySelector({
   onNext,
 }: CategorySelectorProps) {
   return (
-    <StepShell
+    <Section
+      index="03"
       title="Toifangizni tanlang"
       subtitle="Sizga mos dastur shu tanlovga qarab moslashtiriladi"
     >
-      <div className="flex flex-col gap-4">
+      <RadioGroup
+        value={selected ?? undefined}
+        onValueChange={(value) => onSelect(value as CategoryId)}
+        className="gap-3"
+      >
         {CATEGORIES.map((cat) => {
           const isSelected = selected === cat.id;
           return (
-            <button
+            <div
               key={cat.id}
-              type="button"
-              onClick={() => onSelect(cat.id)}
-              className={`relative overflow-hidden border-[3px] px-5 py-5 text-left font-body text-lg transition-all duration-100 ${
+              className={`flex items-center gap-3 rounded-xl border p-4 transition-colors ${
                 isSelected
-                  ? "border-asphalt bg-paper text-ink shadow-[4px_4px_0_0_#C6402C]"
-                  : "border-paper-dark/50 bg-asphalt-light text-paper hover:border-signal-yellow"
+                  ? "border-primary bg-primary/5"
+                  : "border-border hover:border-foreground/30"
               }`}
             >
-              {cat.label}
-              {isSelected && (
-                <StampBadge
-                  color="red"
-                  className="absolute -top-2 -right-2 text-[10px]"
-                >
-                  Tanlandi
-                </StampBadge>
-              )}
-            </button>
+              <RadioGroupItem value={cat.id} id={cat.id} />
+              <Label
+                htmlFor={cat.id}
+                className="flex-1 cursor-pointer font-normal text-foreground"
+              >
+                {cat.label}
+              </Label>
+            </div>
           );
         })}
-      </div>
+      </RadioGroup>
 
-      <div className="mt-8 flex justify-center">
-        <RetroButton onClick={onNext} disabled={!selected}>
-          Davom etish
-        </RetroButton>
-      </div>
-    </StepShell>
+      <Button onClick={onNext} disabled={!selected} className="mt-10">
+        Davom etish
+      </Button>
+    </Section>
   );
 }

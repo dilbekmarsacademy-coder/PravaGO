@@ -1,18 +1,18 @@
 import type { Metadata } from "next";
-import { Bebas_Neue, PT_Sans, JetBrains_Mono } from "next/font/google";
+import { Space_Grotesk, Manrope, JetBrains_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
 
-const bebasNeue = Bebas_Neue({
-  variable: "--font-bebas",
-  weight: ["400"],
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
+  weight: ["500", "600", "700"],
   subsets: ["latin"],
 });
 
-const ptSans = PT_Sans({
-  variable: "--font-ptsans",
-  weight: ["400", "700"],
-  subsets: ["latin", "cyrillic"],
+const manrope = Manrope({
+  variable: "--font-manrope",
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -31,9 +31,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="uz"
-      className={`${bebasNeue.variable} ${ptSans.variable} ${jetbrainsMono.variable} h-full`}
+      className={`h-full ${spaceGrotesk.variable} ${manrope.variable} ${jetbrainsMono.variable}`}
     >
-      <body className="min-h-full flex flex-col bg-asphalt font-body text-paper antialiased">
+      <body className="flex min-h-full flex-col bg-background font-sans text-foreground antialiased">
         {children}
       </body>
     </html>

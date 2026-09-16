@@ -1,9 +1,10 @@
 "use client";
 
 import { FormEvent, ReactNode, useState } from "react";
-import RetroButton from "@/components/ui/RetroButton";
-import RetroCard from "@/components/ui/RetroCard";
-import StepShell from "./StepShell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import Section from "./Section";
 import { RegisterFormData } from "./types";
 
 interface RegisterFormProps {
@@ -85,85 +86,83 @@ export default function RegisterForm({ onNext }: RegisterFormProps) {
   }
 
   return (
-    <StepShell
+    <Section
+      index="04"
       title="Ro'yxatdan o'tish"
       subtitle="Ma'lumotlaringiz faqat shu qurilmada saqlanadi"
+      tone="soft"
     >
-      <RetroCard>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
-          <Field label="Ism" error={errors.firstName}>
-            <input
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              placeholder="Aziz"
-              className={inputClass(!!errors.firstName)}
-            />
-          </Field>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
+        <Field id="firstName" label="Ism" error={errors.firstName}>
+          <Input
+            id="firstName"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            placeholder="Aziz"
+            aria-invalid={!!errors.firstName}
+          />
+        </Field>
 
-          <Field label="Familiya" error={errors.lastName}>
-            <input
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              placeholder="Karimov"
-              className={inputClass(!!errors.lastName)}
-            />
-          </Field>
+        <Field id="lastName" label="Familiya" error={errors.lastName}>
+          <Input
+            id="lastName"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            placeholder="Karimov"
+            aria-invalid={!!errors.lastName}
+          />
+        </Field>
 
-          <Field label="Yosh" error={errors.age}>
-            <input
-              value={age}
-              onChange={(e) => setAge(e.target.value.replace(/\D/g, "").slice(0, 2))}
-              placeholder="18"
-              inputMode="numeric"
-              className={`${inputClass(!!errors.age)} font-mono`}
-            />
-          </Field>
+        <Field id="age" label="Yosh" error={errors.age}>
+          <Input
+            id="age"
+            value={age}
+            onChange={(e) => setAge(e.target.value.replace(/\D/g, "").slice(0, 2))}
+            placeholder="18"
+            inputMode="numeric"
+            className="font-mono"
+            aria-invalid={!!errors.age}
+          />
+        </Field>
 
-          <Field label="Telefon raqam" error={errors.phone}>
-            <input
-              value={formatPhoneDigits(phoneDigits)}
-              onChange={(e) => setPhoneDigits(extractDigits(e.target.value))}
-              placeholder="+998 90 123 45 67"
-              inputMode="tel"
-              className={`${inputClass(!!errors.phone)} font-mono`}
-            />
-          </Field>
+        <Field id="phone" label="Telefon raqam" error={errors.phone}>
+          <Input
+            id="phone"
+            value={formatPhoneDigits(phoneDigits)}
+            onChange={(e) => setPhoneDigits(extractDigits(e.target.value))}
+            placeholder="+998 90 123 45 67"
+            inputMode="tel"
+            className="font-mono"
+            aria-invalid={!!errors.phone}
+          />
+        </Field>
 
-          <RetroButton type="submit" className="mt-2 self-center">
-            Davom etish
-          </RetroButton>
-        </form>
-      </RetroCard>
-    </StepShell>
+        <Button type="submit" className="mt-2 self-start">
+          Davom etish
+        </Button>
+      </form>
+    </Section>
   );
 }
 
-function inputClass(hasError: boolean) {
-  return `w-full border-[3px] bg-paper px-4 py-3 text-lg text-ink outline-none placeholder:text-ink/30 focus:border-signal-red ${
-    hasError ? "border-signal-red" : "border-asphalt"
-  }`;
-}
-
 function Field({
+  id,
   label,
   error,
   children,
 }: {
+  id: string;
   label: string;
   error?: string;
   children: ReactNode;
 }) {
   return (
-    <label className="block">
-      <span className="mb-1.5 block font-display text-sm tracking-widest text-ink/80 uppercase">
-        {label}
-      </span>
+    <div className="flex flex-col gap-2">
+      <Label htmlFor={id}>{label}</Label>
       {children}
       {error && (
-        <span className="mt-1 block font-mono text-xs text-signal-red">
-          {error}
-        </span>
+        <span className="font-mono text-xs text-destructive">{error}</span>
       )}
-    </label>
+    </div>
   );
 }

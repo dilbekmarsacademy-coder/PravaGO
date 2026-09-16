@@ -112,23 +112,19 @@ export default function HiddenVideoPlayer({
     <div className="w-full">
       <div
         onContextMenu={(e) => e.preventDefault()}
-        className="relative aspect-video w-full overflow-hidden border-[3px] border-asphalt bg-asphalt-lighter shadow-[6px_6px_0_0_#C6402C]"
+        className="relative aspect-video w-full overflow-hidden rounded-xl border border-border bg-foreground"
       >
         {!ready && (
-          <div className="absolute inset-0 flex items-center justify-center bg-asphalt-lighter">
-            <span className="font-mono text-xs tracking-widest text-paper/60 uppercase">
+          <div className="absolute inset-0 flex items-center justify-center bg-foreground">
+            <span className="font-mono text-xs tracking-widest text-background/60 uppercase">
               Video yuklanmoqda&hellip;
             </span>
           </div>
         )}
         <div id={mountId} className="h-full w-full" />
-        {/* Corner tab masks the default player chrome branding area */}
-        <div className="pointer-events-none absolute top-0 right-0 border-b-[3px] border-l-[3px] border-asphalt bg-signal-yellow px-3 py-1 font-display text-xs tracking-widest text-asphalt uppercase">
-          01-dars
-        </div>
       </div>
-      <p className="mt-3 text-center font-mono text-[11px] leading-relaxed text-paper/50 uppercase">
-        Video manbasi ushbu bosqichda ataylab ko&apos;rsatilmaydi.
+      <p className="mt-3 font-mono text-[11px] leading-relaxed text-muted-foreground uppercase">
+        01-dars · video manbasi ushbu bosqichda ataylab ko&apos;rsatilmaydi
       </p>
     </div>
   );

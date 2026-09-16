@@ -1,11 +1,12 @@
+import { Separator } from "@/components/ui/separator";
+
 export default function Footer() {
   return (
-    <footer className="stripe-hazard mt-auto h-2 w-full">
-      <div className="bg-asphalt px-4 py-6 text-center">
-        <p className="font-mono text-xs tracking-widest text-paper/40 uppercase">
-          &copy; {new Date().getFullYear()} PravaTayyor — ta&apos;lim maqsadidagi loyiha
-        </p>
-      </div>
+    <footer className="mt-auto bg-background px-5 py-8 text-center sm:px-8">
+      <Separator className="mb-8" />
+      <p className="font-mono text-xs tracking-wide text-muted-foreground uppercase">
+        &copy; {new Date().getFullYear()} PravaTayyor — ta&apos;lim maqsadidagi loyiha
+      </p>
     </footer>
   );
 }
