@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import RetroButton from "./RetroButton";
 import OfferStep from "./OfferStep";
+import StatusStep from "./StatusStep";
 import RegisterFormStep from "./RegisterFormStep";
 import OtpStep from "./OtpStep";
 import SuccessStep from "./SuccessStep";
@@ -20,6 +21,7 @@ const INITIAL_FORM_DATA: RegisterFormData = {
   lastName: "",
   age: "",
   phone: "",
+  examStatus: null,
 };
 
 export default function RegisterModal() {
@@ -72,7 +74,16 @@ export default function RegisterModal() {
 
         <div key={step} className="animate-in fade-in slide-in-from-right-4 p-6 duration-300 sm:p-8">
           {step === "offer" && (
-            <OfferStep onAccept={() => setStep("form")} />
+            <OfferStep onAccept={() => setStep("status")} />
+          )}
+          {step === "status" && (
+            <StatusStep
+              initialValue={formData.examStatus}
+              onSubmit={(examStatus) => {
+                setFormData((prev) => ({ ...prev, examStatus }));
+                setStep("form");
+              }}
+            />
           )}
           {step === "form" && (
             <RegisterFormStep

@@ -16,7 +16,7 @@ export default function OfferStep({ onAccept }: OfferStepProps) {
     <div className="flex flex-col gap-5">
       <div>
         <span className="font-mono text-xs uppercase tracking-[0.25em] text-stop">
-          Bosqich 1/3
+          Bosqich 1/4
         </span>
         <DialogTitle className="mt-1 font-display text-3xl uppercase tracking-wide text-ink">
           Ommaviy oferta shartlari

@@ -84,6 +84,7 @@ export default function RegisterFormStep({
       lastName: lastName.trim(),
       age,
       phone: `+998${phoneDigits}`,
+      examStatus: initialData.examStatus,
     };
 
     // Hech qanday tarmoq so'rovi yo'q — faqat local state va dev log.
@@ -95,7 +96,7 @@ export default function RegisterFormStep({
     <div className="flex flex-col gap-5">
       <div>
         <span className="font-mono text-xs uppercase tracking-[0.25em] text-stop">
-          Bosqich 2/3
+          Bosqich 3/4
         </span>
         <DialogTitle className="mt-1 font-display text-3xl uppercase tracking-wide text-ink">
           Ro&rsquo;yxatdan o&rsquo;tish

@@ -32,7 +32,7 @@ export default function OtpStep({ phone, onVerified }: OtpStepProps) {
     <div className="flex flex-col gap-5">
       <div>
         <span className="font-mono text-xs uppercase tracking-[0.25em] text-stop">
-          Bosqich 3/3
+          Bosqich 4/4
         </span>
         <DialogTitle className="mt-1 font-display text-3xl uppercase tracking-wide text-ink">
           Telefonni tasdiqlash
