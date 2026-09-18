@@ -1,13 +1,4 @@
-export type Step =
-  | "hero"
-  | "video"
-  | "guide"
-  | "category"
-  | "register"
-  | "otp"
-  | "payment";
-
-export type CategoryId = "failed_before" | "never_taken" | "revoked";
+export type ModalStep = "offer" | "form" | "otp" | "success";
 
 export interface RegisterFormData {
   firstName: string;

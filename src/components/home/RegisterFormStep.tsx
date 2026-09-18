@@ -1,14 +1,15 @@
 "use client";
 
 import { FormEvent, ReactNode, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import Section from "./Section";
+import RetroButton from "./RetroButton";
 import { RegisterFormData } from "./types";
 
-interface RegisterFormProps {
-  onNext: (data: RegisterFormData) => void;
+interface RegisterFormStepProps {
+  initialData: RegisterFormData;
+  onSubmit: (data: RegisterFormData) => void;
 }
 
 type FieldErrors = Partial<Record<keyof RegisterFormData, string>>;
@@ -31,11 +32,16 @@ function extractDigits(rawValue: string): string {
   return digits.slice(0, 9);
 }
 
-export default function RegisterForm({ onNext }: RegisterFormProps) {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [age, setAge] = useState("");
-  const [phoneDigits, setPhoneDigits] = useState("");
+export default function RegisterFormStep({
+  initialData,
+  onSubmit,
+}: RegisterFormStepProps) {
+  const [firstName, setFirstName] = useState(initialData.firstName);
+  const [lastName, setLastName] = useState(initialData.lastName);
+  const [age, setAge] = useState(initialData.age);
+  const [phoneDigits, setPhoneDigits] = useState(
+    initialData.phone.replace(/^\+998/, ""),
+  );
   const [errors, setErrors] = useState<FieldErrors>({});
 
   function validate(): FieldErrors {
@@ -80,19 +86,23 @@ export default function RegisterForm({ onNext }: RegisterFormProps) {
       phone: `+998${phoneDigits}`,
     };
 
-    // No network request — form data stays local for now.
-    console.log("[RegisterForm] local submit:", data);
-    onNext(data);
+    // Hech qanday tarmoq so'rovi yo'q — faqat local state va dev log.
+    console.log("[RegisterFormStep] local submit:", data);
+    onSubmit(data);
   }
 
   return (
-    <Section
-      index="04"
-      title="Ro'yxatdan o'tish"
-      subtitle="Ma'lumotlaringiz faqat shu qurilmada saqlanadi"
-      tone="soft"
-    >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
+    <div className="flex flex-col gap-5">
+      <div>
+        <span className="font-mono text-xs uppercase tracking-[0.25em] text-stop">
+          Bosqich 2/3
+        </span>
+        <DialogTitle className="mt-1 font-display text-3xl uppercase tracking-wide text-ink">
+          Ro&rsquo;yxatdan o&rsquo;tish
+        </DialogTitle>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
         <Field id="firstName" label="Ism" error={errors.firstName}>
           <Input
             id="firstName"
@@ -100,6 +110,7 @@ export default function RegisterForm({ onNext }: RegisterFormProps) {
             onChange={(e) => setFirstName(e.target.value)}
             placeholder="Aziz"
             aria-invalid={!!errors.firstName}
+            className="border-ink/50 bg-transparent text-ink placeholder:text-ink/40 focus-visible:border-ink focus-visible:ring-stop/30"
           />
         </Field>
 
@@ -110,6 +121,7 @@ export default function RegisterForm({ onNext }: RegisterFormProps) {
             onChange={(e) => setLastName(e.target.value)}
             placeholder="Karimov"
             aria-invalid={!!errors.lastName}
+            className="border-ink/50 bg-transparent text-ink placeholder:text-ink/40 focus-visible:border-ink focus-visible:ring-stop/30"
           />
         </Field>
 
@@ -117,11 +129,13 @@ export default function RegisterForm({ onNext }: RegisterFormProps) {
           <Input
             id="age"
             value={age}
-            onChange={(e) => setAge(e.target.value.replace(/\D/g, "").slice(0, 2))}
+            onChange={(e) =>
+              setAge(e.target.value.replace(/\D/g, "").slice(0, 2))
+            }
             placeholder="18"
             inputMode="numeric"
-            className="font-mono"
             aria-invalid={!!errors.age}
+            className="border-ink/50 bg-transparent font-mono text-ink placeholder:text-ink/40 focus-visible:border-ink focus-visible:ring-stop/30"
           />
         </Field>
 
@@ -132,16 +146,16 @@ export default function RegisterForm({ onNext }: RegisterFormProps) {
             onChange={(e) => setPhoneDigits(extractDigits(e.target.value))}
             placeholder="+998 90 123 45 67"
             inputMode="tel"
-            className="font-mono"
             aria-invalid={!!errors.phone}
+            className="border-ink/50 bg-transparent font-mono text-ink placeholder:text-ink/40 focus-visible:border-ink focus-visible:ring-stop/30"
           />
         </Field>
 
-        <Button type="submit" className="mt-2 self-start">
-          Davom etish
-        </Button>
+        <RetroButton type="submit" surface="paper" className="mt-1 self-start">
+          Ro&rsquo;yxatdan o&rsquo;tish
+        </RetroButton>
       </form>
-    </Section>
+    </div>
   );
 }
 
@@ -157,11 +171,13 @@ function Field({
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <Label htmlFor={id}>{label}</Label>
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id} className="text-ink">
+        {label}
+      </Label>
       {children}
       {error && (
-        <span className="font-mono text-xs text-destructive">{error}</span>
+        <span className="font-mono text-xs text-stop">{error}</span>
       )}
     </div>
   );
