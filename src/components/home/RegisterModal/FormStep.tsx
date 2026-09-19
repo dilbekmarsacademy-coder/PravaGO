@@ -4,10 +4,11 @@ import { FormEvent, ReactNode, useState } from "react";
 import { DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import RetroButton from "./RetroButton";
-import { RegisterFormData } from "./types";
+import { Button } from "@/components/ui/button";
+import type { RegisterFormData } from "../types";
 
-interface RegisterFormStepProps {
+interface FormStepProps {
+  stepLabel: string;
   initialData: RegisterFormData;
   onSubmit: (data: RegisterFormData) => void;
 }
@@ -32,10 +33,7 @@ function extractDigits(rawValue: string): string {
   return digits.slice(0, 9);
 }
 
-export default function RegisterFormStep({
-  initialData,
-  onSubmit,
-}: RegisterFormStepProps) {
+export default function FormStep({ stepLabel, initialData, onSubmit }: FormStepProps) {
   const [firstName, setFirstName] = useState(initialData.firstName);
   const [lastName, setLastName] = useState(initialData.lastName);
   const [age, setAge] = useState(initialData.age);
@@ -88,17 +86,17 @@ export default function RegisterFormStep({
     };
 
     // Hech qanday tarmoq so'rovi yo'q — faqat local state va dev log.
-    console.log("[RegisterFormStep] local submit:", data);
+    console.log("[FormStep] local submit:", data);
     onSubmit(data);
   }
 
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <span className="font-mono text-xs uppercase tracking-[0.25em] text-stop">
-          Bosqich 3/4
+        <span className="font-mono text-xs tracking-[0.24em] text-neon-orange uppercase">
+          {stepLabel}
         </span>
-        <DialogTitle className="mt-1 font-display text-3xl uppercase tracking-wide text-ink">
+        <DialogTitle className="mt-1 font-display text-2xl font-bold text-foreground">
           Ro&rsquo;yxatdan o&rsquo;tish
         </DialogTitle>
       </div>
@@ -111,7 +109,6 @@ export default function RegisterFormStep({
             onChange={(e) => setFirstName(e.target.value)}
             placeholder="Aziz"
             aria-invalid={!!errors.firstName}
-            className="border-ink/50 bg-transparent text-ink placeholder:text-ink/40 focus-visible:border-ink focus-visible:ring-stop/30"
           />
         </Field>
 
@@ -122,7 +119,6 @@ export default function RegisterFormStep({
             onChange={(e) => setLastName(e.target.value)}
             placeholder="Karimov"
             aria-invalid={!!errors.lastName}
-            className="border-ink/50 bg-transparent text-ink placeholder:text-ink/40 focus-visible:border-ink focus-visible:ring-stop/30"
           />
         </Field>
 
@@ -130,13 +126,11 @@ export default function RegisterFormStep({
           <Input
             id="age"
             value={age}
-            onChange={(e) =>
-              setAge(e.target.value.replace(/\D/g, "").slice(0, 2))
-            }
+            onChange={(e) => setAge(e.target.value.replace(/\D/g, "").slice(0, 2))}
             placeholder="18"
             inputMode="numeric"
             aria-invalid={!!errors.age}
-            className="border-ink/50 bg-transparent font-mono text-ink placeholder:text-ink/40 focus-visible:border-ink focus-visible:ring-stop/30"
+            className="font-mono"
           />
         </Field>
 
@@ -148,13 +142,16 @@ export default function RegisterFormStep({
             placeholder="+998 90 123 45 67"
             inputMode="tel"
             aria-invalid={!!errors.phone}
-            className="border-ink/50 bg-transparent font-mono text-ink placeholder:text-ink/40 focus-visible:border-ink focus-visible:ring-stop/30"
+            className="font-mono"
           />
         </Field>
 
-        <RetroButton type="submit" surface="paper" className="mt-1 self-start">
-          Ro&rsquo;yxatdan o&rsquo;tish
-        </RetroButton>
+        <Button
+          type="submit"
+          className="glow-orange-hover mt-1 h-auto self-start rounded-full border-0 bg-gradient-to-r from-neon-orange to-neon-orange-2 px-6 py-2.5 text-sm font-bold text-background"
+        >
+          Davom etish
+        </Button>
       </form>
     </div>
   );
@@ -173,13 +170,11 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Label htmlFor={id} className="text-ink">
+      <Label htmlFor={id} className="text-foreground/90">
         {label}
       </Label>
       {children}
-      {error && (
-        <span className="font-mono text-xs text-stop">{error}</span>
-      )}
+      {error && <span className="font-mono text-xs text-destructive">{error}</span>}
     </div>
   );
 }

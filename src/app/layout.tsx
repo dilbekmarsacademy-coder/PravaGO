@@ -1,23 +1,23 @@
 import type { Metadata } from "next";
-import { Bebas_Neue, PT_Sans, JetBrains_Mono } from "next/font/google";
+import { Syne, Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
 
-const bebasNeue = Bebas_Neue({
-  variable: "--font-bebas",
-  weight: "400",
-  subsets: ["latin", "latin-ext"],
+const syne = Syne({
+  variable: "--font-syne",
+  weight: ["600", "700", "800"],
+  subsets: ["latin"],
 });
 
-const ptSans = PT_Sans({
-  variable: "--font-pt-sans",
-  weight: ["400", "700"],
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
+  weight: ["400", "500", "600", "700"],
   subsets: ["latin", "latin-ext"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains",
-  weight: ["400", "500", "700"],
+  weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
 });
 
@@ -31,7 +31,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="uz"
-      className={`h-full ${bebasNeue.variable} ${ptSans.variable} ${jetbrainsMono.variable}`}
+      className={`h-full ${syne.variable} ${plusJakartaSans.variable} ${jetbrainsMono.variable}`}
     >
       <body className="flex min-h-full flex-col bg-background font-sans text-foreground antialiased">
         {children}

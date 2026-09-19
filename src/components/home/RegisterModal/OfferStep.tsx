@@ -3,27 +3,28 @@
 import { useState } from "react";
 import { DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import RetroButton from "./RetroButton";
+import { Button } from "@/components/ui/button";
 
 interface OfferStepProps {
+  stepLabel: string;
   onAccept: () => void;
 }
 
-export default function OfferStep({ onAccept }: OfferStepProps) {
+export default function OfferStep({ stepLabel, onAccept }: OfferStepProps) {
   const [checked, setChecked] = useState(false);
 
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <span className="font-mono text-xs uppercase tracking-[0.25em] text-stop">
-          Bosqich 1/4
+        <span className="font-mono text-xs tracking-[0.24em] text-neon-orange uppercase">
+          {stepLabel}
         </span>
-        <DialogTitle className="mt-1 font-display text-3xl uppercase tracking-wide text-ink">
+        <DialogTitle className="mt-1 font-display text-2xl font-bold text-foreground">
           Ommaviy oferta shartlari
         </DialogTitle>
       </div>
 
-      <div className="h-48 overflow-y-auto border-2 border-ink/70 bg-ink/[0.03] p-4 text-sm leading-relaxed text-ink/80">
+      <div className="h-48 overflow-y-auto rounded-xl border border-border bg-white/[0.03] p-4 text-sm leading-relaxed text-muted-foreground">
         {/* TODO: real oferta matni bilan almashtiriladi */}
         <p className="mb-3">
           Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ushbu
@@ -49,26 +50,23 @@ export default function OfferStep({ onAccept }: OfferStepProps) {
         </p>
       </div>
 
-      <label className="flex cursor-pointer items-start gap-3 text-sm text-ink">
+      <label className="flex cursor-pointer items-start gap-3 text-sm text-foreground/90">
         <Checkbox
           checked={checked}
           onCheckedChange={(value) => setChecked(value === true)}
-          className="mt-0.5 border-ink/60 data-checked:border-ink data-checked:bg-stop"
+          className="mt-0.5"
         />
-        <span>
-          Men ommaviy oferta shartlari bilan tanishdim va roziman
-        </span>
+        <span>Men ommaviy oferta shartlari bilan tanishdim va roziman</span>
       </label>
 
-      <RetroButton
+      <Button
         type="button"
-        surface="paper"
         disabled={!checked}
         onClick={onAccept}
-        className="self-start"
+        className="glow-orange-hover h-auto self-start rounded-full border-0 bg-gradient-to-r from-neon-orange to-neon-orange-2 px-6 py-2.5 text-sm font-bold text-background"
       >
         Davom etish
-      </RetroButton>
+      </Button>
     </div>
   );
 }
