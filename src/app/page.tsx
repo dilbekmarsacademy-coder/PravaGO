@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import Header from "@/components/home/Header";
 import Hero from "@/components/home/Hero";
 import TrustStats from "@/components/home/TrustStats";
@@ -42,6 +43,14 @@ export default function Page() {
         onOpenChange={setModalOpen}
         examStatus={examStatus}
       />
+      {/* VAQTINCHALIK: ro'yxatdan o'tish/to'lov oqimini chetlab, to'g'ridan-to'g'ri
+          test yechishni boshlash uchun. Ishlab chiqishda ishlatish uchun — keyin olib tashlanadi. */}
+      <Link
+        href="/test/1-kun-2-mavzu-tartibga-soluvchining-ishoralari"
+        className="fixed bottom-5 right-5 z-50 rounded-full bg-neon-orange px-5 py-3 text-sm font-bold text-background shadow-lg"
+      >
+        Testni boshlash (vaqtincha)
+      </Link>
     </>
   );
 }

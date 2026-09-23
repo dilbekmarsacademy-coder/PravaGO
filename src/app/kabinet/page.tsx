@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { RotateCcwIcon, SparklesIcon, TriangleAlertIcon } from "lucide-react";
+import { ArrowRightIcon, RotateCcwIcon, SparklesIcon, TriangleAlertIcon } from "lucide-react";
 import { getRegistration, clearRegistration, useRegistration } from "@/lib/registration-store";
 import { getDashboardData, type DashboardData } from "@/lib/api/course";
 import { buildCourseState } from "@/lib/progress/unlock";
@@ -124,6 +125,22 @@ function DashboardContent({
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Vaqtinchalik: haqiqiy backend bilan ulangan yagona mavzu hozircha
+          quyidagi ro'yxatga (mock ma'lumotlar) kiritilmagan — to'liq
+          integratsiya keyingi bosqichda. */}
+      <Link
+        href="/test/1-kun-2-mavzu-tartibga-soluvchining-ishoralari"
+        className="glass glow-orange-hover flex items-center justify-between gap-3 rounded-2xl p-5 transition-colors hover:bg-foreground/5"
+      >
+        <div>
+          <p className="text-xs font-semibold tracking-wide text-neon-orange uppercase">Yangi</p>
+          <p className="mt-1 font-display text-sm font-bold text-foreground sm:text-base">
+            Sinov: Tartibga soluvchining ishoralari
+          </p>
+        </div>
+        <ArrowRightIcon className="size-5 shrink-0 text-neon-orange" />
+      </Link>
+
       {courseState.allRegularDaysCompleted ? (
         <div className="glass relative overflow-hidden rounded-2xl p-6 text-center sm:p-8">
           <div

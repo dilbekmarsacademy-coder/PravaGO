@@ -1,0 +1,813 @@
+[
+  {
+    "id": 1,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "",
+    "image": "q01.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Қизил ва оқ автомобилларга"
+      },
+      {
+        "id": "F2",
+        "text": "Кўк, яшил ва оқ автомобилларга"
+      },
+      {
+        "id": "F3",
+        "text": "Оқ, кўк ва сариқ автомобилларга"
+      }
+    ],
+    "correctOptionId": "F2",
+    "keyword": "KO'K, YASHIL VA OQ",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 2,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Қайси транспорт воситаси ҳайдовчиси тўғрига ҳаракатланиш ҳуқуқига эга?",
+    "image": "q02.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Автобус ва мотоцикл ҳайдовчилари"
+      },
+      {
+        "id": "F2",
+        "text": "Енгил ва оқ автомобиллари ҳайдовчилари"
+      },
+      {
+        "id": "F3",
+        "text": "Енгил автомобил ҳайдовчиси"
+      }
+    ],
+    "correctOptionId": "F3",
+    "keyword": "YENGIL AVTOMOBIL",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 3,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Қайси транспорт воситасига ҳаракатланиш рухсат этилади?",
+    "image": "q03.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Мотоциклга"
+      },
+      {
+        "id": "F2",
+        "text": "Юк автомобилига"
+      },
+      {
+        "id": "F3",
+        "text": "Автобусга"
+      },
+      {
+        "id": "F4",
+        "text": "Енгил автомобилига"
+      },
+      {
+        "id": "F5",
+        "text": "Енгил ва юк автомобилларига"
+      }
+    ],
+    "correctOptionId": "F4",
+    "keyword": "YENGIL AVTOMOBILGA",
+    "confidence": "heuristic",
+    "needsReview": false
+  },
+  {
+    "id": 4,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Тартибга солувчининг мазкур ишораси қуйидагини билдиради:",
+    "image": "q04.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Кўк, яшил автомобилларга ҳаракатланишга рухсат этилади. Қизил,"
+      },
+      {
+        "id": "F2",
+        "text": "Кўк, қизил, яшил автомобилларга ҳаракатланишга рухсат этилади."
+      }
+    ],
+    "correctOptionId": "F2",
+    "keyword": "KO'K, QIZIL, YASHIL",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 5,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Қайси транспорт воситаларига ҳаракатланишга рухсат этилади?",
+    "image": "q05.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Фақат қизил автомобилга."
+      },
+      {
+        "id": "F2",
+        "text": "Барча транспорт воситаларига."
+      },
+      {
+        "id": "F3",
+        "text": "Қизил, кўк ва яшил автомобилларга."
+      }
+    ],
+    "correctOptionId": "F3",
+    "keyword": "QIZIL, KO'K VA YASHIL",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 6,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Ҳаракатланиш кимга рухсат этилган?",
+    "image": "q06.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Барча транспорт воситаларига"
+      },
+      {
+        "id": "F2",
+        "text": "Мотоциклга"
+      },
+      {
+        "id": "F3",
+        "text": "Автомобил ва мотоциклга"
+      }
+    ],
+    "correctOptionId": "F2",
+    "keyword": "MOTOTSIKLGA",
+    "confidence": "heuristic",
+    "needsReview": false
+  },
+  {
+    "id": 7,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Қайси транспорт воситаларига ҳаракатланиш рухсат этилади?",
+    "image": "q07.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Яшил, кўк ва қора автомобилларга"
+      },
+      {
+        "id": "F2",
+        "text": "Қизил, сариқ ва яшил автомобилларга"
+      },
+      {
+        "id": "F3",
+        "text": "Яшил, кўк ва қизил"
+      }
+    ],
+    "correctOptionId": "F3",
+    "keyword": "YASHIL, KO'K VA QIZIL",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 8,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Автомобил қайси йўналишларда ҳаракатланиши мумкин?",
+    "image": "q08.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Фақат ўнгга"
+      },
+      {
+        "id": "F2",
+        "text": "Тўхташ ва светофорнинг яшил ишорасини кутиш"
+      },
+      {
+        "id": "F3",
+        "text": "Фақат тўғрига"
+      },
+      {
+        "id": "F4",
+        "text": "Барча йўналишлар бўйича"
+      }
+    ],
+    "correctOptionId": "F4",
+    "keyword": "BARCHA YO'NALISHLAR",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 9,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Қайси транспорт воситаларига ҳаракатланиш учун рухсат берилган?",
+    "image": "q09.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Енгил ва юк автомобилларига"
+      },
+      {
+        "id": "F2",
+        "text": "Мотоциклга, енгил ва юк автомобилларига"
+      },
+      {
+        "id": "F3",
+        "text": "Енгил автомобилига ва мотоциклга"
+      }
+    ],
+    "correctOptionId": "F3",
+    "keyword": "YENGIL AVTOMOBILGA VA MOTOTSIKLGA",
+    "confidence": "heuristic",
+    "needsReview": false
+  },
+  {
+    "id": 10,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Ҳаракатланишга рухсат берилган:",
+    "image": "q10.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Тўғрига"
+      },
+      {
+        "id": "F2",
+        "text": "Ўнгга биринчи йўлга"
+      },
+      {
+        "id": "F3",
+        "text": "Ўнгга иккинчи йўлга"
+      },
+      {
+        "id": "F4",
+        "text": "Ўнгга биринчи ва иккинчи йўлларга"
+      }
+    ],
+    "correctOptionId": "F2",
+    "keyword": "O'NGGA BIRINCHI",
+    "confidence": "heuristic",
+    "needsReview": false
+  },
+  {
+    "id": 11,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Ҳаракатланиш кимга рухсат этилган?",
+    "image": "q11.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Юк автомобили ва мотоциклга"
+      },
+      {
+        "id": "F2",
+        "text": "Барча транспорт воситаларига"
+      },
+      {
+        "id": "F3",
+        "text": "Трамвайга ва енгил автомобилига"
+      },
+      {
+        "id": "F4",
+        "text": "Енгил ва юк автомобилига, мотоциклга"
+      }
+    ],
+    "correctOptionId": "F1",
+    "keyword": "YUK AVTOMOBILI VA MOTOTSIKLGA",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 12,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Мотоциклнинг ҳайдовчиси қандай ҳолда чапга тўғри бурилди?",
+    "image": "q12.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Чорраҳага чиқди, юк автомобилини ўтказиб юборди, бурилишни"
+      },
+      {
+        "id": "F2",
+        "text": "Чорраҳага чиқди ва тартибга солувчининг рухсат этувчи ишорасини"
+      },
+      {
+        "id": "F3",
+        "text": "Тўхтади ва тартибга солувчининг рухсат этувчи ишорасида"
+      }
+    ],
+    "correctOptionId": "F3",
+    "keyword": "RUXSAT ETUVCHI ISHORASIDA",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 13,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Ҳаракатланишга рухсат этилган барча транспорт воситалари қайси жавобда тўғри кўрсатилган?",
+    "image": "q13.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Автомобиллар ва мотоцикл"
+      },
+      {
+        "id": "F2",
+        "text": "Барча транспорт воситалари"
+      },
+      {
+        "id": "F3",
+        "text": "Автомобиллар ва трамвай"
+      }
+    ],
+    "correctOptionId": "F1",
+    "keyword": "AVTOMOBILLAR VA MOTOTSIKL",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 14,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Қайси расмда ҳайдовчи тўғри бурилмоқда?",
+    "image": "q14.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Чапдаги расмда"
+      },
+      {
+        "id": "F2",
+        "text": "Ўнгдаги расмда"
+      }
+    ],
+    "correctOptionId": "F1",
+    "keyword": "CHAPDAGI",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 15,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "15. Ҳаракатланиш таққикланган:",
+    "image": "q15.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Кўк-сариқ автомобилга чапга"
+      },
+      {
+        "id": "F2",
+        "text": "Кўк-сариқ автомобилга тўғрига, қизил автомобилга тўғрига ва"
+      },
+      {
+        "id": "F3",
+        "text": "Қизил автомобилга --- тўғрига ва ўнгга"
+      }
+    ],
+    "correctOptionId": [
+      "F1",
+      "F2"
+    ],
+    "keyword": "KO'K-SARIQ",
+    "confidence": "unresolved",
+    "needsReview": true
+  },
+  {
+    "id": 16,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Ҳаракатланиш рухсат этилган:",
+    "image": "q16.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Мотоциклга"
+      },
+      {
+        "id": "F2",
+        "text": "Трамвайга"
+      },
+      {
+        "id": "F3",
+        "text": "Кўк автомобилга"
+      },
+      {
+        "id": "F4",
+        "text": "Трамвайга ва қизил автомобилга"
+      },
+      {
+        "id": "F5",
+        "text": "Қизил автомобилга"
+      }
+    ],
+    "correctOptionId": "F5",
+    "keyword": "QIZIL AVTOMOBILGA",
+    "confidence": "heuristic",
+    "needsReview": false
+  },
+  {
+    "id": 17,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Қайси транспорт воситасига ҳаракатланиш рухсат этилади?",
+    "image": "q17.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Сариқ ва қизил автомобилга"
+      },
+      {
+        "id": "F2",
+        "text": "Яшил, қизил ва оқ автомобилларга"
+      },
+      {
+        "id": "F3",
+        "text": "Оқ ва яшил автомобилга"
+      }
+    ],
+    "correctOptionId": "F1",
+    "keyword": "SARIQ VA QIZIL",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 18,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Транспорт воситаларига қайси йўналиш бўйича ҳаракатланишга рухсат этилади?",
+    "image": "q18.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Трамвайга чапга ёки тўғрига"
+      },
+      {
+        "id": "F2",
+        "text": "Фақат автомобилга чапга"
+      },
+      {
+        "id": "F3",
+        "text": "Трамвай ва автомобилга чапга"
+      },
+      {
+        "id": "F4",
+        "text": "Трамвайга чапга ёки тўғрига, автомобилга трамвайдан сўнг"
+      },
+      {
+        "id": "F5",
+        "text": "Трамвайга чапга, автомобилга чапга ва тескари йўналишга"
+      }
+    ],
+    "correctOptionId": "F5",
+    "keyword": "CHAPGA VA TESKARI",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 19,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Йўлда ҳаракатланишни тартибга солиш учун вақолатли шахсда ўзи билан бўлиши керак:",
+    "image": "q19.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Тегишли гувоҳнома ва таниқлик белгиси қўл боғичи"
+      },
+      {
+        "id": "F2",
+        "text": "Жезл"
+      },
+      {
+        "id": "F3",
+        "text": "Қизил чироқ (ёруғлик қайтаргич) гардиш ёки байроқча"
+      },
+      {
+        "id": "F4",
+        "text": "Барча санаб ўтилган белгилар"
+      }
+    ],
+    "correctOptionId": "F4",
+    "keyword": "BARCHA",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 20,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Тартибга солувчининг хуштак ишораси хизмат қилади:",
+    "image": "q20.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Ҳаракат иштирокчиларининг эътиборини жалб этиш учун"
+      },
+      {
+        "id": "F2",
+        "text": "Зарур ҳолларда «қўлни юқорига кўтариш» ишорасининг ўрнини босиш"
+      },
+      {
+        "id": "F3",
+        "text": "Пиёдалар учун рухсат этувчи ишора бўлиб"
+      }
+    ],
+    "correctOptionId": "F1",
+    "keyword": "E'TIBORINI JALB",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 21,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "21. Чоррахага кирганингизда тартибга солувчи кўлини юқорига кўтарди, сизга ҳаракатланишга рухсат этиладими?",
+    "image": "q21.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Рухсат этилмайди"
+      },
+      {
+        "id": "F2",
+        "text": "Рухсат этилади, агар сиз ўнгга буриладиган бўлсангиз"
+      },
+      {
+        "id": "F3",
+        "text": "Рухсат этилади"
+      }
+    ],
+    "correctOptionId": "F3",
+    "keyword": "RUXSAT ETILADI",
+    "confidence": "heuristic",
+    "needsReview": false
+  },
+  {
+    "id": 22,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Ҳаракатланишга рухсат берилган:",
+    "image": "q22.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Қизил, кўк, яшил ва сариқ автомобилга"
+      },
+      {
+        "id": "F2",
+        "text": "Қизил ва сариқ автомобилга"
+      },
+      {
+        "id": "F3",
+        "text": "Қизил, сариқ ва яшил автомобилга"
+      }
+    ],
+    "correctOptionId": "F2",
+    "keyword": "QIZIL VA SARIQ",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 23,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Қайси транспорт воситаларига ҳаракатланишга рухсат берилган?",
+    "image": "q23.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Мотоциклга ўнгга ва енгил автомобилга барча йўналишларга"
+      },
+      {
+        "id": "F2",
+        "text": "Енгил автомобилга ўнгга ва тўғрига"
+      },
+      {
+        "id": "F3",
+        "text": "Мотоциклга ўнгга, енгил автомобилга тўғрига ва ўнгга"
+      }
+    ],
+    "correctOptionId": "F3",
+    "keyword": "TO'G'RIGA VA O'NGGA",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 24,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "24. Қайси транспорт воситасига ҳаракатланиш таққикланган?",
+    "image": "q24.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Мотоциклга"
+      },
+      {
+        "id": "F2",
+        "text": "Ҳеч кимга тақиқланмаган"
+      },
+      {
+        "id": "F3",
+        "text": "Юк автомобилига"
+      }
+    ],
+    "correctOptionId": "F3",
+    "keyword": "YUK AVTOMOBILIGA",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 25,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Автомобил ҳайдовчиси қайрилиб олмоқчи:",
+    "image": "q25.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Чорраҳадан биринчи бўлиб ўтади"
+      },
+      {
+        "id": "F2",
+        "text": "Трамвайга йўл бериб, қайрилиб олади"
+      }
+    ],
+    "correctOptionId": "F2",
+    "keyword": "TRAMVAYGA YO'L BERIB",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 26,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Маёқчаси ёқиланган транспорт воситасига ҳаракатни тўғрига давом еттиришга рухсат бериладими?",
+    "image": "q26.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Рухсат берилади"
+      },
+      {
+        "id": "F2",
+        "text": "Тақиқланади"
+      }
+    ],
+    "correctOptionId": "F2",
+    "keyword": "TAQIQLANADI",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 27,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Автомобилларга қайси йўналишларда ҳаракатланишга рухсат берилади?",
+    "image": "q27.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Қизилга чапга, кўкка тақиқланади"
+      },
+      {
+        "id": "F2",
+        "text": "Кўкка тўғрига, қизилга чапга"
+      },
+      {
+        "id": "F3",
+        "text": "Ҳар иккисига ҳам кўрсатилган йўналишларда рухсат берилади"
+      },
+      {
+        "id": "F4",
+        "text": "Қизилга рухсат берилади, кўкка ўнгга тақиқланган"
+      }
+    ],
+    "correctOptionId": "F3",
+    "keyword": "HAR IKKISIGA HAM",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 28,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Тартибга солувчининг ушбу ишорасида қайси транспорт воситаларига ҳаракатланишга рухсат этилади?",
+    "image": "q28.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Яшил ва оқ автомобилларга"
+      },
+      {
+        "id": "F2",
+        "text": "Кўк автомобиль ва ЙПХ автомобилига"
+      },
+      {
+        "id": "F3",
+        "text": "Фақат ЙПХ автомобилига"
+      },
+      {
+        "id": "F4",
+        "text": "Ҳеч бирига рухсат этилмайди"
+      }
+    ],
+    "correctOptionId": "F4",
+    "keyword": "этилмайди",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 29,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Тартибга солувчининг ушбу ишорасида транспорт воситалари чорраҳаларда қайси йўналишларга ҳаракатланиши мумкин?",
+    "image": "q29.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Трамвайларга тўғрига, рельссиз транспорт воситаларига тўғрига"
+      },
+      {
+        "id": "F2",
+        "text": "Барча йўналишларга"
+      },
+      {
+        "id": "F3",
+        "text": "Трамвайларга чапга, рельссиз транспорт воситаларига барча"
+      }
+    ],
+    "correctOptionId": "F3",
+    "keyword": "чапга",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 30,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Тартибга солувчининг қўли чорраҳаларда юқорига кўтарилганда қандай маънони билдиради?",
+    "image": "q30.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Светофор устунлиги"
+      },
+      {
+        "id": "F2",
+        "text": "Йўналишни ўзгартириш"
+      },
+      {
+        "id": "F3",
+        "text": "Ҳаракатни бошлаш"
+      },
+      {
+        "id": "F4",
+        "text": "Ҳаракатни тақиқлаш"
+      }
+    ],
+    "correctOptionId": "F4",
+    "keyword": "тақиқлаш",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 31,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Сиз ушбу ишорада қайси йўналишга ҳаракатланишингиз керак?",
+    "image": "q31.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Фақат тўғрига"
+      },
+      {
+        "id": "F2",
+        "text": "Фақат орқага"
+      },
+      {
+        "id": "F3",
+        "text": "Фақат чапга"
+      },
+      {
+        "id": "F4",
+        "text": "Фақат ўнгга"
+      }
+    ],
+    "correctOptionId": "F4",
+    "keyword": "ўнгга",
+    "confidence": "exact",
+    "needsReview": false
+  },
+  {
+    "id": 32,
+    "topic": "1-kun-2-mavzu-tartibga-soluvchining-ishoralari",
+    "text": "Тартибга солувчининг қўллари ҳар икки ёнга чўзилганда қандай маънони билдиради?",
+    "image": "q32.jpg",
+    "options": [
+      {
+        "id": "F1",
+        "text": "Чап ва ўнг томондан трамвайларга --- тўғрига, рельссиз"
+      },
+      {
+        "id": "F2",
+        "text": "Чап ва ўнг томондан трамвайларга --- чапга, рельссиз"
+      },
+      {
+        "id": "F3",
+        "text": "Чап ва ўнг томондан трамвайларга --- тўғрига, рельссиз"
+      }
+    ],
+    "correctOptionId": "F3",
+    "keyword": "олд ва орқа",
+    "confidence": "heuristic",
+    "needsReview": false
+  }
+]
