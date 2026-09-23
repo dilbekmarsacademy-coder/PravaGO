@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { RocketIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/lib/i18n/useLocale";
 import HeroBackground from "./HeroBackground";
 
 interface HeroProps {
@@ -27,6 +28,8 @@ const item = {
 };
 
 export default function Hero({ onStart }: HeroProps) {
+  const { t } = useLocale();
+
   return (
     <section
       id="bosh-sahifa"
@@ -49,7 +52,7 @@ export default function Hero({ onStart }: HeroProps) {
             <span className="relative inline-flex size-2 rounded-full bg-neon-green" />
           </span>
           <span className="font-mono text-[0.68rem] font-medium tracking-[0.22em] text-foreground/90 uppercase">
-            Revolyutsion haydovchilik platformasi
+            {t.hero.badge}
           </span>
         </motion.div>
 
@@ -57,16 +60,16 @@ export default function Hero({ onStart }: HeroProps) {
           variants={item}
           className="mt-6 max-w-3xl font-display text-4xl leading-[1.08] font-extrabold tracking-tight text-foreground sm:text-6xl"
         >
-          Prava imtihonini{" "}
-          <span className="text-gradient-speed">1-urinishdayoq</span> topshiring!
+          {t.hero.titlePre}
+          <span className="text-gradient-speed">{t.hero.titleHighlight}</span>
+          {t.hero.titlePost}
         </motion.h1>
 
         <motion.p
           variants={item}
           className="mt-5 max-w-xl text-balance text-base leading-relaxed text-muted-foreground sm:text-lg"
         >
-          63 ta bilet, 1 260 ta interaktiv savol va 7 kunlik avtotest
-          simulyatsiyasi — tizimli tayyorgarlik uchun barchasi bitta joyda.
+          {t.hero.subtitle}
         </motion.p>
 
         <motion.div
@@ -77,14 +80,14 @@ export default function Hero({ onStart }: HeroProps) {
             onClick={onStart}
             className="glow-orange-hover h-auto rounded-full border-0 bg-gradient-to-r from-neon-orange to-neon-orange-2 px-7 py-3.5 text-base font-bold text-background"
           >
-            Tayyorlanishni boshlash
+            {t.hero.ctaPrimary}
             <RocketIcon className="size-4" />
           </Button>
           <a
             href="#qanday-ishlaydi"
             className="rounded-full border border-border px-7 py-3.5 text-base font-medium text-foreground/90 transition-colors hover:border-neon-cyan/50 hover:text-neon-cyan"
           >
-            Qanday ishlashini ko&rsquo;rish
+            {t.hero.ctaSecondary}
           </a>
         </motion.div>
 
@@ -92,7 +95,7 @@ export default function Hero({ onStart }: HeroProps) {
           variants={item}
           className="mt-5 font-mono text-xs tracking-wide text-muted-foreground"
         >
-          Ro&rsquo;yxatdan o&rsquo;tish 1 daqiqadan kam vaqt oladi
+          {t.hero.note}
         </motion.p>
       </motion.div>
     </section>

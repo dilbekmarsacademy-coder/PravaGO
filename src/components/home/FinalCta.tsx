@@ -3,6 +3,7 @@
 import { FlagIcon, RocketIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/lib/i18n/useLocale";
 import { useReveal } from "./useReveal";
 
 interface FinalCtaProps {
@@ -11,12 +12,13 @@ interface FinalCtaProps {
 
 const CHECKER_PATTERN = {
   backgroundImage:
-    "repeating-conic-gradient(#f3f6fb 0% 25%, transparent 0% 50%)",
+    "repeating-conic-gradient(var(--foreground) 0% 25%, transparent 0% 50%)",
   backgroundSize: "16px 16px",
 };
 
 export default function FinalCta({ onStart }: FinalCtaProps) {
   const { ref, visible } = useReveal<HTMLDivElement>();
+  const { t } = useLocale();
 
   return (
     <section className="px-5 py-20 sm:px-8">
@@ -46,17 +48,16 @@ export default function FinalCta({ onStart }: FinalCtaProps) {
         </span>
 
         <h2 className="mt-5 font-display text-2xl font-bold tracking-tight text-foreground sm:text-4xl">
-          Bugundan boshlab, tizimli tayyorlaning
+          {t.finalCta.heading}
         </h2>
         <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
-          63 ta bilet, 1 260 ta savol va 7 kunlik nazorat dasturi — hoziroq
-          ro&rsquo;yxatdan o&rsquo;ting va tayyorgarlikni bugun boshlang.
+          {t.finalCta.desc}
         </p>
         <Button
           onClick={onStart}
           className="glow-orange-hover relative mx-auto mt-8 h-auto rounded-full border-0 bg-gradient-to-r from-neon-orange to-neon-orange-2 px-7 py-3.5 text-base font-bold text-background"
         >
-          Tayyorlanishni boshlash
+          {t.finalCta.cta}
           <RocketIcon className="size-4" />
         </Button>
       </div>

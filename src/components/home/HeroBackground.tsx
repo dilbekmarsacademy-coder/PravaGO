@@ -22,7 +22,7 @@ export default function HeroBackground({ imageUrl }: HeroBackgroundProps) {
             className="absolute inset-0"
             style={{
               background:
-                "radial-gradient(ellipse 60% 50% at 20% -5%, rgba(255,94,0,0.22), transparent 60%), radial-gradient(ellipse 55% 45% at 85% 10%, rgba(0,229,255,0.16), transparent 60%), linear-gradient(180deg, #070a0f 0%, #0d1117 50%, #070a0f 100%)",
+                "radial-gradient(ellipse 60% 50% at 20% -5%, rgba(255,94,0,0.22), transparent 60%), radial-gradient(ellipse 55% 45% at 85% 10%, rgba(0,229,255,0.16), transparent 60%), linear-gradient(180deg, var(--surface-1) 0%, var(--surface-2) 50%, var(--surface-1) 100%)",
             }}
           />
 

@@ -1,13 +1,19 @@
-import { GaugeIcon } from "lucide-react";
+"use client";
 
-const FOOTER_LINKS = [
-  { href: "#bosh-sahifa", label: "Bosh sahifa" },
-  { href: "#dastur", label: "Dastur" },
-  { href: "#qanday-ishlaydi", label: "Qanday ishlaydi" },
-  { href: "#natijalar", label: "Natijalar" },
-];
+import { GaugeIcon } from "lucide-react";
+import { useLocale } from "@/lib/i18n/useLocale";
 
 export default function Footer() {
+  const { t } = useLocale();
+
+  const footerLinks = [
+    { href: "#bosh-sahifa", label: t.header.nav.boshSahifa },
+    { href: "#dastur", label: t.header.nav.dastur },
+    { href: "#qanday-ishlaydi", label: t.header.nav.qandayIshlaydi },
+    { href: "#natijalar", label: t.header.nav.natijalar },
+    { href: "#narxlar", label: t.header.nav.narxlar },
+  ];
+
   return (
     <footer
       id="biz-haqimizda"
@@ -20,16 +26,14 @@ export default function Footer() {
           </span>
           <div>
             <p className="font-display text-sm font-bold tracking-wide text-foreground uppercase">
-              PravaTayyor
+              {t.header.brand}
             </p>
-            <p className="text-xs text-muted-foreground">
-              Onlayn haydovchilik imtihoniga tayyorgarlik platformasi
-            </p>
+            <p className="text-xs text-muted-foreground">{t.footer.tagline}</p>
           </div>
         </div>
 
         <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-          {FOOTER_LINKS.map((link) => (
+          {footerLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}
@@ -42,7 +46,7 @@ export default function Footer() {
       </div>
 
       <p className="mt-8 text-center font-mono text-xs text-muted-foreground/70">
-        © 2026 PravaTayyor. Barcha huquqlar himoyalangan.
+        {t.footer.copyright}
       </p>
     </footer>
   );

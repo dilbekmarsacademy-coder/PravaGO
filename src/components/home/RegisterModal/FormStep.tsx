@@ -5,6 +5,8 @@ import { DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/lib/i18n/useLocale";
+import type { Dictionary } from "@/lib/i18n/dictionary";
 import type { RegisterFormData } from "../types";
 
 interface FormStepProps {
@@ -41,31 +43,33 @@ export default function FormStep({ stepLabel, initialData, onSubmit }: FormStepP
     initialData.phone.replace(/^\+998/, ""),
   );
   const [errors, setErrors] = useState<FieldErrors>({});
+  const { t } = useLocale();
+  const errorMessages: Dictionary["registerModal"]["form"]["errors"] = t.registerModal.form.errors;
 
   function validate(): FieldErrors {
     const next: FieldErrors = {};
 
     if (!firstName.trim()) {
-      next.firstName = "Ism kiritilishi shart";
+      next.firstName = errorMessages.firstNameRequired;
     } else if (!NAME_PATTERN.test(firstName.trim())) {
-      next.firstName = "Ism faqat harflardan iborat bo'lishi kerak";
+      next.firstName = errorMessages.firstNameInvalid;
     }
 
     if (!lastName.trim()) {
-      next.lastName = "Familiya kiritilishi shart";
+      next.lastName = errorMessages.lastNameRequired;
     } else if (!NAME_PATTERN.test(lastName.trim())) {
-      next.lastName = "Familiya faqat harflardan iborat bo'lishi kerak";
+      next.lastName = errorMessages.lastNameInvalid;
     }
 
     const ageNum = Number(age);
     if (!age.trim() || !Number.isInteger(ageNum)) {
-      next.age = "Yoshni raqamda kiriting";
+      next.age = errorMessages.ageInvalid;
     } else if (ageNum < 16 || ageNum > 90) {
-      next.age = "Yosh 16 dan 90 gacha bo'lishi kerak";
+      next.age = errorMessages.ageRange;
     }
 
     if (phoneDigits.length !== 9) {
-      next.phone = "Telefon raqam to'liq emas (+998 XX XXX XX XX)";
+      next.phone = errorMessages.phoneIncomplete;
     }
 
     return next;
@@ -97,49 +101,49 @@ export default function FormStep({ stepLabel, initialData, onSubmit }: FormStepP
           {stepLabel}
         </span>
         <DialogTitle className="mt-1 font-display text-2xl font-bold text-foreground">
-          Ro&rsquo;yxatdan o&rsquo;tish
+          {t.registerModal.form.title}
         </DialogTitle>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-        <Field id="firstName" label="Ism" error={errors.firstName}>
+        <Field id="firstName" label={t.registerModal.form.firstName} error={errors.firstName}>
           <Input
             id="firstName"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
-            placeholder="Aziz"
+            placeholder={t.registerModal.form.firstNamePlaceholder}
             aria-invalid={!!errors.firstName}
           />
         </Field>
 
-        <Field id="lastName" label="Familiya" error={errors.lastName}>
+        <Field id="lastName" label={t.registerModal.form.lastName} error={errors.lastName}>
           <Input
             id="lastName"
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
-            placeholder="Karimov"
+            placeholder={t.registerModal.form.lastNamePlaceholder}
             aria-invalid={!!errors.lastName}
           />
         </Field>
 
-        <Field id="age" label="Yosh" error={errors.age}>
+        <Field id="age" label={t.registerModal.form.age} error={errors.age}>
           <Input
             id="age"
             value={age}
             onChange={(e) => setAge(e.target.value.replace(/\D/g, "").slice(0, 2))}
-            placeholder="18"
+            placeholder={t.registerModal.form.agePlaceholder}
             inputMode="numeric"
             aria-invalid={!!errors.age}
             className="font-mono"
           />
         </Field>
 
-        <Field id="phone" label="Telefon raqam" error={errors.phone}>
+        <Field id="phone" label={t.registerModal.form.phone} error={errors.phone}>
           <Input
             id="phone"
             value={formatPhoneDigits(phoneDigits)}
             onChange={(e) => setPhoneDigits(extractDigits(e.target.value))}
-            placeholder="+998 90 123 45 67"
+            placeholder={t.registerModal.form.phonePlaceholder}
             inputMode="tel"
             aria-invalid={!!errors.phone}
             className="font-mono"
@@ -150,7 +154,7 @@ export default function FormStep({ stepLabel, initialData, onSubmit }: FormStepP
           type="submit"
           className="glow-orange-hover mt-1 h-auto self-start rounded-full border-0 bg-gradient-to-r from-neon-orange to-neon-orange-2 px-6 py-2.5 text-sm font-bold text-background"
         >
-          Davom etish
+          {t.registerModal.form.cta}
         </Button>
       </form>
     </div>

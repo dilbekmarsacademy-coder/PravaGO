@@ -3,15 +3,8 @@
 import { CheckIcon, GaugeIcon, IdCardIcon, RouteIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/lib/i18n/useLocale";
 import { useReveal } from "./useReveal";
-
-const CHECKLIST = [
-  "Mavzuli video darslar",
-  "1 260 ta rasmiy savol",
-  "Avtomatik natija nazorati",
-  "Qayta ishlash imkoniyati",
-  "Yakuniy ichki imtihon",
-];
 
 // NOTE: Hardcoded mock numbers for UI preview functionality — real hisob-kitob emas.
 const DEMO_DAY_PROGRESS = 4;
@@ -29,6 +22,7 @@ interface ProductPreviewProps {
 
 export default function ProductPreview({ onStart }: ProductPreviewProps) {
   const { ref, visible } = useReveal<HTMLDivElement>();
+  const { t } = useLocale();
 
   return (
     <section id="dastur" className="scroll-mt-20 px-5 py-16 sm:px-8">
@@ -40,22 +34,21 @@ export default function ProductPreview({ onStart }: ProductPreviewProps) {
         )}
       >
         <div>
-          <span className="flex size-10 items-center justify-center rounded-full bg-white/5 text-neon-cyan">
+          <span className="flex size-10 items-center justify-center rounded-full bg-foreground/5 text-neon-cyan">
             <RouteIcon className="size-5" />
           </span>
           <span className="mt-4 block font-mono text-xs tracking-[0.24em] text-neon-cyan uppercase">
-            Platforma
+            {t.productPreview.eyebrow}
           </span>
           <h2 className="mt-2 font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Hamma narsa bir joyda
+            {t.productPreview.heading}
           </h2>
           <p className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Video darsdan tortib yakuniy ichki imtihongacha — butun tayyorgarlik
-            jarayoni bitta shaxsiy kabinetda, aniq bosqichlar bilan boshqariladi.
+            {t.productPreview.desc}
           </p>
 
           <ul className="mt-6 flex flex-col gap-3">
-            {CHECKLIST.map((item) => (
+            {t.productPreview.checklist.map((item) => (
               <li key={item} className="flex items-center gap-2.5 text-sm text-foreground/90">
                 <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-neon-orange/15 text-neon-orange">
                   <CheckIcon className="size-3" />
@@ -69,17 +62,17 @@ export default function ProductPreview({ onStart }: ProductPreviewProps) {
             onClick={onStart}
             className="glow-orange-hover mt-8 h-auto rounded-full border-0 bg-gradient-to-r from-neon-orange to-neon-orange-2 px-6 py-3 text-sm font-bold text-background"
           >
-            Tayyorlanishni boshlash
+            {t.productPreview.cta}
           </Button>
         </div>
 
         <div className="glass rounded-2xl p-6 sm:p-7">
           <div className="flex items-center justify-between">
             <span className="text-xs tracking-wide text-muted-foreground uppercase">
-              Shaxsiy kabinet
+              {t.productPreview.shaxsiyKabinet}
             </span>
-            <span className="rounded-full bg-white/5 px-2.5 py-1 font-mono text-[0.65rem] text-neon-green">
-              ONLINE
+            <span className="rounded-full bg-foreground/5 px-2.5 py-1 font-mono text-[0.65rem] text-neon-green">
+              {t.productPreview.online}
             </span>
           </div>
 
@@ -117,38 +110,38 @@ export default function ProductPreview({ onStart }: ProductPreviewProps) {
                   {DEMO_DAY_PROGRESS}/{DEMO_DAY_TOTAL}
                 </span>
                 <span className="text-[0.65rem] tracking-wide text-muted-foreground uppercase">
-                  kun
+                  {t.productPreview.kun}
                 </span>
               </div>
             </div>
 
-            <div className="flex-1 rounded-xl border border-border bg-white/[0.03] p-4">
+            <div className="flex-1 rounded-xl border border-border bg-foreground/[0.03] p-4">
               <span className="text-xs tracking-wide text-neon-orange uppercase">
-                Bugungi vazifa
+                {t.productPreview.bugungiVazifa}
               </span>
               <p className="mt-1.5 font-display text-sm font-bold text-foreground">
-                5-mavzu: Chorrahalarda harakatlanish
+                {t.productPreview.vazifaTitle}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Video dars + 20 savollik test
+                {t.productPreview.vazifaDesc}
               </p>
             </div>
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-border bg-white/[0.03] p-4">
+            <div className="rounded-xl border border-border bg-foreground/[0.03] p-4">
               <IdCardIcon className="size-4 text-neon-orange" />
               <p className="mt-2 font-mono text-xl font-bold text-foreground tabular-nums">
                 {DEMO_TICKETS}
               </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">Bilet</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{t.productPreview.bilet}</p>
             </div>
-            <div className="rounded-xl border border-border bg-white/[0.03] p-4">
+            <div className="rounded-xl border border-border bg-foreground/[0.03] p-4">
               <GaugeIcon className="size-4 text-neon-cyan" />
               <p className="mt-2 font-mono text-xl font-bold text-foreground tabular-nums">
                 {DEMO_LAST_SCORE}
               </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">Oxirgi natija</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{t.productPreview.oxirgiNatija}</p>
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/lib/i18n/useLocale";
 
 // TODO: keyinchalik real SMS backend integratsiyasi bilan almashtiriladi
 const DEV_MOCK_OTP_CODE = "dilbek12345";
@@ -18,6 +19,7 @@ interface OtpStepProps {
 export default function OtpStep({ stepLabel, phone, onVerified }: OtpStepProps) {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const { t } = useLocale();
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -25,7 +27,7 @@ export default function OtpStep({ stepLabel, phone, onVerified }: OtpStepProps) 
       setError(null);
       onVerified();
     } else {
-      setError("Kod noto'g'ri");
+      setError(t.registerModal.otp.errorInvalid);
     }
   }
 
@@ -36,17 +38,17 @@ export default function OtpStep({ stepLabel, phone, onVerified }: OtpStepProps) 
           {stepLabel}
         </span>
         <DialogTitle className="mt-1 font-display text-2xl font-bold text-foreground">
-          Telefonni tasdiqlash
+          {t.registerModal.otp.title}
         </DialogTitle>
         <p className="mt-1 text-sm text-muted-foreground">
-          Sizga SMS-kod yuborildi{phone ? ` (${phone})` : ""}
+          {t.registerModal.otp.subtitle(phone)}
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="otp-code" className="text-foreground/90">
-            Tasdiqlash kodi
+            {t.registerModal.otp.label}
           </Label>
           <Input
             id="otp-code"
@@ -55,7 +57,7 @@ export default function OtpStep({ stepLabel, phone, onVerified }: OtpStepProps) 
               setCode(e.target.value);
               if (error) setError(null);
             }}
-            placeholder="Kodni kiriting"
+            placeholder={t.registerModal.otp.placeholder}
             aria-invalid={!!error}
             className="font-mono text-base tracking-[0.1em]"
           />
@@ -66,7 +68,7 @@ export default function OtpStep({ stepLabel, phone, onVerified }: OtpStepProps) 
           type="submit"
           className="glow-orange-hover h-auto self-start rounded-full border-0 bg-gradient-to-r from-neon-orange to-neon-orange-2 px-6 py-2.5 text-sm font-bold text-background"
         >
-          Tasdiqlash
+          {t.registerModal.otp.cta}
         </Button>
       </form>
     </div>

@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { XIcon } from "lucide-react";
 import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
+import { useLocale } from "@/lib/i18n/useLocale";
+import { saveRegistration } from "@/lib/registration-store";
 import OfferStep from "./OfferStep";
 import StatusStep from "./StatusStep";
 import FormStep from "./FormStep";
@@ -31,6 +34,8 @@ export default function RegisterModal({
 }: RegisterModalProps) {
   const [step, setStep] = useState<ModalStep>("offer");
   const [formData, setFormData] = useState<RegisterFormData>(INITIAL_FORM_DATA);
+  const { t } = useLocale();
+  const router = useRouter();
 
   // "Siz qaysi holatdasiz?" kartalari orqali holat allaqachon tanlangan bo'lsa
   // (ExamStatus prop), modal ichida bu savol qayta so'ralmaydi — aks holda
@@ -40,7 +45,7 @@ export default function RegisterModal({
   const stepOrder: ModalStep[] = needsStatusStep
     ? ["offer", "status", "form", "otp"]
     : ["offer", "form", "otp"];
-  const stepLabel = `${stepOrder.indexOf(step) + 1}-qadam / ${stepOrder.length}`;
+  const stepLabel = t.registerModal.qadam(stepOrder.indexOf(step) + 1, stepOrder.length);
 
   function handleOpenChangeComplete(isOpen: boolean) {
     if (!isOpen) {
@@ -66,7 +71,7 @@ export default function RegisterModal({
     >
       <DialogContent
         showCloseButton={false}
-        className="max-h-[90vh] w-[calc(100%-2rem)] max-w-md gap-0 overflow-y-auto rounded-2xl border border-border bg-[#0d1117]/90 p-0 text-card-foreground shadow-[0_25px_70px_-20px_rgba(0,0,0,0.75)] backdrop-blur-2xl sm:max-w-md"
+        className="max-h-[90vh] w-[calc(100%-2rem)] max-w-md gap-0 overflow-y-auto rounded-2xl border border-border bg-popover/90 p-0 text-card-foreground shadow-[0_25px_70px_-20px_rgba(0,0,0,0.75)] backdrop-blur-2xl sm:max-w-md"
       >
         <DialogClose
           render={
@@ -77,7 +82,7 @@ export default function RegisterModal({
           }
         >
           <XIcon className="size-4" />
-          <span className="sr-only">Yopish</span>
+          <span className="sr-only">{t.registerModal.yopish}</span>
         </DialogClose>
 
         <div
@@ -111,10 +116,28 @@ export default function RegisterModal({
             <OtpStep
               stepLabel={stepLabel}
               phone={formData.phone}
-              onVerified={() => setStep("success")}
+              onVerified={() => {
+                if (formData.examStatus) {
+                  saveRegistration({
+                    firstName: formData.firstName,
+                    lastName: formData.lastName,
+                    age: formData.age,
+                    phone: formData.phone,
+                    examStatus: formData.examStatus,
+                  });
+                }
+                setStep("success");
+              }}
             />
           )}
-          {step === "success" && <SuccessStep />}
+          {step === "success" && (
+            <SuccessStep
+              onDone={() => {
+                onOpenChange(false);
+                router.push("/tolov");
+              }}
+            />
+          )}
         </div>
       </DialogContent>
     </Dialog>

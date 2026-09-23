@@ -5,6 +5,50 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  --background: #f5f6fa;
+  --foreground: #0b0e14;
+  --card: rgba(11, 14, 20, 0.04);
+  --card-foreground: #0b0e14;
+  --popover: #ffffff;
+  --popover-foreground: #0b0e14;
+  --primary: #ff5e00;
+  --primary-foreground: #ffffff;
+  --secondary: rgba(11, 14, 20, 0.05);
+  --secondary-foreground: #0b0e14;
+  --muted: rgba(11, 14, 20, 0.045);
+  --muted-foreground: #5b6472;
+  --accent: #0098b3;
+  --accent-foreground: #ffffff;
+  --destructive: #e0233f;
+  --border: rgba(11, 14, 20, 0.1);
+  --input: rgba(11, 14, 20, 0.12);
+  --ring: #ff5e00;
+  --chart-1: #ff5e00;
+  --chart-2: #0098b3;
+  --chart-3: #0b0e14;
+  --chart-4: #d1650a;
+  --chart-5: #7c8494;
+  --radius: 1rem;
+  --sidebar: #f5f6fa;
+  --sidebar-foreground: #0b0e14;
+  --sidebar-primary: #ff5e00;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(11, 14, 20, 0.05);
+  --sidebar-accent-foreground: #0b0e14;
+  --sidebar-border: rgba(11, 14, 20, 0.1);
+  --sidebar-ring: #ff5e00;
+
+  --surface-1: #f5f6fa;
+  --surface-2: #ffffff;
+  --neon-orange: #ff5e00;
+  --neon-orange-2: #ff8800;
+  --neon-cyan: #0098b3;
+  --neon-green: #128a4e;
+  --neon-amber: #b8790a;
+  --neon-red: #d81b46;
+}
+
+.dark {
   --background: #070a0f;
   --foreground: #f3f6fb;
   --card: rgba(255, 255, 255, 0.045);
@@ -28,7 +72,6 @@
   --chart-3: #f3f6fb;
   --chart-4: #ff8800;
   --chart-5: #4b5566;
-  --radius: 1rem;
   --sidebar: #070a0f;
   --sidebar-foreground: #f3f6fb;
   --sidebar-primary: #ff5e00;
@@ -101,8 +144,12 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
   scroll-behavior: smooth;
+}
+
+html.dark {
+  color-scheme: dark;
 }
 
 body {

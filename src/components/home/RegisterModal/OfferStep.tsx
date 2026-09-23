@@ -4,6 +4,7 @@ import { useState } from "react";
 import { DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/lib/i18n/useLocale";
 
 interface OfferStepProps {
   stepLabel: string;
@@ -12,6 +13,7 @@ interface OfferStepProps {
 
 export default function OfferStep({ stepLabel, onAccept }: OfferStepProps) {
   const [checked, setChecked] = useState(false);
+  const { t } = useLocale();
 
   return (
     <div className="flex flex-col gap-5">
@@ -20,11 +22,11 @@ export default function OfferStep({ stepLabel, onAccept }: OfferStepProps) {
           {stepLabel}
         </span>
         <DialogTitle className="mt-1 font-display text-2xl font-bold text-foreground">
-          Ommaviy oferta shartlari
+          {t.registerModal.offer.title}
         </DialogTitle>
       </div>
 
-      <div className="h-48 overflow-y-auto rounded-xl border border-border bg-white/[0.03] p-4 text-sm leading-relaxed text-muted-foreground">
+      <div className="h-48 overflow-y-auto rounded-xl border border-border bg-foreground/[0.03] p-4 text-sm leading-relaxed text-muted-foreground">
         {/* TODO: real oferta matni bilan almashtiriladi */}
         <p className="mb-3">
           Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ushbu
@@ -56,7 +58,7 @@ export default function OfferStep({ stepLabel, onAccept }: OfferStepProps) {
           onCheckedChange={(value) => setChecked(value === true)}
           className="mt-0.5"
         />
-        <span>Men ommaviy oferta shartlari bilan tanishdim va roziman</span>
+        <span>{t.registerModal.offer.checkbox}</span>
       </label>
 
       <Button
@@ -65,7 +67,7 @@ export default function OfferStep({ stepLabel, onAccept }: OfferStepProps) {
         onClick={onAccept}
         className="glow-orange-hover h-auto self-start rounded-full border-0 bg-gradient-to-r from-neon-orange to-neon-orange-2 px-6 py-2.5 text-sm font-bold text-background"
       >
-        Davom etish
+        {t.registerModal.offer.cta}
       </Button>
     </div>
   );

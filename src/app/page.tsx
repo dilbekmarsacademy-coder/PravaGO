@@ -7,6 +7,8 @@ import TrustStats from "@/components/home/TrustStats";
 import CategorySection from "@/components/home/CategorySection";
 import HowItWorks from "@/components/home/HowItWorks";
 import ProductPreview from "@/components/home/ProductPreview";
+import Pricing from "@/components/home/Pricing";
+import Testimonials from "@/components/home/Testimonials";
 import FinalCta from "@/components/home/FinalCta";
 import Footer from "@/components/home/Footer";
 import RegisterModal from "@/components/home/RegisterModal/RegisterModal";
@@ -30,6 +32,8 @@ export default function Page() {
         <CategorySection onSelect={(status) => openRegister(status)} />
         <HowItWorks />
         <ProductPreview onStart={() => openRegister()} />
+        <Pricing onStart={() => openRegister()} />
+        <Testimonials />
         <FinalCta onStart={() => openRegister()} />
       </main>
       <Footer />
