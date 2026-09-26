@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CheckIcon, LockIcon, PlayIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PASS_PERCENT } from "@/config/rules";
+import { topicHref } from "@/data/curriculum";
 import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
 import type { TopicViewState } from "@/lib/progress/unlock";
@@ -77,7 +78,7 @@ export default function TopicRow({ topicState }: TopicRowProps) {
 
   return (
     <Link
-      href={`/kabinet/mavzu/${topic.id}`}
+      href={topicHref(topic)}
       className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-foreground/5"
     >
       {content}

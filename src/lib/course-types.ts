@@ -11,6 +11,7 @@ export interface Topic {
   id: string;
   number: number; // rasmiy test raqami (testNo), kunlar bo'ylab ketma-ket bo'lishi shart emas
   title: LocalizedText;
+  testSlug?: string; // backend test bankidagi slug (mavjud bo'lsa mavzu bosilganda test boshlanadi)
   dayId: string;
   questionCount: number;
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRightIcon, BookOpenIcon, ListChecksIcon, VideoIcon } from "lucide-react";
 import { PASS_PERCENT } from "@/config/rules";
+import { topicHref } from "@/data/curriculum";
 import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
 import type { ContinueTarget } from "@/lib/progress/unlock";
@@ -21,13 +22,15 @@ export default function ContinueCard({ target }: ContinueCardProps) {
   const { locale, t } = useLocale();
   const labels = t.kabinet.continueCard;
   const { topic } = target;
-  const Icon = STAGE_ICONS[topic.stage];
+  // Test banki ulangan mavzuda tugma to'g'ridan-to'g'ri testni boshlaydi.
+  const stage = topic.topic.testSlug ? "test" : topic.stage;
+  const Icon = STAGE_ICONS[stage];
 
   const hasFailedAttempt =
-    topic.stage === "test" && topic.lastPercent !== null && topic.lastPercent < PASS_PERCENT;
+    stage === "test" && topic.lastPercent !== null && topic.lastPercent < PASS_PERCENT;
   const actionLabel = hasFailedAttempt
     ? labels.retryTest(topic.lastPercent as number)
-    : labels.stages[topic.stage];
+    : labels.stages[stage];
 
   return (
     <div className="glass relative overflow-hidden rounded-2xl p-6 sm:p-7">
@@ -56,7 +59,7 @@ export default function ContinueCard({ target }: ContinueCardProps) {
       </div>
 
       <Link
-        href={`/kabinet/mavzu/${topic.topic.id}`}
+        href={topicHref(topic.topic)}
         className="glow-orange-hover mt-6 inline-flex h-auto items-center gap-2 rounded-full bg-gradient-to-r from-neon-orange to-neon-orange-2 px-6 py-2.5 text-sm font-bold text-background"
       >
         {labels.cta}

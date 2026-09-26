@@ -181,8 +181,8 @@ describe("buildCourseState (new user)", () => {
   it("starts with nothing completed and only the first topic of day 1 open", () => {
     const topics = state.days.flatMap((d) => d.topics);
     expect(topics.some((t) => t.completed)).toBe(false);
-    expect(topics.filter((t) => t.unlocked).map((t) => t.topic.id)).toEqual(["topic-14"]);
-    expect(state.continueTarget?.topic.topic.id).toBe("topic-14");
+    expect(topics.filter((t) => t.unlocked).map((t) => t.topic.id)).toEqual(["topic-15"]);
+    expect(state.continueTarget?.topic.topic.id).toBe("topic-15");
   });
 });
 
@@ -193,7 +193,7 @@ describe("buildCourseState (partial progress)", () => {
 
   it("marks the first three topics of day 1 as completed", () => {
     const completed = day1.topics.filter((t) => t.completed).map((t) => t.topic.id);
-    expect(completed).toEqual(["topic-14", "topic-15", "topic-22"]);
+    expect(completed).toEqual(["topic-15", "topic-14", "topic-22"]);
   });
 
   it("keeps day 1's best percent for the two-attempt topic at 99", () => {

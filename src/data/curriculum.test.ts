@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COURSE_DAYS, COURSE_TOPICS, CURRICULUM } from "./curriculum";
+import { COURSE_DAYS, COURSE_TOPICS, CURRICULUM, topicHref } from "./curriculum";
 
 const regularDays = CURRICULUM.filter((d) => !d.isFinalExam);
 const sum = (values: number[]) => values.reduce((a, b) => a + b, 0);
@@ -32,7 +32,7 @@ describe("curriculum", () => {
   it("keeps the in-day topic order as listed, not sorted by testNo", () => {
     const day1 = COURSE_DAYS.find((d) => d.number === 1)!;
     expect(day1.topicIds).toEqual([
-      "topic-14", "topic-15", "topic-22", "topic-23", "topic-24", "topic-26", "topic-25",
+      "topic-15", "topic-14", "topic-22", "topic-23", "topic-24", "topic-26", "topic-25",
     ]);
   });
 
@@ -44,5 +44,12 @@ describe("curriculum", () => {
         expect(topic.title.ru.trim()).not.toBe("");
       }
     }
+  });
+
+  it("links topics with a test bank straight to the test page", () => {
+    const topic15 = COURSE_TOPICS.find((t) => t.number === 15)!;
+    const topic14 = COURSE_TOPICS.find((t) => t.number === 14)!;
+    expect(topicHref(topic15)).toBe("/test/1-kun-2-mavzu-tartibga-soluvchining-ishoralari");
+    expect(topicHref(topic14)).toBe("/kabinet/mavzu/topic-14");
   });
 });

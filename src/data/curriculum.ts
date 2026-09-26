@@ -2,6 +2,9 @@
 // mavzular tartibi AYNAN shu ro'yxat bo'yicha (testNo bo'yicha saralanmaydi).
 // `testNo` — rasmiy test raqami, test banki shu raqamga bog'lanadi.
 //
+// `testSlug` — backend test bankidagi mavzu slug'i; mavjud bo'lsa mavzuni
+// bosganda to'g'ridan-to'g'ri test boshlanadi.
+//
 // `questionCount` hozircha shu yerdan olinadi; savollar banki to'liq import
 // qilingach, u DB'dan hisoblanadi va bu raqamlar faqat tekshiruv uchun qoladi.
 
@@ -10,6 +13,7 @@ import type { Day, Topic } from "@/lib/course-types";
 
 export interface CurriculumTopic {
   testNo: number | null;
+  testSlug?: string;
   questionCount: number;
   title: Required<LocalizedText>;
 }
@@ -22,8 +26,8 @@ export interface CurriculumDay {
 
 export const CURRICULUM: CurriculumDay[] = [
   { day: 1, topics: [
+    { testNo: 15, testSlug: "1-kun-2-mavzu-tartibga-soluvchining-ishoralari", questionCount: 32, title: { uz: "Tartibga soluvchining ishoralari", cyrl: "Тартибга солувчининг ишоралари", ru: "Сигналы регулировщика" } },
     { testNo: 14, questionCount: 38, title: { uz: "Svetoforning ishoralari", cyrl: "Светофорнинг ишоралари", ru: "Сигналы светофора" } },
-    { testNo: 15, questionCount: 32, title: { uz: "Tartibga soluvchining ishoralari", cyrl: "Тартибга солувчининг ишоралари", ru: "Сигналы регулировщика" } },
     { testNo: 22, questionCount: 14, title: { uz: "Chorrahalarda harakatlanish", cyrl: "Чорраҳаларда ҳаракатланиш", ru: "Проезд перекрёстков" } },
     { testNo: 23, questionCount: 21, title: { uz: "Tartibga solingan chorrahalar", cyrl: "Тартибга солинган чорраҳалар", ru: "Регулируемые перекрёстки" } },
     { testNo: 24, questionCount: 19, title: { uz: "Tartibga solinmagan chorrahalar: asosiy yo'l yo'nalishi to'g'risi", cyrl: "Тартибга солинмаган чорраҳалар: асосий йўл йўналиши тўғриси", ru: "Нерегулируемые перекрёстки: главная дорога прямо" } },
@@ -84,6 +88,11 @@ export function topicIdFor(testNo: number): string {
   return `topic-${testNo}`;
 }
 
+/** Mavzu havolasi: test banki bo'lsa — test sahifasi, aks holda mavzu sahifasi. */
+export function topicHref(topic: Topic): string {
+  return topic.testSlug ? `/test/${topic.testSlug}` : `/kabinet/mavzu/${topic.id}`;
+}
+
 function dayIdFor(day: number): string {
   return `day-${day}`;
 }
@@ -104,6 +113,7 @@ export const COURSE_TOPICS: Topic[] = CURRICULUM.filter((d) => !d.isFinalExam).f
     id: topicIdFor(t.testNo as number),
     number: t.testNo as number,
     title: t.title,
+    testSlug: t.testSlug,
     dayId: dayIdFor(d.day),
     questionCount: t.questionCount,
   })),
