@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { ArrowRightIcon, RotateCcwIcon, SparklesIcon, TriangleAlertIcon } from "lucide-react";
 import { getRegistration, clearRegistration, useRegistration } from "@/lib/registration-store";
 import { getDashboardData, type DashboardData } from "@/lib/api/course";
+import { COURSE_TOPICS, topicIdFor } from "@/data/curriculum";
+import { localize } from "@/lib/i18n/localized";
+import { applyLocale, useLocale } from "@/lib/i18n/useLocale";
 import { buildCourseState } from "@/lib/progress/unlock";
 import type { ExamStatus } from "@/components/home/types";
 import DashboardHeader from "@/components/kabinet/DashboardHeader";
@@ -17,11 +20,15 @@ import DeviceInfo from "@/components/kabinet/DeviceInfo";
 
 type DataState = "loading" | "error" | "ready";
 
+// Backend'ga ulangan yagona sinov testi (1-kun, 15-test) — to'liq integratsiyagacha.
+const TRIAL_TEST_NO = 15;
+
 export default function KabinetPage() {
   const router = useRouter();
   const registration = useRegistration();
   const [dataState, setDataState] = useState<DataState>("loading");
   const [data, setData] = useState<DashboardData | null>(null);
+  const { t } = useLocale();
 
   useEffect(() => {
     const record = getRegistration();
@@ -31,6 +38,14 @@ export default function KabinetPage() {
       router.replace("/tolov");
     }
   }, [router]);
+
+  // Profilda saqlangan til (masalan, boshqa qurilmada tanlangan) cookie'dagidan ustun.
+  useEffect(() => {
+    const preferred = getRegistration()?.preferredLanguage;
+    if (preferred && preferred !== document.documentElement.getAttribute("data-locale")) {
+      applyLocale(preferred);
+    }
+  }, []);
 
   async function loadData() {
     try {
@@ -76,7 +91,7 @@ export default function KabinetPage() {
         onLogout={handleLogout}
       />
 
-      <main className="mx-auto max-w-4xl px-5 py-8 sm:px-8">
+      <main className="mx-auto w-full max-w-4xl px-5 py-8 sm:px-8">
         {dataState === "loading" && <DashboardSkeleton />}
 
         {dataState === "error" && (
@@ -86,11 +101,9 @@ export default function KabinetPage() {
             </span>
             <div>
               <h2 className="font-display text-lg font-bold text-foreground">
-                Ma&rsquo;lumotlarni yuklab bo&rsquo;lmadi
+                {t.kabinet.loadError.title}
               </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Internet aloqasini tekshirib, qayta urinib ko&rsquo;ring.
-              </p>
+              <p className="mt-1 text-sm text-muted-foreground">{t.kabinet.loadError.desc}</p>
             </div>
             <button
               type="button"
@@ -98,7 +111,7 @@ export default function KabinetPage() {
               className="glow-orange-hover mt-2 inline-flex h-auto items-center gap-2 rounded-full bg-gradient-to-r from-neon-orange to-neon-orange-2 px-6 py-2.5 text-sm font-bold text-background"
             >
               <RotateCcwIcon className="size-4" />
-              Qayta urinish
+              {t.kabinet.loadError.retry}
             </button>
           </div>
         )}
@@ -121,7 +134,9 @@ function DashboardContent({
   data: DashboardData;
   examStatus: ExamStatus;
 }) {
+  const { locale, t } = useLocale();
   const courseState = buildCourseState(data.days, data.topics, data.topicProgress, data.examProgress);
+  const trialTopic = COURSE_TOPICS.find((topic) => topic.id === topicIdFor(TRIAL_TEST_NO));
 
   return (
     <div className="flex flex-col gap-6">
@@ -133,9 +148,11 @@ function DashboardContent({
         className="glass glow-orange-hover flex items-center justify-between gap-3 rounded-2xl p-5 transition-colors hover:bg-foreground/5"
       >
         <div>
-          <p className="text-xs font-semibold tracking-wide text-neon-orange uppercase">Yangi</p>
+          <p className="text-xs font-semibold tracking-wide text-neon-orange uppercase">
+            {t.kabinet.trial.badge}
+          </p>
           <p className="mt-1 font-display text-sm font-bold text-foreground sm:text-base">
-            Sinov: Tartibga soluvchining ishoralari
+            {trialTopic && t.kabinet.trial.title(localize(trialTopic.title, locale))}
           </p>
         </div>
         <ArrowRightIcon className="size-5 shrink-0 text-neon-orange" />
@@ -151,11 +168,10 @@ function DashboardContent({
             <SparklesIcon className="size-6" />
           </span>
           <h2 className="mt-4 font-display text-xl font-bold text-foreground sm:text-2xl">
-            Imtihonga tayyorsiz!
+            {t.kabinet.ready.title}
           </h2>
           <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-            Barcha 6 kunlik dastur muvaffaqiyatli tugatildi. Endi 7-kun yakuniy imtihoniga
-            o&rsquo;tishingiz mumkin.
+            {t.kabinet.ready.desc}
           </p>
         </div>
       ) : (

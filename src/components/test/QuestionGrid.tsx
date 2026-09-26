@@ -1,4 +1,7 @@
+"use client";
+
 import { cn } from "cn";
+import { useLocale } from "@/lib/i18n/useLocale";
 import type { CheckAnswerResult } from "@/lib/api/test";
 
 interface QuestionGridProps {
@@ -9,6 +12,8 @@ interface QuestionGridProps {
 }
 
 export function QuestionGrid({ total, currentIndex, results, onJump }: QuestionGridProps) {
+  const { t } = useLocale();
+
   return (
     <div className="grid grid-cols-8 gap-2 rounded-lg border border-border bg-muted/30 p-3 sm:grid-cols-10">
       {Array.from({ length: total }, (_, i) => {
@@ -21,9 +26,10 @@ export function QuestionGrid({ total, currentIndex, results, onJump }: QuestionG
             type="button"
             onClick={() => onJump(i)}
             aria-current={isCurrent}
-            aria-label={`${i + 1}-savol${
-              result ? (result.correct ? ", to'g'ri javob berilgan" : ", noto'g'ri javob berilgan") : ""
-            }`}
+            aria-label={t.testSession.questionAria(
+              i + 1,
+              result ? (result.correct ? "correct" : "incorrect") : null,
+            )}
             className={cn(
               "flex size-8 items-center justify-center rounded-md text-xs font-semibold transition-colors",
               result === undefined &&

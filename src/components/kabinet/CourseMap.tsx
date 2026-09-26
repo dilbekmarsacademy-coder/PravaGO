@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ExamStatus } from "@/components/home/types";
+import { useLocale } from "@/lib/i18n/useLocale";
 import type { CourseState } from "@/lib/progress/unlock";
 import DayCard from "./DayCard";
 import FinalExamCard from "./FinalExamCard";
@@ -19,7 +20,11 @@ export default function CourseMap({
   examAttemptsUsed,
   examMaxAttempts,
 }: CourseMapProps) {
-  const regularDays = courseState.days.filter((d) => d.day.number >= 1 && d.day.number <= 6);
+  const { t } = useLocale();
+  const regularDays = courseState.days.filter((d) => !d.day.isFinalExam);
+  const finalExamPoolSize = regularDays
+    .flatMap((d) => d.topics)
+    .reduce((sum, topic) => sum + topic.topic.questionCount, 0);
   const defaultOpenDay =
     courseState.continueTarget?.dayNumber ??
     regularDays.find((d) => d.unlocked && !d.completed)?.day.number ??
@@ -31,7 +36,7 @@ export default function CourseMap({
   return (
     <div>
       <span className="font-mono text-xs tracking-[0.24em] text-neon-orange uppercase">
-        Dastur xaritasi
+        {t.kabinet.curriculum.eyebrow}
       </span>
 
       <div className="mt-4 flex flex-col gap-3">
@@ -51,6 +56,7 @@ export default function CourseMap({
           attemptsUsed={examAttemptsUsed}
           maxAttempts={examMaxAttempts}
           unlocked={courseState.finalExamUnlocked}
+          poolSize={finalExamPoolSize}
         />
       </div>
     </div>

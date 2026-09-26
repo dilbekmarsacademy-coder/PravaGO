@@ -1,4 +1,7 @@
 import type { Dictionary } from "../dictionary";
+import { formatNumber } from "../localized";
+
+const num = (value: number) => formatNumber(value, "uz-cyrl");
 
 export const uzCyrl: Dictionary = {
   meta: {
@@ -224,5 +227,115 @@ export const uzCyrl: Dictionary = {
       title: "Муваффақиятли якунланди",
       desc: "Рўйхатдан ўтиш якунланди (демо режим).",
     },
+  },
+
+  kabinet: {
+    header: {
+      active: "Фаол",
+      logout: "Чиқиш",
+      language: "Тил",
+      category: {
+        "first-time": "Биринчи марта",
+        "failed-before": "Илгари йиқилган",
+        "license-revoked": "Праваси бекор қилинган",
+      },
+    },
+    loadError: {
+      title: "Маълумотларни юклаб бўлмади",
+      desc: "Интернет алоқасини текшириб, қайта уриниб кўринг.",
+      retry: "Қайта уриниш",
+    },
+    trial: { badge: "Янги", title: (topicTitle) => `Синов: ${topicTitle}` },
+    ready: {
+      title: "Имтиҳонга тайёрсиз!",
+      desc: "Барча 6 кунлик дастур муваффақиятли тугатилди. Энди 7-кун якуний ички имтиҳонига ўтишингиз мумкин.",
+    },
+    continueCard: {
+      eyebrow: "Давом эттириш",
+      location: (day, testNo) => `${day}-кун · ${testNo}-тест`,
+      stages: {
+        video: "Видео дарсни кўринг",
+        pdf: "Калит сўзларни ўқинг",
+        test: "Тестни топширинг",
+      },
+      retryTest: (percent) => `Тестни қайта ишланг — охирги натижа ${percent}%`,
+      cta: "Давом эттириш",
+    },
+    overall: {
+      eyebrow: "Умумий прогресс",
+      ariaLabel: "Тугатилган мавзулар фоизи",
+      completedTopics: "Тугатилган мавзулар",
+      completedDays: "Тугатилган кунлар",
+    },
+    curriculum: {
+      eyebrow: "Ўқув дастури",
+      dayTitle: (day) => `${day}-кун`,
+      dayQuestions: (count) => `${num(count)} та савол`,
+      dayProgressAria: (day) => `${day}-кун прогресси`,
+      status: { completed: "Тугаган", current: "Жорий", locked: "Қулфланган" },
+    },
+    topic: {
+      testNo: (testNo) => `${testNo}-тест`,
+      questions: (count) => `${num(count)} та савол`,
+      notStarted: "Бошланмаган",
+      lockedHint: (percent) => `Аввалги мавзу тестидан камида ${percent}% олинг`,
+    },
+    finalExam: {
+      badge: "7-кун",
+      title: "Якуний ички имтиҳон",
+      pool: (count) => `${num(count)} та саволлар базаси`,
+      format: (questions, minutes) => `${questions} савол · ${minutes} дақиқа`,
+      attempts: (used, max) => `Уринишлар: ${used}/${max}`,
+      open: "Очиқ",
+      locked: "Қулфланган",
+      lockedHint: "1–6-кунларнинг барча мавзуларини тугатинг",
+    },
+    randomTest: {
+      title: "Тасодифий тест",
+      questionsUnit: "савол",
+      note: "Натижалар ўқув прогрессига таъсир қилмайди.",
+      pageTitle: (size) => `${size} талик тасодифий тест`,
+      pageTitleNoSize: "Тасодифий тест",
+      soon: "Бу саҳифа тез орада ишга тушади. Натижалар ўқув прогрессига таъсир қилмайди.",
+    },
+    device: {
+      detecting: "Аниқланмоқда...",
+      tablet: "Планшет",
+      mobile: "Мобил телефон",
+      desktop: "Компьютер",
+      current: "Жорий қурилма · ҳозир фаол",
+      singleDevice: "Бир вақтда фақат битта қурилмада кириш мумкин.",
+    },
+    topicPage: {
+      soon: "Видео дарс, калит сўзлар ва мавзу тести саҳифаси тез орада ишга тушади.",
+    },
+    backToKabinet: "Кабинетга қайтиш",
+  },
+
+  testSession: {
+    loading: "Юкланмоқда...",
+    loadError: "Саволларни юклаб бўлмади. Қайта уриниб кўринг.",
+    checkError: "Жавобни текшириб бўлмади. Қайта уриниб кўринг.",
+    solved: (current, total) => `Ечилган: ${current} / ${total}`,
+    finish: "Якунлаш",
+    finishHint: (answered, total) =>
+      `Якунлаш учун барча саволларга жавоб беринг (${answered}/${total})`,
+    resultTitle: "Натижа",
+    resultScore: (correct, total, percent) => `${correct} / ${total} тўғри (${percent}%)`,
+    restart: "Қайта бошлаш",
+    keyword: "Калит сўз:",
+    checking: "Текширилмоқда...",
+    check: "Жавобни текшириш",
+    prev: "Олдинги",
+    next: "Кейинги савол",
+    imageAlt: "Савол расми",
+    questionAria: (index, state) =>
+      `${index}-савол${
+        state === "correct"
+          ? ", тўғри жавоб берилган"
+          : state === "incorrect"
+            ? ", нотўғри жавоб берилган"
+            : ""
+      }`,
   },
 };

@@ -2,6 +2,8 @@
 
 import { useSyncExternalStore } from "react";
 import { LaptopIcon, SmartphoneIcon, TabletIcon } from "lucide-react";
+import type { Dictionary } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n/useLocale";
 
 const noopSubscribe = () => () => {};
 
@@ -17,16 +19,18 @@ function useUserAgent(): string {
   return useSyncExternalStore(noopSubscribe, getUserAgentSnapshot, getServerUserAgentSnapshot);
 }
 
-function classifyDevice(ua: string) {
-  if (!ua) return { label: "Aniqlanmoqda...", Icon: LaptopIcon };
-  if (/iPad|Tablet/i.test(ua)) return { label: "Planshet", Icon: TabletIcon };
-  if (/Mobi|iPhone|Android.*Mobile/i.test(ua)) return { label: "Mobil telefon", Icon: SmartphoneIcon };
-  return { label: "Kompyuter", Icon: LaptopIcon };
+function classifyDevice(ua: string, labels: Dictionary["kabinet"]["device"]) {
+  if (!ua) return { label: labels.detecting, Icon: LaptopIcon };
+  if (/iPad|Tablet/i.test(ua)) return { label: labels.tablet, Icon: TabletIcon };
+  if (/Mobi|iPhone|Android.*Mobile/i.test(ua)) return { label: labels.mobile, Icon: SmartphoneIcon };
+  return { label: labels.desktop, Icon: LaptopIcon };
 }
 
 export default function DeviceInfo() {
   const ua = useUserAgent();
-  const { label, Icon } = classifyDevice(ua);
+  const { t } = useLocale();
+  const labels = t.kabinet.device;
+  const { label, Icon } = classifyDevice(ua, labels);
 
   return (
     <div className="glass flex flex-col items-start gap-3 rounded-2xl p-5 sm:flex-row sm:items-center">
@@ -36,11 +40,11 @@ export default function DeviceInfo() {
         </span>
         <div>
           <p className="font-display text-sm font-bold text-foreground">{label}</p>
-          <p className="text-xs text-muted-foreground">Joriy qurilma &middot; hozir faol</p>
+          <p className="text-xs text-muted-foreground">{labels.current}</p>
         </div>
       </div>
       <p className="text-xs text-muted-foreground sm:ml-auto sm:max-w-[14rem] sm:text-right">
-        Bitta vaqtda faqat bitta qurilmada kirish mumkin.
+        {labels.singleDevice}
       </p>
     </div>
   );

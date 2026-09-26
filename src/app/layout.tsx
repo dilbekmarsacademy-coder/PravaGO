@@ -17,7 +17,8 @@ const THEME_INIT_SCRIPT = `(function () {
 const LOCALE_INIT_SCRIPT = `(function () {
   var htmlLang = { "uz-latn": "uz", "uz-cyrl": "uz-Cyrl", ru: "ru" };
   try {
-    var stored = localStorage.getItem("lang");
+    var match = document.cookie.match(/(?:^|; )lang=([^;]+)/);
+    var stored = match ? match[1] : localStorage.getItem("lang");
     var locale = stored === "uz-cyrl" || stored === "ru" ? stored : "uz-latn";
     document.documentElement.setAttribute("data-locale", locale);
     document.documentElement.lang = htmlLang[locale];

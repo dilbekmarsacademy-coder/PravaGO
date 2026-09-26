@@ -1,12 +1,15 @@
 "use client";
 
 import { use, useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { ArrowLeftIcon } from "lucide-react";
 import { checkAnswer, getTopicQuestions, type ApiQuestion, type CheckAnswerResult } from "@/lib/api/test";
 import { ProgressBar } from "@/components/test/ProgressBar";
 import { QuestionCard } from "@/components/test/QuestionCard";
 import { QuestionGrid } from "@/components/test/QuestionGrid";
 import { ResultSummary } from "@/components/test/ResultSummary";
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/lib/i18n/useLocale";
 
 interface TestPageProps {
   params: Promise<{ topicSlug: string }>;
@@ -39,7 +42,9 @@ interface QuestionAnswer {
 
 function TestSession({ topicSlug, onRestart }: TestSessionProps) {
   const [questions, setQuestions] = useState<ApiQuestion[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { t } = useLocale();
+  // Xato matni kalit sifatida saqlanadi — til almashsa ham to'g'ri tarjima chiqadi.
+  const [error, setError] = useState<"loadError" | "checkError" | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, QuestionAnswer>>({});
   const [checking, setChecking] = useState(false);
@@ -52,7 +57,7 @@ function TestSession({ topicSlug, onRestart }: TestSessionProps) {
         if (!cancelled) setQuestions(data);
       })
       .catch(() => {
-        if (!cancelled) setError("Savollarni yuklab bo'lmadi. Qayta urinib ko'ring.");
+        if (!cancelled) setError("loadError");
       });
     return () => {
       cancelled = true;
@@ -108,20 +113,28 @@ function TestSession({ topicSlug, onRestart }: TestSessionProps) {
           setTimeout(() => setCurrentIndex(index + 1), 1300);
         }
       })
-      .catch(() => setError("Javobni tekshirib bo'lmadi. Qayta urinib ko'ring."))
+      .catch(() => setError("checkError"))
       .finally(() => setChecking(false));
   }, [currentQuestion, currentAnswer.selectedOptionId, currentIndex, questions]);
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-6 px-4 py-8">
+      <Link
+        href="/kabinet"
+        className="inline-flex w-fit items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground/90 transition-colors hover:border-neon-cyan/50 hover:text-neon-cyan"
+      >
+        <ArrowLeftIcon className="size-4" />
+        {t.kabinet.backToKabinet}
+      </Link>
+
       {error && (
         <div className="rounded-lg border border-destructive bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {error}
+          {t.testSession[error]}
         </div>
       )}
 
       {!error && !questions && (
-        <p className="text-center text-muted-foreground">Yuklanmoqda...</p>
+        <p className="text-center text-muted-foreground">{t.testSession.loading}</p>
       )}
 
       {questions && !finished && currentQuestion && (
@@ -153,8 +166,8 @@ function TestSession({ topicSlug, onRestart }: TestSessionProps) {
             onClick={() => setFinished(true)}
           >
             {allAnswered
-              ? "Yakunlash"
-              : `Yakunlash uchun barcha savollarga javob bering (${answeredCount}/${questions.length})`}
+              ? t.testSession.finish
+              : t.testSession.finishHint(answeredCount, questions.length)}
           </Button>
         </>
       )}

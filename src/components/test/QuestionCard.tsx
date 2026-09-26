@@ -1,7 +1,10 @@
+"use client";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { OptionButton, type OptionState } from "./OptionButton";
 import type { ApiQuestion, CheckAnswerResult } from "@/lib/api/test";
+import { useLocale } from "@/lib/i18n/useLocale";
 
 interface QuestionCardProps {
   question: ApiQuestion;
@@ -41,6 +44,7 @@ export function QuestionCard({
   onPrev,
   onNext,
 }: QuestionCardProps) {
+  const { t } = useLocale();
   const answered = result !== null;
 
   return (
@@ -62,7 +66,7 @@ export function QuestionCard({
               qat'iy width/height talabidan qochamiz */}
           <img
             src={question.imageUrl}
-            alt={question.text || "Savol rasmi"}
+            alt={question.text || t.testSession.imageAlt}
             className="max-h-[60vh] w-full object-contain sm:max-h-[420px]"
           />
         </div>
@@ -81,7 +85,7 @@ export function QuestionCard({
 
         {result && !result.correct && (
           <div className="rounded-lg border border-[var(--neon-green)] bg-[var(--neon-green)]/10 px-4 py-3 text-sm">
-            <span className="font-semibold text-[var(--neon-green)]">Kalit so&apos;z: </span>
+            <span className="font-semibold text-[var(--neon-green)]">{t.testSession.keyword} </span>
             {result.keyword}
           </div>
         )}
@@ -93,7 +97,7 @@ export function QuestionCard({
             disabled={!selectedOptionId || checking}
             onClick={onCheckAnswer}
           >
-            {checking ? "Tekshirilmoqda..." : "Javobni tekshirish"}
+            {checking ? t.testSession.checking : t.testSession.check}
           </Button>
         )}
 
@@ -105,7 +109,7 @@ export function QuestionCard({
             disabled={!canGoPrev}
             onClick={onPrev}
           >
-            Oldingi
+            {t.testSession.prev}
           </Button>
           <Button
             className="flex-1"
@@ -114,7 +118,7 @@ export function QuestionCard({
             disabled={!canGoNext}
             onClick={onNext}
           >
-            Keyingi savol
+            {t.testSession.next}
           </Button>
         </div>
       </CardContent>

@@ -1,3 +1,6 @@
+"use client";
+
+import { useLocale } from "@/lib/i18n/useLocale";
 import type { DayViewState } from "@/lib/progress/unlock";
 
 interface OverallProgressProps {
@@ -5,7 +8,9 @@ interface OverallProgressProps {
 }
 
 export default function OverallProgress({ days }: OverallProgressProps) {
-  const regularDays = days.filter((d) => d.day.number >= 1 && d.day.number <= 6);
+  const { t } = useLocale();
+  const labels = t.kabinet.overall;
+  const regularDays = days.filter((d) => !d.day.isFinalExam);
   const allTopics = regularDays.flatMap((d) => d.topics);
   const completedTopics = allTopics.filter((t) => t.completed).length;
   const totalTopics = allTopics.length;
@@ -17,7 +22,7 @@ export default function OverallProgress({ days }: OverallProgressProps) {
     <div className="glass rounded-2xl p-6 sm:p-7">
       <div className="flex items-center justify-between gap-4">
         <span className="font-mono text-xs tracking-[0.24em] text-neon-cyan uppercase">
-          Umumiy progress
+          {labels.eyebrow}
         </span>
         <span className="font-mono text-sm font-bold text-foreground tabular-nums">{percent}%</span>
       </div>
@@ -28,7 +33,7 @@ export default function OverallProgress({ days }: OverallProgressProps) {
         aria-valuenow={percent}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label="Tugatilgan mavzular foizi"
+        aria-label={labels.ariaLabel}
       >
         <div
           className="h-full rounded-full bg-gradient-to-r from-neon-orange to-neon-cyan transition-all duration-500"
@@ -41,13 +46,13 @@ export default function OverallProgress({ days }: OverallProgressProps) {
           <p className="font-mono text-xl font-bold text-foreground tabular-nums">
             {completedTopics}/{totalTopics}
           </p>
-          <p className="text-xs text-muted-foreground">Tugatilgan mavzular</p>
+          <p className="text-xs text-muted-foreground">{labels.completedTopics}</p>
         </div>
         <div>
           <p className="font-mono text-xl font-bold text-foreground tabular-nums">
-            {completedDays}/6
+            {completedDays}/{regularDays.length}
           </p>
-          <p className="text-xs text-muted-foreground">Tugatilgan kunlar</p>
+          <p className="text-xs text-muted-foreground">{labels.completedDays}</p>
         </div>
       </div>
     </div>

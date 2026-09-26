@@ -1,4 +1,16 @@
 import type { Dictionary } from "../dictionary";
+import { formatNumber } from "../localized";
+
+const num = (value: number) => formatNumber(value, "ru");
+
+/** Ruscha ko'plik: 1 вопрос, 2 вопроса, 5 вопросов. */
+function questionWord(count: number): string {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return "вопрос";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "вопроса";
+  return "вопросов";
+}
 
 export const ru: Dictionary = {
   meta: {
@@ -224,5 +236,115 @@ export const ru: Dictionary = {
       title: "Успешно завершено",
       desc: "Регистрация завершена (демо-режим).",
     },
+  },
+
+  kabinet: {
+    header: {
+      active: "Активен",
+      logout: "Выйти",
+      language: "Язык",
+      category: {
+        "first-time": "Сдаю впервые",
+        "failed-before": "Ранее не сдал",
+        "license-revoked": "Лишён прав",
+      },
+    },
+    loadError: {
+      title: "Не удалось загрузить данные",
+      desc: "Проверьте подключение к интернету и попробуйте снова.",
+      retry: "Повторить",
+    },
+    trial: { badge: "Новое", title: (topicTitle) => `Пробный тест: ${topicTitle}` },
+    ready: {
+      title: "Вы готовы к экзамену!",
+      desc: "Вся 6-дневная программа успешно пройдена. Теперь можно перейти к итоговому внутреннему экзамену 7-го дня.",
+    },
+    continueCard: {
+      eyebrow: "Продолжить обучение",
+      location: (day, testNo) => `День ${day} · Тест №${testNo}`,
+      stages: {
+        video: "Посмотрите видеоурок",
+        pdf: "Прочитайте ключевые слова",
+        test: "Пройдите тест",
+      },
+      retryTest: (percent) => `Пройдите тест ещё раз — последний результат ${percent}%`,
+      cta: "Продолжить",
+    },
+    overall: {
+      eyebrow: "Общий прогресс",
+      ariaLabel: "Процент пройденных тем",
+      completedTopics: "Пройдено тем",
+      completedDays: "Пройдено дней",
+    },
+    curriculum: {
+      eyebrow: "Учебная программа",
+      dayTitle: (day) => `День ${day}`,
+      dayQuestions: (count) => `${num(count)} ${questionWord(count)}`,
+      dayProgressAria: (day) => `Прогресс дня ${day}`,
+      status: { completed: "Пройден", current: "Текущий", locked: "Закрыт" },
+    },
+    topic: {
+      testNo: (testNo) => `Тест №${testNo}`,
+      questions: (count) => `${num(count)} ${questionWord(count)}`,
+      notStarted: "Не начата",
+      lockedHint: (percent) => `Наберите не менее ${percent}% в тесте предыдущей темы`,
+    },
+    finalExam: {
+      badge: "День 7",
+      title: "Итоговый внутренний экзамен",
+      pool: (count) => `База из ${num(count)} ${count % 10 === 1 && count % 100 !== 11 ? "вопроса" : "вопросов"}`,
+      format: (questions, minutes) => `${questions} ${questionWord(questions)} · ${minutes} мин`,
+      attempts: (used, max) => `Попытки: ${used}/${max}`,
+      open: "Открыт",
+      locked: "Закрыт",
+      lockedHint: "Пройдите все темы 1–6-го дней",
+    },
+    randomTest: {
+      title: "Случайный тест",
+      questionsUnit: "вопросов",
+      note: "Результаты не влияют на прогресс обучения.",
+      pageTitle: (size) => `Случайный тест на ${size} ${questionWord(size)}`,
+      pageTitleNoSize: "Случайный тест",
+      soon: "Эта страница скоро заработает. Результаты не влияют на прогресс обучения.",
+    },
+    device: {
+      detecting: "Определяется...",
+      tablet: "Планшет",
+      mobile: "Мобильный телефон",
+      desktop: "Компьютер",
+      current: "Текущее устройство · активно сейчас",
+      singleDevice: "Одновременно можно войти только с одного устройства.",
+    },
+    topicPage: {
+      soon: "Страница с видеоуроком, ключевыми словами и тестом по теме скоро заработает.",
+    },
+    backToKabinet: "Вернуться в кабинет",
+  },
+
+  testSession: {
+    loading: "Загрузка...",
+    loadError: "Не удалось загрузить вопросы. Попробуйте снова.",
+    checkError: "Не удалось проверить ответ. Попробуйте снова.",
+    solved: (current, total) => `Решено: ${current} / ${total}`,
+    finish: "Завершить",
+    finishHint: (answered, total) =>
+      `Чтобы завершить, ответьте на все вопросы (${answered}/${total})`,
+    resultTitle: "Результат",
+    resultScore: (correct, total, percent) => `${correct} / ${total} верно (${percent}%)`,
+    restart: "Начать заново",
+    keyword: "Ключевое слово:",
+    checking: "Проверяем...",
+    check: "Проверить ответ",
+    prev: "Назад",
+    next: "Следующий вопрос",
+    imageAlt: "Изображение к вопросу",
+    questionAria: (index, state) =>
+      `Вопрос ${index}${
+        state === "correct"
+          ? ", дан верный ответ"
+          : state === "incorrect"
+            ? ", дан неверный ответ"
+            : ""
+      }`,
   },
 };

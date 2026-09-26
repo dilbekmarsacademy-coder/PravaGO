@@ -82,7 +82,7 @@ export function isFinalExamUnlocked(
   topicsByDayId: TopicsByDayId,
   progressByTopicId: ProgressByTopicId,
 ): boolean {
-  const regularDays = days.filter((day) => day.number >= 1 && day.number <= 6);
+  const regularDays = days.filter((day) => !day.isFinalExam);
   if (regularDays.length === 0) return false;
 
   return regularDays.every((day) => {
@@ -193,7 +193,7 @@ export function buildCourseState(
 
   const finalExamUnlocked = isFinalExamUnlocked(sortedDays, topicsByDayId, progressByTopicId);
   const allRegularDaysCompleted = dayStates
-    .filter((d) => d.day.number >= 1 && d.day.number <= 6)
+    .filter((d) => !d.day.isFinalExam)
     .every((d) => d.completed);
 
   return { days: dayStates, finalExamUnlocked, allRegularDaysCompleted, continueTarget };

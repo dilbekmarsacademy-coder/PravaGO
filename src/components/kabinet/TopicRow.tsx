@@ -1,15 +1,19 @@
+"use client";
+
 import Link from "next/link";
 import { CheckIcon, LockIcon, PlayIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PASS_PERCENT } from "@/config/rules";
+import { localize } from "@/lib/i18n/localized";
+import { useLocale } from "@/lib/i18n/useLocale";
 import type { TopicViewState } from "@/lib/progress/unlock";
 
 interface TopicRowProps {
   topicState: TopicViewState;
 }
 
-const LOCKED_HINT = "Avvalgi mavzu testidan kamida 98% oling";
-
 export default function TopicRow({ topicState }: TopicRowProps) {
+  const { locale, t } = useLocale();
   const { topic, completed, unlocked, bestPercent } = topicState;
 
   const statusIcon = completed ? (
@@ -31,10 +35,15 @@ export default function TopicRow({ topicState }: TopicRowProps) {
       {statusIcon}
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-medium text-foreground/90">
-          <span className="font-mono text-muted-foreground">{topic.number}.</span> {topic.title}
+          {localize(topic.title, locale)}
+        </span>
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 font-mono text-[0.68rem] text-muted-foreground">
+          <span className="text-neon-orange/90">{t.kabinet.topic.testNo(topic.number)}</span>
+          <span aria-hidden="true">&middot;</span>
+          <span className="tabular-nums">{t.kabinet.topic.questions(topic.questionCount)}</span>
         </span>
       </span>
-      {bestPercent !== null && (
+      {bestPercent !== null ? (
         <span
           className={cn(
             "shrink-0 rounded-full px-2 py-0.5 font-mono text-[0.65rem] font-bold tabular-nums",
@@ -43,6 +52,12 @@ export default function TopicRow({ topicState }: TopicRowProps) {
         >
           {bestPercent}%
         </span>
+      ) : (
+        unlocked && (
+          <span className="shrink-0 text-[0.65rem] text-muted-foreground">
+            {t.kabinet.topic.notStarted}
+          </span>
+        )
       )}
     </>
   );
@@ -52,7 +67,7 @@ export default function TopicRow({ topicState }: TopicRowProps) {
       <div
         role="button"
         aria-disabled="true"
-        title={LOCKED_HINT}
+        title={t.kabinet.topic.lockedHint(PASS_PERCENT)}
         className="flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2.5 opacity-50"
       >
         {content}

@@ -8,17 +8,49 @@ import {
   isTopicCompleted,
   isTopicUnlocked,
 } from "./unlock";
-import { MOCK_DAYS, MOCK_TOPICS } from "@/lib/mock/course";
+import { COURSE_DAYS, COURSE_TOPICS } from "@/data/curriculum";
 import { MOCK_EXAM_PROGRESS, MOCK_TOPIC_PROGRESS } from "@/lib/mock/progress";
 import type { Day, Topic, TopicProgress } from "@/lib/course-types";
 import { PASS_PERCENT } from "@/config/rules";
 
+// 1-kunning birinchi 3 ta mavzusi tugatilgan (topic-22 — 2 urinishda: 74% dan
+// keyin 99%), 4-mavzu (topic-23)da video ko'rilgan, PDF hali ochilmagan.
+const PARTIAL_PROGRESS: TopicProgress[] = [
+  {
+    topicId: "topic-14",
+    videoWatched: true,
+    pdfOpened: true,
+    attempts: [{ percent: 98, date: "2026-09-15T09:20:00.000Z" }],
+  },
+  {
+    topicId: "topic-15",
+    videoWatched: true,
+    pdfOpened: true,
+    attempts: [{ percent: 100, date: "2026-09-15T10:05:00.000Z" }],
+  },
+  {
+    topicId: "topic-22",
+    videoWatched: true,
+    pdfOpened: true,
+    attempts: [
+      { percent: 74, date: "2026-09-16T08:40:00.000Z" },
+      { percent: 99, date: "2026-09-16T09:10:00.000Z" },
+    ],
+  },
+  {
+    topicId: "topic-23",
+    videoWatched: true,
+    pdfOpened: false,
+    attempts: [],
+  },
+];
+
 function topic(id: string, dayId: string, number = 1): Topic {
-  return { id, number, title: id, dayId, videoDurationSec: 300 };
+  return { id, number, title: { uz: id }, dayId, questionCount: 10 };
 }
 
 function day(id: string, number: number, topicIds: string[]): Day {
-  return { id, number, title: `${number}-kun`, topicIds };
+  return { id, number, isFinalExam: false, topicIds };
 }
 
 describe("isTopicCompleted", () => {
@@ -125,26 +157,37 @@ describe("isDayUnlocked", () => {
 
 describe("isFinalExamUnlocked", () => {
   it("is locked when any day 1-6 topic is incomplete", () => {
-    expect(isFinalExamUnlocked(MOCK_DAYS, {}, {})).toBe(false);
+    expect(isFinalExamUnlocked(COURSE_DAYS, {}, {})).toBe(false);
   });
 
   it("unlocks once every day 1-6 topic is completed", () => {
     const topicsByDayId: Record<string, Topic[]> = {};
-    for (const t of MOCK_TOPICS) {
+    for (const t of COURSE_TOPICS) {
       (topicsByDayId[t.dayId] ??= []).push(t);
     }
     const progressByTopicId = Object.fromEntries(
-      MOCK_TOPICS.filter((t) => t.dayId !== "day-7").map((t) => [
+      COURSE_TOPICS.filter((t) => t.dayId !== "day-7").map((t) => [
         t.id,
         { topicId: t.id, videoWatched: true, pdfOpened: true, attempts: [{ percent: 100, date: "2026-01-01" }] },
       ]),
     );
-    expect(isFinalExamUnlocked(MOCK_DAYS, topicsByDayId, progressByTopicId)).toBe(true);
+    expect(isFinalExamUnlocked(COURSE_DAYS, topicsByDayId, progressByTopicId)).toBe(true);
   });
 });
 
-describe("buildCourseState (mock scenario)", () => {
-  const state = buildCourseState(MOCK_DAYS, MOCK_TOPICS, MOCK_TOPIC_PROGRESS, MOCK_EXAM_PROGRESS);
+describe("buildCourseState (new user)", () => {
+  const state = buildCourseState(COURSE_DAYS, COURSE_TOPICS, MOCK_TOPIC_PROGRESS, MOCK_EXAM_PROGRESS);
+
+  it("starts with nothing completed and only the first topic of day 1 open", () => {
+    const topics = state.days.flatMap((d) => d.topics);
+    expect(topics.some((t) => t.completed)).toBe(false);
+    expect(topics.filter((t) => t.unlocked).map((t) => t.topic.id)).toEqual(["topic-14"]);
+    expect(state.continueTarget?.topic.topic.id).toBe("topic-14");
+  });
+});
+
+describe("buildCourseState (partial progress)", () => {
+  const state = buildCourseState(COURSE_DAYS, COURSE_TOPICS, PARTIAL_PROGRESS, MOCK_EXAM_PROGRESS);
   const day1 = state.days.find((d) => d.day.number === 1)!;
   const day2 = state.days.find((d) => d.day.number === 2)!;
 
@@ -187,14 +230,14 @@ describe("buildCourseState (mock scenario)", () => {
 
 describe("buildCourseState (all days completed)", () => {
   it("unlocks the final exam and clears the continue target", () => {
-    const fullProgress: TopicProgress[] = MOCK_TOPICS.filter((t) => t.dayId !== "day-7").map((t) => ({
+    const fullProgress: TopicProgress[] = COURSE_TOPICS.filter((t) => t.dayId !== "day-7").map((t) => ({
       topicId: t.id,
       videoWatched: true,
       pdfOpened: true,
       attempts: [{ percent: 100, date: "2026-01-01" }],
     }));
 
-    const state = buildCourseState(MOCK_DAYS, MOCK_TOPICS, fullProgress, MOCK_EXAM_PROGRESS);
+    const state = buildCourseState(COURSE_DAYS, COURSE_TOPICS, fullProgress, MOCK_EXAM_PROGRESS);
 
     expect(state.allRegularDaysCompleted).toBe(true);
     expect(state.finalExamUnlocked).toBe(true);

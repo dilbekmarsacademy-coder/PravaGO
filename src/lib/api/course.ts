@@ -1,10 +1,10 @@
-// Kurs va progress ma'lumotlarini olish uchun API qatlami. Hozircha mock
-// massivlarni qaytaradi (tarmoq kechikishi simulyatsiya qilinadi) — backend
-// tayyor bo'lgach shu funksiyalar ichini haqiqiy `fetch` so'roviga almashtirish
+// Kurs va progress ma'lumotlarini olish uchun API qatlami. Hozircha o'quv
+// dasturini (data/curriculum.ts) va mock progressni qaytaradi (tarmoq
+// kechikishi simulyatsiya qilinadi) — backend tayyor bo'lgach shu funksiyalar ichini haqiqiy `fetch` so'roviga almashtirish
 // kifoya, chaqiruvchi komponentlar o'zgarishsiz qoladi.
 
 import type { Day, ExamProgress, Topic, TopicProgress } from "@/lib/course-types";
-import { MOCK_DAYS, MOCK_TOPICS } from "@/lib/mock/course";
+import { COURSE_DAYS, COURSE_TOPICS } from "@/data/curriculum";
 import { MOCK_EXAM_PROGRESS, MOCK_TOPIC_PROGRESS } from "@/lib/mock/progress";
 
 const NETWORK_DELAY_MS = 700;
@@ -31,8 +31,8 @@ export async function getDashboardData(options?: { forceError?: boolean }): Prom
   }
 
   return {
-    days: MOCK_DAYS,
-    topics: MOCK_TOPICS,
+    days: COURSE_DAYS,
+    topics: COURSE_TOPICS,
     topicProgress: MOCK_TOPIC_PROGRESS,
     examProgress: MOCK_EXAM_PROGRESS,
   };

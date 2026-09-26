@@ -1,16 +1,18 @@
+import type { LocalizedText } from "@/lib/i18n/localized";
+
 export interface Day {
   id: string;
-  number: number; // 1-7 (7-kun = yakuniy imtihon, mavzusiz)
-  title: string;
-  topicIds: string[];
+  number: number; // 1-7
+  isFinalExam: boolean; // 7-kun — yakuniy ichki imtihon, mavzusiz
+  topicIds: string[]; // kun ichidagi tartibda
 }
 
 export interface Topic {
   id: string;
-  number: number; // rasmiy mavzu raqami (kunlar bo'ylab ketma-ket bo'lishi shart emas)
-  title: string;
+  number: number; // rasmiy test raqami (testNo), kunlar bo'ylab ketma-ket bo'lishi shart emas
+  title: LocalizedText;
   dayId: string;
-  videoDurationSec: number;
+  questionCount: number;
 }
 
 export interface TopicAttempt {

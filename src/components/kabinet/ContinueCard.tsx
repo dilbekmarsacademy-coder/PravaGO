@@ -1,28 +1,33 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRightIcon, BookOpenIcon, ListChecksIcon, VideoIcon } from "lucide-react";
 import { PASS_PERCENT } from "@/config/rules";
+import { localize } from "@/lib/i18n/localized";
+import { useLocale } from "@/lib/i18n/useLocale";
 import type { ContinueTarget } from "@/lib/progress/unlock";
 
 interface ContinueCardProps {
   target: ContinueTarget;
 }
 
-const STAGE_META = {
-  video: { icon: VideoIcon, label: "Video darsni ko'ring" },
-  pdf: { icon: BookOpenIcon, label: "Kalit so'zlarni o'qing" },
-  test: { icon: ListChecksIcon, label: "Testni topshiring" },
+const STAGE_ICONS = {
+  video: VideoIcon,
+  pdf: BookOpenIcon,
+  test: ListChecksIcon,
 };
 
 export default function ContinueCard({ target }: ContinueCardProps) {
+  const { locale, t } = useLocale();
+  const labels = t.kabinet.continueCard;
   const { topic } = target;
-  const meta = STAGE_META[topic.stage];
-  const Icon = meta.icon;
+  const Icon = STAGE_ICONS[topic.stage];
 
   const hasFailedAttempt =
     topic.stage === "test" && topic.lastPercent !== null && topic.lastPercent < PASS_PERCENT;
   const actionLabel = hasFailedAttempt
-    ? `Testni qayta ishlang — oxirgi natija ${topic.lastPercent}%`
-    : meta.label;
+    ? labels.retryTest(topic.lastPercent as number)
+    : labels.stages[topic.stage];
 
   return (
     <div className="glass relative overflow-hidden rounded-2xl p-6 sm:p-7">
@@ -32,7 +37,7 @@ export default function ContinueCard({ target }: ContinueCardProps) {
       />
 
       <span className="font-mono text-xs tracking-[0.24em] text-neon-orange uppercase">
-        Davom ettirish
+        {labels.eyebrow}
       </span>
 
       <div className="mt-3 flex items-start gap-4">
@@ -41,10 +46,10 @@ export default function ContinueCard({ target }: ContinueCardProps) {
         </span>
         <div className="min-w-0">
           <span className="font-mono text-[0.65rem] tracking-wide text-muted-foreground uppercase">
-            {target.dayNumber}-kun &middot; {topic.topic.number}-mavzu
+            {labels.location(target.dayNumber, topic.topic.number)}
           </span>
           <h2 className="mt-0.5 font-display text-lg font-bold text-foreground sm:text-xl">
-            {topic.topic.title}
+            {localize(topic.topic.title, locale)}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">{actionLabel}</p>
         </div>
@@ -54,7 +59,7 @@ export default function ContinueCard({ target }: ContinueCardProps) {
         href={`/kabinet/mavzu/${topic.topic.id}`}
         className="glow-orange-hover mt-6 inline-flex h-auto items-center gap-2 rounded-full bg-gradient-to-r from-neon-orange to-neon-orange-2 px-6 py-2.5 text-sm font-bold text-background"
       >
-        Davom ettirish
+        {labels.cta}
         <ArrowRightIcon className="size-4" />
       </Link>
     </div>

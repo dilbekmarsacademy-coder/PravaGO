@@ -2,10 +2,10 @@ import type { ExamStatus } from "@/components/home/types";
 
 export type Locale = "uz-latn" | "uz-cyrl" | "ru";
 
-export const LOCALE_META: { value: Locale; label: string }[] = [
-  { value: "uz-latn", label: "UZ" },
-  { value: "uz-cyrl", label: "ЎЗ" },
-  { value: "ru", label: "RU" },
+export const LOCALE_META: { value: Locale; label: string; nativeName: string }[] = [
+  { value: "uz-latn", label: "UZ", nativeName: "Oʻzbekcha" },
+  { value: "uz-cyrl", label: "ЎЗ", nativeName: "Ўзбекча" },
+  { value: "ru", label: "RU", nativeName: "Русский" },
 ];
 
 export const DEFAULT_LOCALE: Locale = "uz-latn";
@@ -153,5 +153,90 @@ export interface Dictionary {
       title: string;
       desc: string;
     };
+  };
+
+  kabinet: {
+    header: {
+      active: string;
+      logout: string;
+      language: string;
+      category: Record<ExamStatus, string>;
+    };
+    loadError: { title: string; desc: string; retry: string };
+    trial: { badge: string; title: (topicTitle: string) => string };
+    ready: { title: string; desc: string };
+    continueCard: {
+      eyebrow: string;
+      location: (day: number, testNo: number) => string;
+      stages: { video: string; pdf: string; test: string };
+      retryTest: (percent: number) => string;
+      cta: string;
+    };
+    overall: {
+      eyebrow: string;
+      ariaLabel: string;
+      completedTopics: string;
+      completedDays: string;
+    };
+    curriculum: {
+      eyebrow: string;
+      dayTitle: (day: number) => string;
+      dayQuestions: (count: number) => string;
+      dayProgressAria: (day: number) => string;
+      status: { completed: string; current: string; locked: string };
+    };
+    topic: {
+      testNo: (testNo: number) => string;
+      questions: (count: number) => string;
+      notStarted: string;
+      lockedHint: (percent: number) => string;
+    };
+    finalExam: {
+      badge: string;
+      title: string;
+      pool: (count: number) => string;
+      format: (questions: number, minutes: number) => string;
+      attempts: (used: number, max: number) => string;
+      open: string;
+      locked: string;
+      lockedHint: string;
+    };
+    randomTest: {
+      title: string;
+      questionsUnit: string;
+      note: string;
+      pageTitle: (size: number) => string;
+      pageTitleNoSize: string;
+      soon: string;
+    };
+    device: {
+      detecting: string;
+      tablet: string;
+      mobile: string;
+      desktop: string;
+      current: string;
+      singleDevice: string;
+    };
+    topicPage: { soon: string };
+    backToKabinet: string;
+  };
+
+  testSession: {
+    loading: string;
+    loadError: string;
+    checkError: string;
+    solved: (current: number, total: number) => string;
+    finish: string;
+    finishHint: (answered: number, total: number) => string;
+    resultTitle: string;
+    resultScore: (correct: number, total: number, percent: number) => string;
+    restart: string;
+    keyword: string;
+    checking: string;
+    check: string;
+    prev: string;
+    next: string;
+    imageAlt: string;
+    questionAria: (index: number, state: "correct" | "incorrect" | null) => string;
   };
 }

@@ -1,4 +1,7 @@
 import type { Dictionary } from "../dictionary";
+import { formatNumber } from "../localized";
+
+const num = (value: number) => formatNumber(value, "uz-latn");
 
 export const uzLatn: Dictionary = {
   meta: {
@@ -224,5 +227,115 @@ export const uzLatn: Dictionary = {
       title: "Muvaffaqiyatli yakunlandi",
       desc: "Ro'yxatdan o'tish yakunlandi (demo rejim).",
     },
+  },
+
+  kabinet: {
+    header: {
+      active: "Faol",
+      logout: "Chiqish",
+      language: "Til",
+      category: {
+        "first-time": "Birinchi marta",
+        "failed-before": "Ilgari yiqilgan",
+        "license-revoked": "Pravasi bekor qilingan",
+      },
+    },
+    loadError: {
+      title: "Maʼlumotlarni yuklab boʻlmadi",
+      desc: "Internet aloqasini tekshirib, qayta urinib koʻring.",
+      retry: "Qayta urinish",
+    },
+    trial: { badge: "Yangi", title: (topicTitle) => `Sinov: ${topicTitle}` },
+    ready: {
+      title: "Imtihonga tayyorsiz!",
+      desc: "Barcha 6 kunlik dastur muvaffaqiyatli tugatildi. Endi 7-kun yakuniy ichki imtihoniga oʻtishingiz mumkin.",
+    },
+    continueCard: {
+      eyebrow: "Davom ettirish",
+      location: (day, testNo) => `${day}-kun · ${testNo}-test`,
+      stages: {
+        video: "Video darsni koʻring",
+        pdf: "Kalit soʻzlarni oʻqing",
+        test: "Testni topshiring",
+      },
+      retryTest: (percent) => `Testni qayta ishlang — oxirgi natija ${percent}%`,
+      cta: "Davom ettirish",
+    },
+    overall: {
+      eyebrow: "Umumiy progress",
+      ariaLabel: "Tugatilgan mavzular foizi",
+      completedTopics: "Tugatilgan mavzular",
+      completedDays: "Tugatilgan kunlar",
+    },
+    curriculum: {
+      eyebrow: "Oʻquv dasturi",
+      dayTitle: (day) => `${day}-kun`,
+      dayQuestions: (count) => `${num(count)} ta savol`,
+      dayProgressAria: (day) => `${day}-kun progressi`,
+      status: { completed: "Tugagan", current: "Joriy", locked: "Qulflangan" },
+    },
+    topic: {
+      testNo: (testNo) => `${testNo}-test`,
+      questions: (count) => `${num(count)} ta savol`,
+      notStarted: "Boshlanmagan",
+      lockedHint: (percent) => `Avvalgi mavzu testidan kamida ${percent}% oling`,
+    },
+    finalExam: {
+      badge: "7-kun",
+      title: "Yakuniy ichki imtihon",
+      pool: (count) => `${num(count)} ta savollar bazasi`,
+      format: (questions, minutes) => `${questions} savol · ${minutes} daqiqa`,
+      attempts: (used, max) => `Urinishlar: ${used}/${max}`,
+      open: "Ochiq",
+      locked: "Qulflangan",
+      lockedHint: "1–6-kunlarning barcha mavzularini tugating",
+    },
+    randomTest: {
+      title: "Tasodifiy test",
+      questionsUnit: "savol",
+      note: "Natijalar oʻquv progressiga taʼsir qilmaydi.",
+      pageTitle: (size) => `${size} talik tasodifiy test`,
+      pageTitleNoSize: "Tasodifiy test",
+      soon: "Bu sahifa tez orada ishga tushadi. Natijalar oʻquv progressiga taʼsir qilmaydi.",
+    },
+    device: {
+      detecting: "Aniqlanmoqda...",
+      tablet: "Planshet",
+      mobile: "Mobil telefon",
+      desktop: "Kompyuter",
+      current: "Joriy qurilma · hozir faol",
+      singleDevice: "Bir vaqtda faqat bitta qurilmada kirish mumkin.",
+    },
+    topicPage: {
+      soon: "Video dars, kalit soʻzlar va mavzu testi sahifasi tez orada ishga tushadi.",
+    },
+    backToKabinet: "Kabinetga qaytish",
+  },
+
+  testSession: {
+    loading: "Yuklanmoqda...",
+    loadError: "Savollarni yuklab boʻlmadi. Qayta urinib koʻring.",
+    checkError: "Javobni tekshirib boʻlmadi. Qayta urinib koʻring.",
+    solved: (current, total) => `Yechilgan: ${current} / ${total}`,
+    finish: "Yakunlash",
+    finishHint: (answered, total) =>
+      `Yakunlash uchun barcha savollarga javob bering (${answered}/${total})`,
+    resultTitle: "Natija",
+    resultScore: (correct, total, percent) => `${correct} / ${total} toʻgʻri (${percent}%)`,
+    restart: "Qayta boshlash",
+    keyword: "Kalit soʻz:",
+    checking: "Tekshirilmoqda...",
+    check: "Javobni tekshirish",
+    prev: "Oldingi",
+    next: "Keyingi savol",
+    imageAlt: "Savol rasmi",
+    questionAria: (index, state) =>
+      `${index}-savol${
+        state === "correct"
+          ? ", toʻgʻri javob berilgan"
+          : state === "incorrect"
+            ? ", notoʻgʻri javob berilgan"
+            : ""
+      }`,
   },
 };

@@ -6,6 +6,7 @@
 
 import { useSyncExternalStore } from "react";
 import type { ExamStatus } from "@/components/home/types";
+import type { Locale } from "@/lib/i18n/dictionary";
 
 export type AccountStatus = "pending" | "active";
 
@@ -16,6 +17,8 @@ export interface RegistrationRecord {
   phone: string;
   examStatus: ExamStatus;
   status: AccountStatus;
+  /** Foydalanuvchi tanlagan til — keyingi kirishda shu til ochiladi. */
+  preferredLanguage?: Locale;
 }
 
 const STORAGE_KEY = "pt_registration";
@@ -73,6 +76,18 @@ export function markAccountActive(): RegistrationRecord | null {
   }
   listeners.forEach((listener) => listener());
   return next;
+}
+
+/** Joriy profilga tanlangan tilni yozadi (profil bo'lmasa — hech narsa qilmaydi). */
+export function savePreferredLanguage(locale: Locale): void {
+  const current = getRegistration();
+  if (!current || current.preferredLanguage === locale) return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...current, preferredLanguage: locale }));
+  } catch {
+    // ignore
+  }
+  listeners.forEach((listener) => listener());
 }
 
 /** Reaktiv o'qish — komponent render vaqtida joriy ro'yxatdan o'tish holatini oladi. */
