@@ -1,34 +1,47 @@
 import { cn } from "cn";
 import type { ApiOption } from "@/lib/api/test";
 
-export type OptionState = "idle" | "selected" | "correct" | "incorrect";
+export type OptionState = "idle" | "pending" | "correct" | "incorrect" | "dimmed";
 
 interface OptionButtonProps {
   option: ApiOption;
+  label: string;
   state: OptionState;
   disabled: boolean;
   onSelect: (optionId: string) => void;
 }
 
-export function OptionButton({ option, state, disabled, onSelect }: OptionButtonProps) {
+export function OptionButton({ option, label, state, disabled, onSelect }: OptionButtonProps) {
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={() => onSelect(option.id)}
       className={cn(
-        "w-full rounded-lg border px-4 py-3 text-left text-sm font-medium transition-colors",
-        "disabled:cursor-not-allowed",
-        state === "idle" &&
-          "border-border bg-background hover:bg-muted disabled:opacity-50",
-        state === "selected" && "border-primary bg-primary/10 text-primary",
-        state === "correct" &&
-          "border-[var(--neon-green)] bg-[var(--neon-green)]/15 text-[var(--neon-green)]",
-        state === "incorrect" &&
-          "border-destructive bg-destructive/10 text-destructive",
+        "flex w-full items-stretch overflow-hidden rounded-xl border text-left transition-colors",
+        "disabled:cursor-default",
+        state === "idle" && "border-border bg-foreground/[0.03] hover:border-neon-orange/50 hover:bg-neon-orange/[0.06]",
+        state === "pending" && "border-neon-orange bg-neon-orange/10",
+        state === "correct" && "border-neon-green bg-neon-green/10",
+        state === "incorrect" && "border-neon-red bg-neon-red/10",
+        state === "dimmed" && "border-border bg-foreground/[0.02] opacity-60",
       )}
     >
-      {option.text}
+      <span
+        className={cn(
+          "flex w-12 shrink-0 items-center justify-center font-mono text-sm font-bold sm:w-14",
+          state === "correct"
+            ? "bg-neon-green/20 text-neon-green"
+            : state === "incorrect"
+              ? "bg-neon-red/20 text-neon-red"
+              : "bg-neon-orange/15 text-neon-orange",
+        )}
+      >
+        {label}
+      </span>
+      <span className="flex-1 px-4 py-3 text-sm leading-relaxed font-medium text-foreground sm:text-base">
+        {option.text}
+      </span>
     </button>
   );
 }
