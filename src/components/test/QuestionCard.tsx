@@ -43,15 +43,17 @@ export function QuestionCard({ question, selectedOptionId, result, checking, onA
         </div>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="flex min-h-56 items-center justify-center overflow-hidden rounded-2xl border border-border bg-black sm:min-h-72">
+      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+        {/* Konteyner rasmning o'z nisbatiga moslashadi (qat'iy balandlik yo'q) —
+            keng rasmlar to'liq kenglikda, tepa/pastda bo'sh joysiz chiqadi. */}
+        <div className="overflow-hidden rounded-2xl border border-border bg-foreground/[0.03]">
           {/* eslint-disable-next-line @next/next/no-img-element -- tabiiy
               o'lchamlar server tomonidan berilmagani uchun next/image'ning
               qat'iy width/height talabidan qochamiz */}
           <img
             src={question.imageUrl}
             alt={question.text || t.testSession.imageAlt}
-            className="max-h-[50vh] w-full object-contain lg:max-h-[440px]"
+            className="mx-auto block h-auto max-h-[60vh] w-full object-contain lg:max-h-[480px]"
           />
         </div>
 
