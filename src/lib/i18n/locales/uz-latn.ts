@@ -229,6 +229,8 @@ export const uzLatn: Dictionary = {
     },
   },
 
+  theme: { toLight: "Kunduzgi rejimga oʻtish", toDark: "Tungi rejimga oʻtish" },
+
   kabinet: {
     header: {
       active: "Faol",
@@ -321,7 +323,11 @@ export const uzLatn: Dictionary = {
     finishConfirm: (unanswered) => `${unanswered} ta savolga javob berilmagan. Testni yakunlaysizmi?`,
     finishConfirmYes: "Ha, yakunlash",
     cancel: "Bekor qilish",
-    elapsed: "Oʻtgan vaqt",
+    timeLeft: "Qolgan vaqt",
+    timeRunningOut: "Vaqt tugayapti!",
+    timeUp: "Vaqt tugadi!",
+    redirecting: (seconds) => `${seconds} soniyadan soʻng kabinetga oʻtasiz`,
+    goToKabinet: "Kabinetga oʻtish",
     keyboardHint: (count) => `Javob tanlash: F1–F${count} yoki 1–${count}`,
     resultTitle: "Natija",
     resultScore: (correct, total, percent) => `${correct} / ${total} toʻgʻri (${percent}%)`,

@@ -3,6 +3,7 @@
 import { GaugeIcon, LogOutIcon } from "lucide-react";
 import type { ExamStatus } from "@/components/home/types";
 import { useLocale } from "@/lib/i18n/useLocale";
+import ThemeToggle from "@/components/home/ThemeToggle";
 import KabinetLanguageSelect from "./KabinetLanguageSelect";
 
 interface DashboardHeaderProps {
@@ -50,6 +51,7 @@ export default function DashboardHeader({
           </span>
 
           <KabinetLanguageSelect />
+          <ThemeToggle />
 
           <button
             type="button"

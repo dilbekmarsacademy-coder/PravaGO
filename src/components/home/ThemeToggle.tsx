@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { MoonIcon, SunIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/lib/i18n/useLocale";
 
 type Theme = "light" | "dark";
 
@@ -38,13 +39,15 @@ interface ThemeToggleProps {
 
 export default function ThemeToggle({ className }: ThemeToggleProps) {
   const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const { t } = useLocale();
+  const label = theme === "dark" ? t.theme.toLight : t.theme.toDark;
 
   return (
     <button
       type="button"
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      aria-label={theme === "dark" ? "Kunduzgi rejimga o'tish" : "Tungi rejimga o'tish"}
-      title={theme === "dark" ? "Kunduzgi rejim" : "Tungi rejim"}
+      aria-label={label}
+      title={label}
       className={cn(
         "flex size-9 shrink-0 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:border-neon-cyan/50 hover:text-neon-cyan",
         className,

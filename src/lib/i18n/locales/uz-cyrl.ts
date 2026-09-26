@@ -229,6 +229,8 @@ export const uzCyrl: Dictionary = {
     },
   },
 
+  theme: { toLight: "Кундузги режимга ўтиш", toDark: "Тунги режимга ўтиш" },
+
   kabinet: {
     header: {
       active: "Фаол",
@@ -321,7 +323,11 @@ export const uzCyrl: Dictionary = {
     finishConfirm: (unanswered) => `${unanswered} та саволга жавоб берилмаган. Тестни якунлайсизми?`,
     finishConfirmYes: "Ҳа, якунлаш",
     cancel: "Бекор қилиш",
-    elapsed: "Ўтган вақт",
+    timeLeft: "Қолган вақт",
+    timeRunningOut: "Вақт тугаяпти!",
+    timeUp: "Вақт тугади!",
+    redirecting: (seconds) => `${seconds} сониядан сўнг кабинетга ўтасиз`,
+    goToKabinet: "Кабинетга ўтиш",
     keyboardHint: (count) => `Жавоб танлаш: F1–F${count} ёки 1–${count}`,
     resultTitle: "Натижа",
     resultScore: (correct, total, percent) => `${correct} / ${total} тўғри (${percent}%)`,

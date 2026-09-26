@@ -238,6 +238,8 @@ export const ru: Dictionary = {
     },
   },
 
+  theme: { toLight: "Включить светлую тему", toDark: "Включить тёмную тему" },
+
   kabinet: {
     header: {
       active: "Активен",
@@ -331,7 +333,11 @@ export const ru: Dictionary = {
       `Без ответа: ${unanswered} ${questionWord(unanswered)}. Завершить тест?`,
     finishConfirmYes: "Да, завершить",
     cancel: "Отмена",
-    elapsed: "Прошло времени",
+    timeLeft: "Осталось времени",
+    timeRunningOut: "Время заканчивается!",
+    timeUp: "Время вышло!",
+    redirecting: (seconds) => `Переход в кабинет через ${seconds} с`,
+    goToKabinet: "Перейти в кабинет",
     keyboardHint: (count) => `Выбор ответа: F1–F${count} или 1–${count}`,
     resultTitle: "Результат",
     resultScore: (correct, total, percent) => `${correct} / ${total} верно (${percent}%)`,

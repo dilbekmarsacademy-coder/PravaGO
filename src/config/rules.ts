@@ -11,3 +11,12 @@ export const FINAL_EXAM_MAX_ATTEMPTS = 10;
  * Oqim tayyor bo'lgach shu bayroqni true qilish kifoya.
  */
 export const FINAL_EXAM_FLOW_ENABLED = false;
+
+/**
+ * Mavzu testi uchun vaqt chegarasi (soniya). Hozircha sinov uchun 1 daqiqa —
+ * keyinroq ko'paytiriladi.
+ */
+export const TOPIC_TEST_TIME_LIMIT_SEC = 60;
+
+/** Vaqt tugaganda natija ko'rsatilgach kabinetga avtomatik o'tishgacha soniyalar. */
+export const TIME_UP_REDIRECT_SEC = 5;

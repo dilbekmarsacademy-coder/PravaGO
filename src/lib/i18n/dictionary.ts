@@ -155,6 +155,8 @@ export interface Dictionary {
     };
   };
 
+  theme: { toLight: string; toDark: string };
+
   kabinet: {
     header: {
       active: string;
@@ -230,7 +232,11 @@ export interface Dictionary {
     finishConfirm: (unanswered: number) => string;
     finishConfirmYes: string;
     cancel: string;
-    elapsed: string;
+    timeLeft: string;
+    timeRunningOut: string;
+    timeUp: string;
+    redirecting: (seconds: number) => string;
+    goToKabinet: string;
     keyboardHint: (optionCount: number) => string;
     resultTitle: string;
     resultScore: (correct: number, total: number, percent: number) => string;

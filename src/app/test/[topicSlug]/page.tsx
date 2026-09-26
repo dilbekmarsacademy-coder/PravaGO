@@ -1,11 +1,15 @@
 "use client";
 
-import { use, useCallback, useEffect, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { cn } from "cn";
 import { checkAnswer, getTopicQuestions, type ApiQuestion, type CheckAnswerResult } from "@/lib/api/test";
 import { QuestionCard } from "@/components/test/QuestionCard";
 import { QuestionGrid } from "@/components/test/QuestionGrid";
 import { ResultSummary } from "@/components/test/ResultSummary";
 import { TestTopBar } from "@/components/test/TestTopBar";
+import { TimeUpSummary } from "@/components/test/TimeUpSummary";
+import { TOPIC_TEST_TIME_LIMIT_SEC } from "@/config/rules";
+import { getTimeUrgency } from "@/lib/test/timer";
 import { COURSE_TOPICS } from "@/data/curriculum";
 import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
@@ -39,18 +43,33 @@ interface QuestionAnswer {
   result: CheckAnswerResult | null;
 }
 
-/** Testni boshlagandan beri o'tgan soniyalar; `running` false bo'lsa to'xtaydi. */
-function useElapsedSeconds(running: boolean): number {
-  const [startedAt] = useState(() => Date.now());
-  const [now, setNow] = useState(startedAt);
+type FinishReason = "manual" | "timeout";
+
+/**
+ * Qolgan vaqt (soniya). `startedAt` — savollar yuklangan payt; vaqt tugashi
+ * bilan `onExpire` bir marta chaqiriladi. Hisob `Date.now()` bo'yicha —
+ * tab fonda qolsa ham vaqt to'g'ri o'tadi.
+ */
+function useCountdown(startedAt: number | null, limitSec: number, running: boolean, onExpire: () => void) {
+  const [now, setNow] = useState<number | null>(null);
+  const onExpireRef = useRef(onExpire);
 
   useEffect(() => {
-    if (!running) return;
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [running]);
+    onExpireRef.current = onExpire;
+  }, [onExpire]);
 
-  return Math.floor((now - startedAt) / 1000);
+  useEffect(() => {
+    if (startedAt === null || !running) return;
+    const id = setInterval(() => {
+      const current = Date.now();
+      setNow(current);
+      if (current - startedAt >= limitSec * 1000) onExpireRef.current();
+    }, 250);
+    return () => clearInterval(id);
+  }, [startedAt, limitSec, running]);
+
+  if (startedAt === null || now === null) return limitSec;
+  return Math.max(0, limitSec - Math.floor((now - startedAt) / 1000));
 }
 
 function TestSession({ topicSlug, onRestart }: TestSessionProps) {
@@ -62,8 +81,12 @@ function TestSession({ topicSlug, onRestart }: TestSessionProps) {
   const [answers, setAnswers] = useState<Record<number, QuestionAnswer>>({});
   const [checking, setChecking] = useState(false);
   const [confirmingFinish, setConfirmingFinish] = useState(false);
-  const [finished, setFinished] = useState(false);
-  const elapsedSec = useElapsedSeconds(questions !== null && !finished);
+  const [finishReason, setFinishReason] = useState<FinishReason | null>(null);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const finished = finishReason !== null;
+  const handleTimeout = useCallback(() => setFinishReason((prev) => prev ?? "timeout"), []);
+  const remainingSec = useCountdown(startedAt, TOPIC_TEST_TIME_LIMIT_SEC, !finished, handleTimeout);
+  const urgency = getTimeUrgency(remainingSec, TOPIC_TEST_TIME_LIMIT_SEC);
 
   const topic = COURSE_TOPICS.find((item) => item.testSlug === topicSlug);
   const title = topic ? `${t.kabinet.topic.testNo(topic.number)} · ${localize(topic.title, locale)}` : null;
@@ -72,7 +95,9 @@ function TestSession({ topicSlug, onRestart }: TestSessionProps) {
     let cancelled = false;
     getTopicQuestions(topicSlug)
       .then((data) => {
-        if (!cancelled) setQuestions(data);
+        if (cancelled) return;
+        setQuestions(data);
+        setStartedAt(Date.now());
       })
       .catch(() => {
         if (!cancelled) setError("loadError");
@@ -155,15 +180,34 @@ function TestSession({ topicSlug, onRestart }: TestSessionProps) {
     if (unansweredCount > 0) {
       setConfirmingFinish(true);
     } else {
-      setFinished(true);
+      setFinishReason("manual");
     }
   }
 
   return (
     <div className="flex min-h-screen flex-col">
+      {/* Vaqt tugayotganini ekran chetlari rangi bilan bildiramiz. */}
+      {!finished && urgency !== "normal" && (
+        <div
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none fixed inset-0 z-30 transition-shadow duration-500",
+            urgency === "warning" && "shadow-[inset_0_0_0_3px_var(--neon-amber),inset_0_0_60px_-10px_var(--neon-amber)]",
+            urgency === "critical" &&
+              "animate-pulse shadow-[inset_0_0_0_4px_var(--neon-red),inset_0_0_90px_-10px_var(--neon-red)]",
+          )}
+        />
+      )}
+      {!finished && urgency !== "normal" && (
+        <p className="sr-only" role="status">
+          {t.testSession.timeRunningOut}
+        </p>
+      )}
+
       <TestTopBar
         title={title}
-        elapsedSec={elapsedSec}
+        remainingSec={remainingSec}
+        urgency={urgency}
         canFinish={questions !== null && !finished}
         onFinish={handleFinish}
       />
@@ -194,7 +238,7 @@ function TestSession({ topicSlug, onRestart }: TestSessionProps) {
               </button>
               <button
                 type="button"
-                onClick={() => setFinished(true)}
+                onClick={() => setFinishReason("manual")}
                 className="rounded-full bg-gradient-to-r from-neon-orange to-neon-orange-2 px-4 py-1.5 text-sm font-bold text-background"
               >
                 {t.testSession.finishConfirmYes}
@@ -224,7 +268,11 @@ function TestSession({ topicSlug, onRestart }: TestSessionProps) {
 
         {questions && finished && (
           <div className="mx-auto w-full max-w-xl">
-            <ResultSummary correctCount={correctCount} total={questions.length} onRestart={onRestart} />
+            {finishReason === "timeout" ? (
+              <TimeUpSummary correctCount={correctCount} total={questions.length} />
+            ) : (
+              <ResultSummary correctCount={correctCount} total={questions.length} onRestart={onRestart} />
+            )}
           </div>
         )}
       </main>

@@ -2,23 +2,21 @@
 
 import Link from "next/link";
 import { ArrowLeftIcon, TimerIcon } from "lucide-react";
+import { cn } from "cn";
+import ThemeToggle from "@/components/home/ThemeToggle";
 import KabinetLanguageSelect from "@/components/kabinet/KabinetLanguageSelect";
 import { useLocale } from "@/lib/i18n/useLocale";
+import { formatClock, type TimeUrgency } from "@/lib/test/timer";
 
 interface TestTopBarProps {
   title: string | null;
-  elapsedSec: number;
+  remainingSec: number;
+  urgency: TimeUrgency;
   canFinish: boolean;
   onFinish: () => void;
 }
 
-function formatElapsed(totalSec: number): string {
-  const minutes = Math.floor(totalSec / 60);
-  const seconds = totalSec % 60;
-  return `${String(minutes).padStart(2, "0")} : ${String(seconds).padStart(2, "0")}`;
-}
-
-export function TestTopBar({ title, elapsedSec, canFinish, onFinish }: TestTopBarProps) {
+export function TestTopBar({ title, remainingSec, urgency, canFinish, onFinish }: TestTopBarProps) {
   const { t } = useLocale();
 
   return (
@@ -50,17 +48,27 @@ export function TestTopBar({ title, elapsedSec, canFinish, onFinish }: TestTopBa
 
         <div className="ml-auto flex shrink-0 items-center gap-2.5">
           <span
-            className="flex h-9 items-center gap-1.5 rounded-full border border-neon-orange/40 px-3 font-mono text-sm font-bold text-foreground tabular-nums"
-            aria-label={t.testSession.elapsed}
-            title={t.testSession.elapsed}
+            role="timer"
+            aria-label={t.testSession.timeLeft}
+            title={t.testSession.timeLeft}
+            className={cn(
+              "flex h-9 items-center gap-1.5 rounded-full border px-3 font-mono text-sm font-bold tabular-nums transition-colors",
+              urgency === "normal" && "border-neon-orange/40 text-foreground",
+              urgency === "warning" && "border-neon-amber bg-neon-amber/15 text-neon-amber",
+              urgency === "critical" && "animate-pulse border-neon-red bg-neon-red/15 text-neon-red",
+            )}
           >
-            <TimerIcon className="size-4 text-neon-orange" aria-hidden="true" />
-            {formatElapsed(elapsedSec)}
+            <TimerIcon
+              className={cn("size-4", urgency === "normal" ? "text-neon-orange" : "text-current")}
+              aria-hidden="true"
+            />
+            {formatClock(remainingSec)}
           </span>
           {/* Telefonda joy tor — til kabinet header'ida ham tanlanadi. */}
           <div className="hidden sm:block">
             <KabinetLanguageSelect />
           </div>
+          <ThemeToggle />
         </div>
       </div>
     </header>
