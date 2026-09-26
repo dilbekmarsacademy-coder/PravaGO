@@ -1,22 +1,22 @@
 import { cn } from "cn";
-import type { ApiOption } from "@/lib/api/test";
 
 export type OptionState = "idle" | "pending" | "correct" | "incorrect" | "dimmed";
 
 interface OptionButtonProps {
-  option: ApiOption;
+  optionId: string;
+  text: string;
   label: string;
   state: OptionState;
   disabled: boolean;
   onSelect: (optionId: string) => void;
 }
 
-export function OptionButton({ option, label, state, disabled, onSelect }: OptionButtonProps) {
+export function OptionButton({ optionId, text, label, state, disabled, onSelect }: OptionButtonProps) {
   return (
     <button
       type="button"
       disabled={disabled}
-      onClick={() => onSelect(option.id)}
+      onClick={() => onSelect(optionId)}
       className={cn(
         "flex w-full items-stretch overflow-hidden rounded-xl border text-left transition-colors",
         "disabled:cursor-default",
@@ -40,7 +40,7 @@ export function OptionButton({ option, label, state, disabled, onSelect }: Optio
         {label}
       </span>
       <span className="flex-1 px-4 py-3 text-sm leading-relaxed font-medium text-foreground sm:text-base">
-        {option.text}
+        {text}
       </span>
     </button>
   );

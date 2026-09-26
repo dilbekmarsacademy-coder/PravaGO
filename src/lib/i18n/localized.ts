@@ -1,26 +1,33 @@
-// 3 tilli kontent (mavzu nomlari, keyinchalik savol/javoblar) uchun tur va
-// tanlangan tilga mos matnni olish. Kontent `{ uz, cyrl, ru }` ko'rinishida
-// saqlanadi; `uz` majburiy, qolganlari bo'lmasa fallback ishlaydi:
-//   cyrl → `uz` dan avtomatik transliteratsiya
-//   ru   → `uz`
+// 3 tilli kontent (mavzu nomlari, savollar, javoblar, kalit so'zlar) uchun tur
+// va tanlangan tilga mos matnni olish. Kontent `{ uz, cyrl, ru }` ko'rinishida
+// keladi; o'zbekcha matn kamida bitta yozuvda bo'ladi, yetishmagani
+// transliteratsiya bilan to'ldiriladi:
+//   uz   → `cyrl` dan (kirill → lotin)
+//   cyrl → `uz` dan (lotin → kirill)
+//   ru   → o'zbek lotin
 
 import type { Locale } from "./dictionary";
-import { formatUzLatin, latinToCyrillic } from "./translit";
+import { cyrillicToLatin, formatUzLatin, latinToCyrillic } from "./translit";
 
 export interface LocalizedText {
-  uz: string;
+  uz?: string;
   cyrl?: string;
   ru?: string;
+}
+
+function uzLatin(text: LocalizedText): string {
+  if (text.uz !== undefined) return formatUzLatin(text.uz);
+  return text.cyrl !== undefined ? cyrillicToLatin(text.cyrl) : "";
 }
 
 export function localize(text: LocalizedText, locale: Locale): string {
   switch (locale) {
     case "uz-cyrl":
-      return text.cyrl ?? latinToCyrillic(text.uz);
+      return text.cyrl ?? latinToCyrillic(text.uz ?? "");
     case "ru":
-      return text.ru ?? formatUzLatin(text.uz);
+      return text.ru ?? uzLatin(text);
     default:
-      return formatUzLatin(text.uz);
+      return uzLatin(text);
   }
 }
 

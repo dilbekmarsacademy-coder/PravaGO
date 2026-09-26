@@ -9,6 +9,12 @@ interface SeedOption {
   text: string;
 }
 
+interface SeedTranslation {
+  text: string;
+  options: Record<string, string>;
+  keyword: string;
+}
+
 interface SeedQuestion {
   id: number;
   topic: string;
@@ -23,6 +29,9 @@ interface SeedQuestion {
 
 const SEED_DATA_DIR = path.join(__dirname, "seed-data");
 const QUESTIONS_JSON_PATH = path.join(SEED_DATA_DIR, "questions.json");
+// Ruscha tarjimalar (savol id → matn, variantlar, kalit so'z). AI tarjimasi —
+// qo'lda tekshirilguncha `ruNeedsReview=true` bo'lib turadi.
+const QUESTIONS_RU_JSON_PATH = path.join(SEED_DATA_DIR, "questions.ru.json");
 const SOURCE_IMAGES_DIR = path.join(SEED_DATA_DIR, "images");
 
 // public/ is served as static files by the NestJS app (see main.ts).
@@ -66,6 +75,9 @@ async function main() {
 
   const raw = fs.readFileSync(QUESTIONS_JSON_PATH, "utf-8");
   const questions: SeedQuestion[] = JSON.parse(raw);
+  const ruTranslations: Record<string, SeedTranslation> = fs.existsSync(QUESTIONS_RU_JSON_PATH)
+    ? JSON.parse(fs.readFileSync(QUESTIONS_RU_JSON_PATH, "utf-8"))
+    : {};
 
   const questionsByTopic = new Map<string, SeedQuestion[]>();
   for (const q of questions) {
@@ -108,6 +120,13 @@ async function main() {
       const needsReview = Boolean(q.needsReview) || !isUnambiguous;
       if (needsReview) totalNeedsReview++;
 
+      const ru = ruTranslations[String(q.id)];
+      const ruFields = {
+        textRu: ru?.text || null,
+        keywordRu: ru?.keyword || null,
+        ruNeedsReview: Boolean(ru),
+      };
+
       const question = await prisma.question.upsert({
         where: { topicId_order: { topicId: topic.id, order: q.id } },
         update: {
@@ -115,6 +134,7 @@ async function main() {
           imageUrl: `${publicBaseUrl}/images/${q.image}`,
           keyword: q.keyword ?? "",
           needsReview,
+          ...ruFields,
         },
         create: {
           topicId: topic.id,
@@ -123,6 +143,7 @@ async function main() {
           order: q.id,
           keyword: q.keyword ?? "",
           needsReview,
+          ...ruFields,
         },
       });
 
@@ -133,6 +154,7 @@ async function main() {
         data: q.options.map((opt) => ({
           questionId: question.id,
           text: opt.text,
+          textRu: ru?.options[opt.id] ?? null,
           isCorrect: isUnambiguous && correctIds.has(opt.id),
         })),
       });

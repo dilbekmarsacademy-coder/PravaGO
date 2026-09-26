@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatUzLatin, latinToCyrillic } from "./translit";
+import { cyrillicToLatin, formatUzLatin, latinToCyrillic } from "./translit";
 import { localize } from "./localized";
 import { CURRICULUM } from "@/data/curriculum";
 
@@ -72,6 +72,46 @@ describe("latinToCyrillic", () => {
   });
 });
 
+describe("cyrillicToLatin", () => {
+  const normalizeApostrophes = (text: string) => text.replace(/[ʻʼ‘’]/g, "'");
+
+  it.each([
+    ["Ўзбекистон", "Oʻzbekiston"],
+    ["ғалаба", "gʻalaba"],
+    ["Шаҳар", "Shahar"],
+    ["чорраҳа", "chorraha"],
+    ["Енгил", "Yengil"],
+    ["поезд", "poyezd"],
+    ["мопед", "moped"],
+    ["ёмғир", "yomgʻir"],
+    ["таъминлаш", "taʼminlash"],
+    ["компьютер", "kompyuter"],
+  ])("%s → %s", (cyrillic, latin) => {
+    expect(cyrillicToLatin(cyrillic)).toBe(latin);
+  });
+
+  it("keeps all-caps words in caps, including digraphs", () => {
+    expect(cyrillicToLatin("ШАҲАР")).toBe("SHAHAR");
+    expect(cyrillicToLatin("ЙПХ")).toBe("YPX");
+  });
+
+  it("uses s for word-initial ц and ts elsewhere", () => {
+    expect(cyrillicToLatin("цемент")).toBe("sement");
+    expect(cyrillicToLatin("станция")).toBe("stantsiya");
+  });
+
+  it("round-trips the curriculum titles back to their Latin spelling", () => {
+    for (const day of CURRICULUM) {
+      for (const topic of day.topics) {
+        expect(
+          normalizeApostrophes(cyrillicToLatin(topic.title.cyrl)),
+          `testNo ${topic.testNo}`,
+        ).toBe(normalizeApostrophes(topic.title.uz));
+      }
+    }
+  });
+});
+
 describe("formatUzLatin", () => {
   it("replaces o'/g' apostrophes with U+02BB", () => {
     expect(formatUzLatin("O'quv dasturi, to‘g’ri")).toBe("Oʻquv dasturi, toʻgʻri");
@@ -88,6 +128,19 @@ describe("localize", () => {
     expect(localize(text, "uz-latn")).toBe("Yuk tashish");
     expect(localize(text, "uz-cyrl")).toBe("Юк ташиш");
     expect(localize(text, "ru")).toBe("Перевозка грузов");
+  });
+
+  it("derives Latin from Cyrillic-only content (question texts)", () => {
+    const text = { cyrl: "Қайси транспорт воситасига ҳаракатланиш рухсат этилади?", ru: "Какому транспортному средству разрешено движение?" };
+    expect(localize(text, "uz-latn")).toBe("Qaysi transport vositasiga harakatlanish ruxsat etiladi?");
+    expect(localize(text, "uz-cyrl")).toBe(text.cyrl);
+    expect(localize(text, "ru")).toBe(text.ru);
+    expect(localize({ cyrl: "Мотоциклга" }, "ru")).toBe("Mototsiklga");
+  });
+
+  it("returns an empty string for empty content", () => {
+    expect(localize({}, "uz-latn")).toBe("");
+    expect(localize({}, "ru")).toBe("");
   });
 
   it("falls back: cyrl → transliterated uz, ru → uz", () => {

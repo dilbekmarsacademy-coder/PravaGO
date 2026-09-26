@@ -4,6 +4,7 @@ import { useState } from "react";
 import { LightbulbIcon } from "lucide-react";
 import { OptionButton, type OptionState } from "./OptionButton";
 import type { ApiQuestion, CheckAnswerResult } from "@/lib/api/test";
+import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
 
 interface QuestionCardProps {
@@ -26,7 +27,8 @@ function getOptionState(
 }
 
 export function QuestionCard({ question, selectedOptionId, result, checking, onAnswer }: QuestionCardProps) {
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
+  const questionText = localize(question.text, locale);
   // Noto'g'ri javobdan keyin izoh avtomatik ochiladi; foydalanuvchi uni yopishi mumkin.
   const [hintToggled, setHintToggled] = useState<boolean | null>(null);
   const hintOpen = hintToggled ?? (result !== null && !result.correct);
@@ -35,10 +37,10 @@ export function QuestionCard({ question, selectedOptionId, result, checking, onA
   return (
     <section className="flex flex-col gap-4">
       {/* Ba'zi savollarda matn yo'q (faqat rasm orqali savol beriladi). */}
-      {question.text && (
+      {questionText && (
         <div className="rounded-2xl border border-neon-orange/30 bg-gradient-to-r from-neon-orange/15 via-neon-orange/5 to-transparent px-5 py-5 sm:px-8 sm:py-6">
           <p className="text-center font-display text-lg leading-snug font-bold text-foreground sm:text-2xl">
-            {question.text}
+            {questionText}
           </p>
         </div>
       )}
@@ -52,7 +54,7 @@ export function QuestionCard({ question, selectedOptionId, result, checking, onA
               qat'iy width/height talabidan qochamiz */}
           <img
             src={question.imageUrl}
-            alt={question.text || t.testSession.imageAlt}
+            alt={questionText || t.testSession.imageAlt}
             className="mx-auto block h-auto max-h-[60vh] w-full object-contain lg:max-h-[480px]"
           />
         </div>
@@ -61,7 +63,8 @@ export function QuestionCard({ question, selectedOptionId, result, checking, onA
           {question.options.map((option, index) => (
             <OptionButton
               key={option.id}
-              option={option}
+              optionId={option.id}
+              text={localize(option.text, locale)}
               label={`F${index + 1}`}
               state={getOptionState(option.id, selectedOptionId, result)}
               disabled={answered || checking}
@@ -83,7 +86,7 @@ export function QuestionCard({ question, selectedOptionId, result, checking, onA
               {hintOpen && (
                 <p className="border-t border-border px-4 py-3 text-sm leading-relaxed text-foreground/90">
                   <span className="font-semibold text-neon-green">{t.testSession.keyword} </span>
-                  {result.keyword}
+                  {localize(result.keyword, locale)}
                 </p>
               )}
             </div>

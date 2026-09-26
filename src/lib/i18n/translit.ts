@@ -115,6 +115,54 @@ export function latinToCyrillic(text: string): string {
   return out;
 }
 
+const CYR_TO_LAT: Record<string, string> = {
+  а: "a", б: "b", в: "v", г: "g", д: "d", ё: "yo", ж: "j", з: "z", и: "i",
+  й: "y", к: "k", л: "l", м: "m", н: "n", о: "o", п: "p", р: "r", с: "s",
+  т: "t", у: "u", ф: "f", х: "x", ч: "ch", ш: "sh", щ: "sh", ы: "i", э: "e",
+  ю: "yu", я: "ya", ў: `o${OKINA}`, қ: "q", ғ: `g${OKINA}`, ҳ: "h", ь: "",
+  ъ: "\u02BC",
+};
+
+const CYR_VOWELS = new Set([..."аеёиоуэюяўы"]);
+
+function isUpper(ch: string | undefined): boolean {
+  return !!ch && ch !== ch.toLowerCase();
+}
+
+/** O'zbek kirill matnini o'zbek lotin yozuviga o'giradi (oʻ/gʻ — U+02BB, tutuq — U+02BC). */
+export function cyrillicToLatin(text: string): string {
+  let out = "";
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    const lower = ch.toLowerCase();
+    const prev = text[i - 1]?.toLowerCase();
+
+    let mapped: string | undefined;
+    if (lower === "е") {
+      // So'z boshida, unli yoki ъ/ь dan keyin — "ye", aks holda "e".
+      const afterVowel = prev !== undefined && (CYR_VOWELS.has(prev) || prev === "ъ" || prev === "ь");
+      mapped = !isLetter(text[i - 1]) || afterVowel ? "ye" : "e";
+    } else if (lower === "ц") {
+      mapped = !isLetter(text[i - 1]) ? "s" : "ts";
+    } else {
+      mapped = CYR_TO_LAT[lower];
+    }
+
+    if (mapped === undefined) {
+      out += ch;
+      continue;
+    }
+    if (!isUpper(ch) || mapped.length === 0) {
+      out += mapped;
+      continue;
+    }
+    // Katta harf: butun so'z katta bo'lsa — "SH", aks holda — "Sh".
+    const wordIsUpper = isUpper(text[i + 1]) || (isLetter(text[i - 1]) && isUpper(text[i - 1]));
+    out += wordIsUpper ? mapped.toUpperCase() : mapped[0].toUpperCase() + mapped.slice(1);
+  }
+  return out;
+}
+
 /** Lotin matnida `o'`/`g'` ni to'g'ri `oʻ`/`gʻ` (U+02BB) belgisi bilan almashtiradi. */
 export function formatUzLatin(text: string): string {
   return text.replace(/([oOgG])['‘’ʻʼ]/g, `$1${OKINA}`);

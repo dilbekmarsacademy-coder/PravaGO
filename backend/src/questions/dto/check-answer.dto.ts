@@ -1,4 +1,5 @@
 import { IsNotEmpty, IsString } from "class-validator";
+import type { LocalizedTextDto } from "../../common/localized-text";
 
 export class CheckAnswerDto {
   @IsString()
@@ -9,9 +10,9 @@ export class CheckAnswerDto {
 export class CheckAnswerResultDto {
   correct: boolean;
   correctOptionId: string;
-  keyword: string;
+  keyword: LocalizedTextDto;
 
-  constructor(correct: boolean, correctOptionId: string, keyword: string) {
+  constructor(correct: boolean, correctOptionId: string, keyword: LocalizedTextDto) {
     this.correct = correct;
     this.correctOptionId = correctOptionId;
     this.keyword = keyword;

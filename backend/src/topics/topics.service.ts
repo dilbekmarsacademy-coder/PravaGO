@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { toLocalizedText } from "../common/localized-text";
 import { PublicOptionDto, PublicQuestionDto } from "./dto/public-question.dto";
 
 @Injectable()
@@ -12,7 +13,7 @@ export class TopicsService {
       include: {
         questions: {
           orderBy: { order: "asc" },
-          include: { options: true },
+          include: { options: { orderBy: { createdAt: "asc" } } },
         },
       },
     });
@@ -25,9 +26,9 @@ export class TopicsService {
       (q) =>
         new PublicQuestionDto({
           id: q.id,
-          text: q.text,
+          text: toLocalizedText(q.text, q.textRu),
           imageUrl: q.imageUrl,
-          options: q.options.map((o) => new PublicOptionDto(o.id, o.text)),
+          options: q.options.map((o) => new PublicOptionDto(o.id, toLocalizedText(o.text, o.textRu))),
         }),
     );
   }

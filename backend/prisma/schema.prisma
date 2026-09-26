@@ -20,11 +20,15 @@ model Question {
   id          String   @id @default(uuid())
   topicId     String
   topic       Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  text        String
+  text        String // o'zbek kirill
+  textRu      String? // ruscha tarjima
   imageUrl    String
   order       Int
-  keyword     String
+  keyword     String // o'zbek (lotin yoki kirill — manbaga qarab)
+  keywordRu   String?
   needsReview Boolean  @default(false)
+  /// Ruscha tarjima qo'lda tekshirilmagan (mashina/AI tarjimasi).
+  ruNeedsReview Boolean @default(false)
   options     Option[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -36,7 +40,8 @@ model Option {
   id         String   @id @default(uuid())
   questionId String
   question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  text       String
+  text       String // o'zbek kirill
+  textRu     String?
   isCorrect  Boolean  @default(false)
   createdAt  DateTime @default(now())
 }
