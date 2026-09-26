@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/useLocale";
 import type { DayViewState } from "@/lib/progress/unlock";
 import TopicRow from "./TopicRow";
+import { Card } from "@/components/shared/Card";
+import { Badge } from "@/components/shared/Badge";
 
 interface DayCardProps {
   dayState: DayViewState;
@@ -18,17 +20,17 @@ export default function DayCard({ dayState, expanded, onToggle }: DayCardProps) 
   const { day, topics, unlocked, completed } = dayState;
 
   const statusBadge = completed ? (
-    <span className="flex items-center gap-1 rounded-full bg-neon-green/15 px-2.5 py-1 font-mono text-[0.65rem] font-bold text-neon-green uppercase">
+    <Badge tone="success">
       <CheckIcon className="size-3" /> {labels.status.completed}
-    </span>
+    </Badge>
   ) : unlocked ? (
-    <span className="rounded-full bg-neon-orange/15 px-2.5 py-1 font-mono text-[0.65rem] font-bold text-neon-orange uppercase">
+    <Badge tone="brand">
       {labels.status.current}
-    </span>
+    </Badge>
   ) : (
-    <span className="flex items-center gap-1 rounded-full bg-foreground/5 px-2.5 py-1 font-mono text-[0.65rem] font-bold text-muted-foreground uppercase">
+    <Badge tone="muted">
       <LockIcon className="size-3" /> {labels.status.locked}
-    </span>
+    </Badge>
   );
 
   const completedCount = topics.filter((topic) => topic.completed).length;
@@ -39,7 +41,7 @@ export default function DayCard({ dayState, expanded, onToggle }: DayCardProps) 
   const isOpen = canExpand && expanded;
 
   return (
-    <div className={cn("glass overflow-hidden rounded-2xl", !unlocked && "opacity-80")}>
+    <Card className={cn("overflow-hidden", !unlocked && "opacity-80")}>
       <button
         type="button"
         onClick={canExpand ? onToggle : undefined}
@@ -78,7 +80,7 @@ export default function DayCard({ dayState, expanded, onToggle }: DayCardProps) 
             <div
               className={cn(
                 "h-full rounded-full transition-all duration-500",
-                completed ? "bg-neon-green" : "bg-gradient-to-r from-neon-orange to-neon-orange-2",
+                completed ? "bg-success" : "bg-gradient-to-r from-brand to-brand-2",
               )}
               style={{ width: `${percent}%` }}
             />
@@ -103,6 +105,6 @@ export default function DayCard({ dayState, expanded, onToggle }: DayCardProps) 
           </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

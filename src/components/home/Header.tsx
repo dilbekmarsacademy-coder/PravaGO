@@ -5,7 +5,7 @@ import { GaugeIcon, MenuIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/useLocale";
-import ThemeToggle from "./ThemeToggle";
+import ThemeToggle from "@/components/shared/ThemeToggle";
 import LanguageSwitcher from "./LanguageSwitcher";
 
 interface HeaderProps {

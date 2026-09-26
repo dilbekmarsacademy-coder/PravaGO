@@ -20,3 +20,6 @@ export const TOPIC_TEST_TIME_LIMIT_SEC = 60;
 
 /** Vaqt tugaganda natija ko'rsatilgach kabinetga avtomatik o'tishgacha soniyalar. */
 export const TIME_UP_REDIRECT_SEC = 5;
+
+/** Imtihon rejimida o'tish uchun kerakli to'g'ri javoblar (20 tadan). */
+export const EXAM_PASS_CORRECT = 18;

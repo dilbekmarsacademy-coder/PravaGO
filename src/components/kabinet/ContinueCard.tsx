@@ -7,6 +7,8 @@ import { topicHref } from "@/data/curriculum";
 import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
 import type { ContinueTarget } from "@/lib/progress/unlock";
+import { Card } from "@/components/shared/Card";
+import { buttonClasses } from "@/components/shared/Button";
 
 interface ContinueCardProps {
   target: ContinueTarget;
@@ -33,18 +35,18 @@ export default function ContinueCard({ target }: ContinueCardProps) {
     : labels.stages[stage];
 
   return (
-    <div className="glass relative overflow-hidden rounded-2xl p-6 sm:p-7">
+    <Card className="relative overflow-hidden p-6 sm:p-7">
       <div
-        className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-neon-orange/20 blur-[80px]"
+        className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-brand/20 blur-[80px]"
         aria-hidden="true"
       />
 
-      <span className="font-mono text-xs tracking-[0.24em] text-neon-orange uppercase">
+      <span className="font-mono text-xs tracking-[0.24em] text-brand uppercase">
         {labels.eyebrow}
       </span>
 
       <div className="mt-3 flex items-start gap-4">
-        <span className="glow-orange flex size-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-neon-orange to-neon-orange-2 text-background">
+        <span className="glow-orange flex size-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand to-brand-2 text-background">
           <Icon className="size-5" />
         </span>
         <div className="min-w-0">
@@ -60,11 +62,11 @@ export default function ContinueCard({ target }: ContinueCardProps) {
 
       <Link
         href={topicHref(topic.topic)}
-        className="glow-orange-hover mt-6 inline-flex h-auto items-center gap-2 rounded-full bg-gradient-to-r from-neon-orange to-neon-orange-2 px-6 py-2.5 text-sm font-bold text-background"
+        className={buttonClasses({ variant: "primary", size: "md", className: "mt-6" })}
       >
         {labels.cta}
         <ArrowRightIcon className="size-4" />
       </Link>
-    </div>
+    </Card>
   );
 }

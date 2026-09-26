@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 import { LaptopIcon, SmartphoneIcon, TabletIcon } from "lucide-react";
 import type { Dictionary } from "@/lib/i18n";
 import { useLocale } from "@/lib/i18n/useLocale";
+import { Card } from "@/components/shared/Card";
 
 const noopSubscribe = () => () => {};
 
@@ -33,9 +34,9 @@ export default function DeviceInfo() {
   const { label, Icon } = classifyDevice(ua, labels);
 
   return (
-    <div className="glass flex flex-col items-start gap-3 rounded-2xl p-5 sm:flex-row sm:items-center">
+    <Card className="flex flex-col items-start gap-3 p-5 sm:flex-row sm:items-center">
       <div className="flex items-center gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-foreground/5 text-neon-cyan">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-foreground/5 text-info">
           <Icon className="size-4.5" />
         </span>
         <div>
@@ -46,6 +47,6 @@ export default function DeviceInfo() {
       <p className="text-xs text-muted-foreground sm:ml-auto sm:max-w-[14rem] sm:text-right">
         {labels.singleDevice}
       </p>
-    </div>
+    </Card>
   );
 }

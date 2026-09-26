@@ -4,11 +4,11 @@ import { ChevronDownIcon, LanguagesIcon } from "lucide-react";
 import { LOCALE_META } from "@/lib/i18n";
 import { isLocale, useLocale } from "@/lib/i18n/useLocale";
 
-export default function KabinetLanguageSelect() {
+export default function LanguageSwitcher() {
   const { locale, setLocale, t } = useLocale();
 
   return (
-    <label className="relative flex h-9 shrink-0 items-center rounded-full border border-border text-muted-foreground transition-colors focus-within:border-neon-orange/60 hover:border-neon-orange/40 hover:text-foreground">
+    <label className="relative flex h-10 shrink-0 items-center rounded-full border border-border text-muted-foreground transition-colors focus-within:border-brand/60 hover:border-brand/40 hover:text-foreground">
       <LanguagesIcon className="pointer-events-none absolute left-2.5 size-4" aria-hidden="true" />
       <span className="sr-only">{t.kabinet.header.language}</span>
       <select

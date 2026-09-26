@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import { Syne, Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Onest, JetBrains_Mono } from "next/font/google";
 import Script from "next/script";
 import type { ReactNode } from "react";
 import "./globals.css";
@@ -27,22 +27,18 @@ const LOCALE_INIT_SCRIPT = `(function () {
   }
 })();`;
 
-const syne = Syne({
-  variable: "--font-syne",
-  weight: ["600", "700", "800"],
-  subsets: ["latin"],
-});
-
-const plusJakartaSans = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
-  weight: ["400", "500", "600", "700"],
-  subsets: ["latin", "latin-ext"],
+// Onest — kirill (o'zbek ў/қ/ғ/ҳ va rus) va lotinni to'liq qo'llaydi; butun
+// sayt uchun yagona shrift (sarlavha ham, matn ham).
+const onest = Onest({
+  variable: "--font-onest",
+  weight: ["400", "500", "600", "700", "800"],
+  subsets: ["latin", "latin-ext", "cyrillic", "cyrillic-ext"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains",
   weight: ["400", "500", "600", "700"],
-  subsets: ["latin"],
+  subsets: ["latin", "cyrillic"],
 });
 
 export const metadata: Metadata = {
@@ -51,12 +47,19 @@ export const metadata: Metadata = {
     "Respublika miqyosidagi onlayn haydovchilik (prava) imtihoniga tayyorgarlik platformasi.",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // iPhone "home indicator" / chetlar uchun env(safe-area-inset-*) ishlashi uchun.
+  viewportFit: "cover",
+};
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="uz"
       suppressHydrationWarning
-      className={`h-full ${syne.variable} ${plusJakartaSans.variable} ${jetbrainsMono.variable}`}
+      className={`h-full ${onest.variable} ${jetbrainsMono.variable}`}
     >
       <body className="flex min-h-full flex-col bg-background font-sans text-foreground antialiased">
         <Script id="theme-init" strategy="beforeInteractive">

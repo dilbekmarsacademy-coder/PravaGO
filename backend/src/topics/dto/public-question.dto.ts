@@ -18,17 +18,23 @@ export class PublicQuestionDto {
   id: string;
   text: LocalizedTextDto;
   imageUrl: string;
+  imageWidth: number | null;
+  imageHeight: number | null;
   options: PublicOptionDto[];
 
   constructor(params: {
     id: string;
     text: LocalizedTextDto;
     imageUrl: string;
+    imageWidth: number | null;
+    imageHeight: number | null;
     options: PublicOptionDto[];
   }) {
     this.id = params.id;
     this.text = params.text;
     this.imageUrl = params.imageUrl;
+    this.imageWidth = params.imageWidth;
+    this.imageHeight = params.imageHeight;
     this.options = params.options;
   }
 }

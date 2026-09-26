@@ -42,6 +42,35 @@ const TOPIC_TITLES: Record<string, string> = {
     "1-kun 2-mavzu: Tartibga soluvchining ishoralari",
 };
 
+/** JPEG/PNG fayl sarlavhasidan rasm o'lchamlarini o'qiydi (kutubxonasiz). */
+function readImageSize(filePath: string): { width: number; height: number } | null {
+  const buf = fs.readFileSync(filePath);
+  // PNG: IHDR bo'lagida 16-baytdan kenglik, 20-baytdan balandlik.
+  if (buf.length > 24 && buf.readUInt32BE(0) === 0x89504e47) {
+    return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
+  }
+  // JPEG: SOFn markerini topguncha segmentlar bo'ylab yuramiz.
+  if (buf[0] !== 0xff || buf[1] !== 0xd8) return null;
+  let i = 2;
+  while (i + 9 < buf.length) {
+    if (buf[i] !== 0xff) {
+      i++;
+      continue;
+    }
+    const marker = buf[i + 1];
+    if (marker === 0xff || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd8)) {
+      i += marker === 0xff ? 1 : 2;
+      continue;
+    }
+    const isStartOfFrame = marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker);
+    if (isStartOfFrame) {
+      return { height: buf.readUInt16BE(i + 5), width: buf.readUInt16BE(i + 7) };
+    }
+    i += 2 + buf.readUInt16BE(i + 2);
+  }
+  return null;
+}
+
 function resolvePublicBaseUrl(): string {
   const base = process.env.PUBLIC_BASE_URL;
   if (!base) {
@@ -120,6 +149,9 @@ async function main() {
       const needsReview = Boolean(q.needsReview) || !isUnambiguous;
       if (needsReview) totalNeedsReview++;
 
+      const size = readImageSize(path.join(SOURCE_IMAGES_DIR, q.image));
+      const imageFields = { imageWidth: size?.width ?? null, imageHeight: size?.height ?? null };
+
       const ru = ruTranslations[String(q.id)];
       const ruFields = {
         textRu: ru?.text || null,
@@ -135,6 +167,7 @@ async function main() {
           keyword: q.keyword ?? "",
           needsReview,
           ...ruFields,
+          ...imageFields,
         },
         create: {
           topicId: topic.id,
@@ -144,6 +177,7 @@ async function main() {
           keyword: q.keyword ?? "",
           needsReview,
           ...ruFields,
+          ...imageFields,
         },
       });
 

@@ -23,6 +23,9 @@ model Question {
   text        String // o'zbek kirill
   textRu      String? // ruscha tarjima
   imageUrl    String
+  /// Rasmning asl o'lchamlari — frontend joyni oldindan ajratadi (layout shift bo'lmaydi).
+  imageWidth  Int?
+  imageHeight Int?
   order       Int
   keyword     String // o'zbek (lotin yoki kirill — manbaga qarab)
   keywordRu   String?

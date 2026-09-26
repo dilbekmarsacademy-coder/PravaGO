@@ -17,6 +17,8 @@ import OverallProgress from "@/components/kabinet/OverallProgress";
 import CourseMap from "@/components/kabinet/CourseMap";
 import RandomTestBlock from "@/components/kabinet/RandomTestBlock";
 import DeviceInfo from "@/components/kabinet/DeviceInfo";
+import { Card } from "@/components/shared/Card";
+import { buttonClasses } from "@/components/shared/Button";
 
 type DataState = "loading" | "error" | "ready";
 
@@ -77,7 +79,7 @@ export default function KabinetPage() {
   if (!registration || registration.status !== "active") {
     return (
       <main className="flex min-h-screen items-center justify-center bg-background">
-        <div className="size-8 animate-spin rounded-full border-2 border-neon-orange border-t-transparent" />
+        <div className="size-8 animate-spin rounded-full border-2 border-brand border-t-transparent" />
       </main>
     );
   }
@@ -95,8 +97,8 @@ export default function KabinetPage() {
         {dataState === "loading" && <DashboardSkeleton />}
 
         {dataState === "error" && (
-          <div className="glass flex flex-col items-center gap-4 rounded-2xl p-10 text-center">
-            <span className="flex size-14 items-center justify-center rounded-full bg-neon-red/15 text-neon-red">
+          <Card className="flex flex-col items-center gap-4 p-10 text-center">
+            <span className="flex size-14 items-center justify-center rounded-full bg-danger/15 text-danger">
               <TriangleAlertIcon className="size-6" />
             </span>
             <div>
@@ -108,12 +110,12 @@ export default function KabinetPage() {
             <button
               type="button"
               onClick={handleRetry}
-              className="glow-orange-hover mt-2 inline-flex h-auto items-center gap-2 rounded-full bg-gradient-to-r from-neon-orange to-neon-orange-2 px-6 py-2.5 text-sm font-bold text-background"
+              className={buttonClasses({ variant: "primary", size: "md", className: "mt-2" })}
             >
               <RotateCcwIcon className="size-4" />
               {t.kabinet.loadError.retry}
             </button>
-          </div>
+          </Card>
         )}
 
         {dataState === "ready" && data && (
@@ -148,23 +150,23 @@ function DashboardContent({
         className="glass glow-orange-hover flex items-center justify-between gap-3 rounded-2xl p-5 transition-colors hover:bg-foreground/5"
       >
         <div>
-          <p className="text-xs font-semibold tracking-wide text-neon-orange uppercase">
+          <p className="text-xs font-semibold tracking-wide text-brand uppercase">
             {t.kabinet.trial.badge}
           </p>
           <p className="mt-1 font-display text-sm font-bold text-foreground sm:text-base">
             {trialTopic && t.kabinet.trial.title(localize(trialTopic.title, locale))}
           </p>
         </div>
-        <ArrowRightIcon className="size-5 shrink-0 text-neon-orange" />
+        <ArrowRightIcon className="size-5 shrink-0 text-brand" />
       </Link>
 
       {courseState.allRegularDaysCompleted ? (
-        <div className="glass relative overflow-hidden rounded-2xl p-6 text-center sm:p-8">
+        <Card className="relative overflow-hidden p-6 text-center sm:p-8">
           <div
-            className="pointer-events-none absolute -top-16 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full bg-neon-green/20 blur-[80px]"
+            className="pointer-events-none absolute -top-16 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full bg-success/20 blur-[80px]"
             aria-hidden="true"
           />
-          <span className="glow-orange mx-auto flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-neon-orange to-neon-orange-2 text-background">
+          <span className="glow-orange mx-auto flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-brand to-brand-2 text-brand-foreground">
             <SparklesIcon className="size-6" />
           </span>
           <h2 className="mt-4 font-display text-xl font-bold text-foreground sm:text-2xl">
@@ -173,7 +175,7 @@ function DashboardContent({
           <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
             {t.kabinet.ready.desc}
           </p>
-        </div>
+        </Card>
       ) : (
         courseState.continueTarget && <ContinueCard target={courseState.continueTarget} />
       )}
@@ -196,12 +198,12 @@ function DashboardContent({
 
 function DashboardSkeleton() {
   return (
-    <div className="flex animate-pulse flex-col gap-6" aria-hidden="true">
-      <div className="glass h-40 rounded-2xl bg-foreground/5" />
-      <div className="glass h-32 rounded-2xl bg-foreground/5" />
+    <div className="flex flex-col gap-6" aria-hidden="true">
+      <div className="skeleton-shimmer h-40 rounded-2xl" />
+      <div className="skeleton-shimmer h-32 rounded-2xl" />
       <div className="flex flex-col gap-3">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="glass h-16 rounded-2xl bg-foreground/5" />
+          <div key={i} className="skeleton-shimmer h-16 rounded-2xl" />
         ))}
       </div>
     </div>

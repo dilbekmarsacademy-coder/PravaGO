@@ -35,7 +35,7 @@ export default function CourseMap({
 
   return (
     <div>
-      <span className="font-mono text-xs tracking-[0.24em] text-neon-orange uppercase">
+      <span className="font-mono text-xs tracking-[0.24em] text-brand uppercase">
         {t.kabinet.curriculum.eyebrow}
       </span>
 

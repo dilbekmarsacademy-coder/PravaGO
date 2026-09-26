@@ -5,6 +5,8 @@ import type { ExamStatus } from "@/components/home/types";
 import { FINAL_EXAM_FLOW_ENABLED } from "@/config/rules";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { cn } from "@/lib/utils";
+import { Card } from "@/components/shared/Card";
+import { Badge } from "@/components/shared/Badge";
 
 interface FinalExamCardProps {
   examStatus: ExamStatus;
@@ -36,12 +38,12 @@ export default function FinalExamCard({
   const isAvailable = FINAL_EXAM_FLOW_ENABLED && unlocked;
 
   return (
-    <div
-      className="glass relative overflow-hidden rounded-2xl border border-neon-orange/40 bg-gradient-to-br from-neon-orange/10 via-transparent to-neon-cyan/5 px-5 py-5 shadow-[0_0_32px_-12px_var(--neon-orange)]"
+    <Card
+      className="relative overflow-hidden border-brand/40 bg-gradient-to-br from-brand/10 via-transparent to-info/5 px-5 py-5 shadow-[0_0_32px_-12px_var(--brand)]"
       aria-disabled={!isAvailable}
     >
       <div
-        className="pointer-events-none absolute -top-20 -right-16 h-44 w-44 rounded-full bg-neon-orange/20 blur-[80px]"
+        className="pointer-events-none absolute -top-20 -right-16 h-44 w-44 rounded-full bg-brand/20 blur-[80px]"
         aria-hidden="true"
       />
 
@@ -51,14 +53,14 @@ export default function FinalExamCard({
             className={cn(
               "flex size-11 shrink-0 items-center justify-center rounded-full",
               isAvailable
-                ? "glow-orange bg-gradient-to-br from-neon-orange to-neon-orange-2 text-background"
-                : "bg-neon-orange/15 text-neon-orange",
+                ? "glow-orange bg-gradient-to-br from-brand to-brand-2 text-background"
+                : "bg-brand/15 text-brand",
             )}
           >
             {isAvailable ? <FlagIcon className="size-5" /> : <LockIcon className="size-5" />}
           </span>
           <div className="min-w-0">
-            <span className="font-mono text-[0.65rem] font-bold tracking-[0.2em] text-neon-orange uppercase">
+            <span className="font-mono text-[0.65rem] font-bold tracking-[0.2em] text-brand uppercase">
               {labels.badge}
             </span>
             <p className="font-display text-base font-bold text-foreground sm:text-lg">{labels.title}</p>
@@ -74,15 +76,8 @@ export default function FinalExamCard({
           </div>
         </div>
 
-        <span
-          className={cn(
-            "shrink-0 rounded-full px-2.5 py-1 font-mono text-[0.65rem] font-bold uppercase",
-            isAvailable ? "bg-neon-green/15 text-neon-green" : "bg-foreground/5 text-muted-foreground",
-          )}
-        >
-          {isAvailable ? labels.open : labels.locked}
-        </span>
+        <Badge tone={isAvailable ? "success" : "muted"}>{isAvailable ? labels.open : labels.locked}</Badge>
       </div>
-  </div>
+    </Card>
   );
 }

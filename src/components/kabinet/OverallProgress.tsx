@@ -2,6 +2,7 @@
 
 import { useLocale } from "@/lib/i18n/useLocale";
 import type { DayViewState } from "@/lib/progress/unlock";
+import { Card } from "@/components/shared/Card";
 
 interface OverallProgressProps {
   days: DayViewState[];
@@ -19,9 +20,9 @@ export default function OverallProgress({ days }: OverallProgressProps) {
   const completedDays = regularDays.filter((d) => d.completed).length;
 
   return (
-    <div className="glass rounded-2xl p-6 sm:p-7">
+    <Card className="p-6 sm:p-7">
       <div className="flex items-center justify-between gap-4">
-        <span className="font-mono text-xs tracking-[0.24em] text-neon-cyan uppercase">
+        <span className="font-mono text-xs tracking-[0.24em] text-info uppercase">
           {labels.eyebrow}
         </span>
         <span className="font-mono text-sm font-bold text-foreground tabular-nums">{percent}%</span>
@@ -36,7 +37,7 @@ export default function OverallProgress({ days }: OverallProgressProps) {
         aria-label={labels.ariaLabel}
       >
         <div
-          className="h-full rounded-full bg-gradient-to-r from-neon-orange to-neon-cyan transition-all duration-500"
+          className="h-full rounded-full bg-gradient-to-r from-brand to-info transition-all duration-500"
           style={{ width: `${percent}%` }}
         />
       </div>
@@ -55,6 +56,6 @@ export default function OverallProgress({ days }: OverallProgressProps) {
           <p className="text-xs text-muted-foreground">{labels.completedDays}</p>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

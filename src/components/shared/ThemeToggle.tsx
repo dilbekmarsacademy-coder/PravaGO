@@ -5,7 +5,7 @@ import { MoonIcon, SunIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/useLocale";
 
-type Theme = "light" | "dark";
+export type Theme = "light" | "dark";
 
 const listeners = new Set<() => void>();
 
@@ -23,7 +23,7 @@ function getServerSnapshot(): Theme {
   return "dark";
 }
 
-function setTheme(theme: Theme) {
+export function setTheme(theme: Theme) {
   document.documentElement.classList.toggle("dark", theme === "dark");
   try {
     localStorage.setItem("theme", theme);
@@ -37,8 +37,12 @@ interface ThemeToggleProps {
   className?: string;
 }
 
+export function useTheme(): Theme {
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+}
+
 export default function ThemeToggle({ className }: ThemeToggleProps) {
-  const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const theme = useTheme();
   const { t } = useLocale();
   const label = theme === "dark" ? t.theme.toLight : t.theme.toDark;
 
@@ -49,7 +53,7 @@ export default function ThemeToggle({ className }: ThemeToggleProps) {
       aria-label={label}
       title={label}
       className={cn(
-        "flex size-9 shrink-0 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:border-neon-cyan/50 hover:text-neon-cyan",
+        "flex size-9 shrink-0 items-center justify-center rounded-full border border-border text-foreground transition-colors outline-none hover:border-info/50 hover:text-info focus-visible:ring-2 focus-visible:ring-brand",
         className,
       )}
     >

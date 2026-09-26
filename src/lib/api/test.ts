@@ -17,6 +17,9 @@ export interface ApiQuestion {
   id: string;
   text: LocalizedText;
   imageUrl: string;
+  /** Asl o'lchamlar (eski backend'da bo'lmasligi mumkin). */
+  imageWidth?: number | null;
+  imageHeight?: number | null;
   options: ApiOption[];
 }
 
