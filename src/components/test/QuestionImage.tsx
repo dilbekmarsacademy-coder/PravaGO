@@ -40,7 +40,7 @@ export function QuestionImage({ src, alt, width, height }: QuestionImageProps) {
         onClick={() => setOpen(true)}
         aria-label={t.testSession.zoomImage}
         style={{ maxWidth: `calc(var(--img-max-h) * ${w / h})` }}
-        className="group relative mx-auto block w-full cursor-zoom-in overflow-hidden rounded-2xl border border-border bg-surface-2 shadow-card outline-none [--img-max-h:42dvh] focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background twocol:[--img-max-h:clamp(14rem,calc(100dvh-9rem),640px)]"
+        className="group relative mx-auto block w-full cursor-zoom-in overflow-hidden rounded-md bg-surface-2 shadow-card outline-none [--img-max-h:42dvh] focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background twocol:[--img-max-h:clamp(14rem,calc(100dvh-9rem),640px)]"
       >
         {!loaded && <span className="skeleton-shimmer absolute inset-0" aria-hidden="true" />}
         <Image
@@ -48,7 +48,9 @@ export function QuestionImage({ src, alt, width, height }: QuestionImageProps) {
           alt={alt}
           width={w}
           height={h}
-          sizes="(min-width: 1280px) 700px, (min-width: 768px) 55vw, 100vw"
+          // Asl fayl uzatiladi: rasmlar kichik (≤900px), qayta siqish (standart
+          // 75% sifat) ularni xiralashtirib yuboradi.
+          unoptimized
           loading="eager"
           fetchPriority="high"
           onLoad={() => setLoaded(true)}
@@ -121,10 +123,10 @@ function ImageLightbox({ open, onClose, src, alt, width, height }: ImageLightbox
               alt={alt}
               width={width}
               height={height}
-              sizes="100vw"
+              unoptimized
               // Ekranga sig'adigan eng katta o'lcham, nisbat saqlanadi.
               style={{ width: `min(94vw, calc(88dvh * ${width / height}))` }}
-              className="h-auto rounded-2xl shadow-card"
+              className="h-auto rounded-md shadow-card"
             />
           </motion.div>
           <button
