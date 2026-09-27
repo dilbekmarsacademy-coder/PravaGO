@@ -90,11 +90,13 @@ export function QuestionNavigator({
               aria-current={isCurrent ? "step" : undefined}
               aria-label={t.testSession.questionAria(i + 1, status ?? null, bookmarked)}
               className={cn(
-                "relative flex size-11 items-center justify-center rounded-lg border font-mono text-sm font-semibold tabular-nums outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand",
-                status === undefined
-                  ? "border-border bg-surface text-muted-foreground hover:border-border-strong hover:text-foreground"
-                  : "border-brand/25 bg-brand/10 text-foreground",
-                isCurrent && "ring-2 ring-brand ring-offset-2 ring-offset-background",
+                "relative flex size-11 items-center justify-center overflow-hidden rounded-md border font-mono text-sm font-semibold tabular-nums outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand/60",
+                // Joriy savol — bitta toza aksent border (ikki qavat halqasiz).
+                isCurrent
+                  ? "border-2 border-brand bg-brand/15 text-foreground"
+                  : status === undefined
+                    ? "border-border bg-surface text-muted-foreground hover:border-border-strong hover:text-foreground"
+                    : "border-brand/25 bg-brand/10 text-foreground",
               )}
             >
               {i + 1}
@@ -108,10 +110,12 @@ export function QuestionNavigator({
                 />
               )}
               {bookmarked && (
+                // Saqlangan: tugma ichidagi burchak lentasi — ramkadan chiqmaydi.
                 <BookmarkIcon
                   aria-hidden="true"
-                  className="absolute -top-1 -right-1 size-3.5 text-brand"
+                  className="absolute top-0.5 right-0.5 size-3 text-brand"
                   fill="currentColor"
+                  strokeWidth={0}
                 />
               )}
             </button>
