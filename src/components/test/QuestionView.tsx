@@ -68,12 +68,11 @@ export function QuestionView({
         text
           ? "[grid-template-areas:'meta'_'text'_'image'_'answers']"
           : "[grid-template-areas:'meta'_'image'_'answers']",
-        // Katta ekran va telefon albom holati: rasm chapda, savol va javoblar o'ngda.
-        "lg:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] lg:grid-rows-[auto_auto_1fr] lg:gap-x-8 lg:gap-y-4",
-        "landscape-phone:grid-cols-2 landscape-phone:grid-rows-[auto_auto_1fr] landscape-phone:gap-x-4 landscape-phone:gap-y-3",
+        // Katta va yotiq ekranlar: rasm chapda, savol va javoblar o'ngda.
+        "twocol:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] twocol:grid-rows-[auto_auto_1fr] twocol:gap-x-6 twocol:gap-y-4 lg:gap-x-8",
         text
-          ? "lg:[grid-template-areas:'image_meta'_'image_text'_'image_answers'] landscape-phone:[grid-template-areas:'image_meta'_'image_text'_'image_answers']"
-          : "lg:[grid-template-areas:'image_meta'_'image_answers'_'image_.'] landscape-phone:[grid-template-areas:'image_meta'_'image_answers'_'image_.']",
+          ? "twocol:[grid-template-areas:'image_meta'_'image_text'_'image_answers']"
+          : "twocol:[grid-template-areas:'image_meta'_'image_answers'_'image_.']",
       )}
     >
       <div className="flex items-center justify-between gap-3 [grid-area:meta]">
@@ -107,7 +106,6 @@ export function QuestionView({
           alt={text || t.testSession.imageAlt}
           width={question.imageWidth}
           height={question.imageHeight}
-          className="landscape-phone:max-h-[calc(100dvh-10rem)]"
         />
       </div>
 

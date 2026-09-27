@@ -12,7 +12,6 @@ interface QuestionImageProps {
   alt: string;
   width?: number | null;
   height?: number | null;
-  className?: string;
 }
 
 // O'lcham noma'lum bo'lsa (eski backend) — eng ko'p uchraydigan nisbat.
@@ -22,8 +21,12 @@ const FALLBACK_HEIGHT = 506;
 /**
  * Savol rasmi: o'lchamlar oldindan ma'lum bo'lgani uchun joy ajratiladi (layout
  * shift yo'q), yuklanguncha shimmer, bosilganda to'liq ekran lightbox.
+ *
+ * Ekranga moslashish: rasm balandligi `--img-max-h` dan oshmaydi (bir ustunda
+ * ekranning ~42%, ikki ustunda header'dan qolgan joy). Ramka rasm nisbatiga
+ * qarab torayadi — rasm doim ramkani to'liq to'ldiradi, bo'sh polosa qolmaydi.
  */
-export function QuestionImage({ src, alt, width, height, className }: QuestionImageProps) {
+export function QuestionImage({ src, alt, width, height }: QuestionImageProps) {
   const { t } = useLocale();
   const [loaded, setLoaded] = useState(false);
   const [open, setOpen] = useState(false);
@@ -36,7 +39,8 @@ export function QuestionImage({ src, alt, width, height, className }: QuestionIm
         type="button"
         onClick={() => setOpen(true)}
         aria-label={t.testSession.zoomImage}
-        className="group relative block w-full cursor-zoom-in overflow-hidden rounded-2xl border border-border bg-surface-2 shadow-card outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        style={{ maxWidth: `calc(var(--img-max-h) * ${w / h})` }}
+        className="group relative mx-auto block w-full cursor-zoom-in overflow-hidden rounded-2xl border border-border bg-surface-2 shadow-card outline-none [--img-max-h:42dvh] focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background twocol:[--img-max-h:clamp(14rem,calc(100dvh-9rem),640px)]"
       >
         {!loaded && <span className="skeleton-shimmer absolute inset-0" aria-hidden="true" />}
         <Image
@@ -44,15 +48,11 @@ export function QuestionImage({ src, alt, width, height, className }: QuestionIm
           alt={alt}
           width={w}
           height={h}
-          sizes="(min-width: 1280px) 700px, (min-width: 1024px) 55vw, 100vw"
+          sizes="(min-width: 1280px) 700px, (min-width: 768px) 55vw, 100vw"
           loading="eager"
           fetchPriority="high"
           onLoad={() => setLoaded(true)}
-          className={cn(
-            "block h-auto max-h-[min(70dvh,640px)] w-full object-contain transition-opacity duration-300",
-            loaded ? "opacity-100" : "opacity-0",
-            className,
-          )}
+          className={cn("block h-auto w-full transition-opacity duration-300", loaded ? "opacity-100" : "opacity-0")}
         />
         <span
           aria-hidden="true"

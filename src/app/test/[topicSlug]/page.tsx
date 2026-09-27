@@ -402,7 +402,7 @@ function TestSession({ topicSlug, onlyQuestionIds, onRestart, onRetryWrong }: Te
 /** Yuklanish paytidagi skelet — haqiqiy joylashuvni takrorlaydi (layout shift yo'q). */
 function TestSkeleton({ label }: { label: string }) {
   return (
-    <div aria-busy="true" className="grid gap-5 lg:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] lg:gap-8">
+    <div aria-busy="true" className="grid gap-5 twocol:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] twocol:gap-6 lg:gap-8">
       <span className="sr-only">{label}</span>
       <div className="skeleton-shimmer aspect-[16/9] rounded-2xl" />
       <div className="flex flex-col gap-3">

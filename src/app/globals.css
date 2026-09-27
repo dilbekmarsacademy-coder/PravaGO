@@ -7,6 +7,18 @@
 @custom-variant pointer-fine (@media (hover: hover) and (pointer: fine));
 /* Telefon albom holati: kichik balandlik. */
 @custom-variant landscape-phone (@media (orientation: landscape) and (max-height: 520px));
+/* Test sahifasi ikki ustunli bo'ladigan ekranlar: katta ekran, yotiq planshet/noutbuk, telefon albom. */
+@custom-variant twocol {
+  @media (min-width: 1024px) {
+    @slot;
+  }
+  @media (min-width: 768px) and (orientation: landscape) {
+    @slot;
+  }
+  @media (orientation: landscape) and (max-height: 520px) {
+    @slot;
+  }
+}
 
 :root {
   --background: #f5f6fa;
