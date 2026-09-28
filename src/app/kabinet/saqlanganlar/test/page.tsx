@@ -4,23 +4,22 @@ import { use, useState } from "react";
 import { MotionConfig } from "framer-motion";
 import { TestSession } from "@/components/test/TestSession";
 
-interface TestPageProps {
-  params: Promise<{ topicSlug: string }>;
+interface SavedTestPageProps {
+  searchParams: Promise<{ topic?: string }>;
 }
 
-export default function TestPage({ params }: TestPageProps) {
-  const { topicSlug } = use(params);
-  // `attempt` remounts <TestSession> on restart so all quiz state resets
-  // naturally, instead of imperatively clearing state inside an effect.
+/** "Saqlanganlarni test qilib ishlash" — test sahifasining o'zi, savollar saqlanganlardan. */
+export default function SavedTestPage({ searchParams }: SavedTestPageProps) {
+  const { topic } = use(searchParams);
+  const topicSlug = topic && /^[a-z0-9-]{1,120}$/.test(topic) ? topic : null;
   const [attempt, setAttempt] = useState(0);
-  // "Xatolarni qayta ishlash": faqat shu savollar bilan yangi urinish.
   const [onlyQuestionIds, setOnlyQuestionIds] = useState<string[] | null>(null);
 
   return (
     <MotionConfig reducedMotion="user">
       <TestSession
         key={attempt}
-        source={{ kind: "topic", topicSlug }}
+        source={{ kind: "saved", topicSlug }}
         onlyQuestionIds={onlyQuestionIds}
         onRestart={() => {
           setOnlyQuestionIds(null);

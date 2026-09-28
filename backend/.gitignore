@@ -3,3 +3,5 @@ dist/
 .env
 public/images/
 *.tsbuildinfo
+.vercel
+.env*

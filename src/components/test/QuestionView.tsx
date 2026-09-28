@@ -3,13 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { BookmarkIcon, ChevronDownIcon, LightbulbIcon, PlayCircleIcon } from "lucide-react";
+import { ChevronDownIcon, LightbulbIcon, PlayCircleIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ApiQuestion, CheckAnswerResult } from "@/lib/api/test";
 import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { AnswerOption, type AnswerState } from "./AnswerOption";
 import { QuestionImage } from "./QuestionImage";
+import { BookmarkButton } from "@/components/saved/BookmarkButton";
 
 export type TestMode = "practice" | "exam";
 
@@ -79,19 +80,7 @@ export function QuestionView({
         <span className="font-mono text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase tabular-nums">
           {t.testSession.questionOf(index + 1, total)}
         </span>
-        <button
-          type="button"
-          onClick={onToggleBookmark}
-          aria-pressed={bookmarked}
-          aria-label={bookmarked ? t.testSession.unbookmark : t.testSession.bookmark}
-          title={bookmarked ? t.testSession.unbookmark : t.testSession.bookmark}
-          className={cn(
-            "-my-2 flex size-11 items-center justify-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand",
-            bookmarked ? "text-brand" : "text-muted-foreground hover:bg-surface hover:text-foreground",
-          )}
-        >
-          <BookmarkIcon className="size-5" fill={bookmarked ? "currentColor" : "none"} />
-        </button>
+        <BookmarkButton saved={bookmarked} onToggle={onToggleBookmark} className="-my-2" />
       </div>
 
       {text && (
@@ -177,14 +166,18 @@ export function QuestionView({
           )}
         </AnimatePresence>
 
-        {!answered && (
-          <p className="mt-1 hidden flex-wrap items-center gap-1.5 text-xs text-muted-foreground pointer-fine:flex">
-            {t.testSession.kbdAnswer}: <kbd className="kbd">F1</kbd>–<kbd className="kbd">F{optionCount}</kbd>
-            {t.testSession.kbdOr} <kbd className="kbd">1</kbd>–<kbd className="kbd">{optionCount}</kbd>
-            <span aria-hidden="true">·</span>
-            <kbd className="kbd">←</kbd>/<kbd className="kbd">→</kbd> {t.testSession.kbdQuestions}
-          </p>
-        )}
+        <p className="mt-1 hidden flex-wrap items-center gap-1.5 text-xs text-muted-foreground pointer-fine:flex">
+          {!answered && (
+            <>
+              {t.testSession.kbdAnswer}: <kbd className="kbd">F1</kbd>–<kbd className="kbd">F{optionCount}</kbd>
+              {t.testSession.kbdOr} <kbd className="kbd">1</kbd>–<kbd className="kbd">{optionCount}</kbd>
+              <span aria-hidden="true">·</span>
+            </>
+          )}
+          <kbd className="kbd">←</kbd>/<kbd className="kbd">→</kbd> {t.testSession.kbdQuestions}
+          <span aria-hidden="true">·</span>
+          <kbd className="kbd">S</kbd> {t.testSession.kbdSave}
+        </p>
       </div>
     </article>
   );

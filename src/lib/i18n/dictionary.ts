@@ -278,5 +278,84 @@ export interface Dictionary {
     next: string;
     imageAlt: string;
     questionAria: (index: number, state: "correct" | "incorrect" | "answered" | null, bookmarked: boolean) => string;
+    kbdSave: string;
+  };
+
+  saved: {
+    title: string;
+    total: (count: number) => string;
+    /** Kabinet header'idagi ikonka uchun. */
+    headerAria: (count: number) => string;
+    toast: {
+      saved: string;
+      removed: string;
+      view: string;
+      undo: string;
+      error: string;
+      limit: (limit: number) => string;
+      dismiss: string;
+    };
+    card: {
+      eyebrow: string;
+      desc: (count: number) => string;
+      empty: string;
+      viewAll: string;
+    };
+    page: {
+      searchLabel: string;
+      searchPlaceholder: string;
+      topicLabel: string;
+      allTopics: string;
+      sortLabel: string;
+      sortNew: string;
+      sortOld: string;
+      modeLabel: string;
+      modeView: string;
+      modeReview: string;
+      filtersTitle: string;
+      practice: string;
+      practiceTopic: string;
+      practiceTitle: string;
+      loadMore: string;
+      loading: string;
+      emptyTitle: string;
+      emptyDesc: string;
+      emptyCta: string;
+      noResultsTitle: string;
+      noResultsDesc: string;
+      clearFilters: string;
+      errorTitle: string;
+      errorDesc: string;
+      retry: string;
+    };
+    item: {
+      location: (testNo: number, order: number) => string;
+      questionNo: (order: number) => string;
+      correctAnswer: string;
+      keyword: string;
+      locked: string;
+      reviewHint: string;
+      reviewCorrect: string;
+      reviewWrong: string;
+      reviewAgain: string;
+      noteLabel: string;
+      addNote: string;
+      editNote: string;
+      notePlaceholder: string;
+      noteSaving: string;
+      noteSaved: string;
+      noteError: string;
+      remove: string;
+      video: string;
+      sourceExam: string;
+    };
+    ago: {
+      justNow: string;
+      minutes: (n: number) => string;
+      hours: (n: number) => string;
+      days: (n: number) => string;
+      months: (n: number) => string;
+      years: (n: number) => string;
+    };
   };
 }

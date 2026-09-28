@@ -8,6 +8,7 @@ import { buttonClasses } from "@/components/shared/Button";
 import { HeaderMenu, HeaderMenuItem } from "@/components/shared/HeaderMenu";
 import LanguageSwitcher from "@/components/shared/LanguageSwitcher";
 import ThemeToggle from "@/components/shared/ThemeToggle";
+import { SavedHeaderLink } from "@/components/saved/SavedHeaderLink";
 import { useLocale } from "@/lib/i18n/useLocale";
 
 interface DashboardHeaderProps {
@@ -45,6 +46,9 @@ export default function DashboardHeader({ firstName, lastName, examStatus, onLog
           </span>
           {header.active}
         </Badge>
+
+        {/* Telefonda ham ko'rinadi — menyu ichiga yashirilmaydi. */}
+        <SavedHeaderLink />
 
         <div className="hidden items-center gap-2 md:flex">
           <LanguageSwitcher />

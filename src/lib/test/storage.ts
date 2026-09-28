@@ -1,10 +1,9 @@
 "use client";
 
 // Test sahifasi uchun brauzer xotirasi: joriy sessiya (sahifa yangilansa ham
-// javoblar saqlanadi) va xatchoplar. Xotira mavjud bo'lmasa (shaxsiy oyna va
+// javoblar saqlanadi). Xotira mavjud bo'lmasa (shaxsiy oyna va
 // h.k.) jimgina ishlamaydi — test oddiy tarzda davom etadi.
 
-import { useCallback, useSyncExternalStore } from "react";
 import type { CheckAnswerResult } from "@/lib/api/test";
 
 export interface StoredAnswer {
@@ -54,50 +53,18 @@ export function clearSession(slug: string): void {
   }
 }
 
-// ---- Xatchoplar (localStorage, mavzu bo'yicha savol id'lari) ----
+// ---- Eski xatchoplar ----
+// Avval xatchoplar faqat brauzerda (localStorage) saqlanardi; endi — serverda
+// ("Saqlanganlar"). Eski ro'yxat bir marta o'qiladi va o'chiriladi.
 
-const bookmarkListeners = new Set<() => void>();
-
-function readBookmarksRaw(slug: string): string {
+export function takeLegacyBookmarks(slug: string): string[] {
   try {
-    return localStorage.getItem(bookmarksKey(slug)) ?? "[]";
+    const raw = localStorage.getItem(bookmarksKey(slug));
+    if (raw === null) return [];
+    localStorage.removeItem(bookmarksKey(slug));
+    const ids = JSON.parse(raw) as unknown;
+    return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string") : [];
   } catch {
-    return "[]";
+    return [];
   }
-}
-
-export function useBookmarks(slug: string): { bookmarks: Set<string>; toggle: (questionId: string) => void } {
-  const raw = useSyncExternalStore(
-    (listener) => {
-      bookmarkListeners.add(listener);
-      return () => bookmarkListeners.delete(listener);
-    },
-    () => readBookmarksRaw(slug),
-    () => "[]",
-  );
-
-  let ids: string[] = [];
-  try {
-    ids = JSON.parse(raw) as string[];
-  } catch {
-    ids = [];
-  }
-  const bookmarks = new Set(ids);
-
-  const toggle = useCallback(
-    (questionId: string) => {
-      const current = new Set(JSON.parse(readBookmarksRaw(slug)) as string[]);
-      if (current.has(questionId)) current.delete(questionId);
-      else current.add(questionId);
-      try {
-        localStorage.setItem(bookmarksKey(slug), JSON.stringify([...current]));
-      } catch {
-        // ignore
-      }
-      bookmarkListeners.forEach((listener) => listener());
-    },
-    [slug],
-  );
-
-  return { bookmarks, toggle };
 }

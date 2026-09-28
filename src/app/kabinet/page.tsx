@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { ArrowRightIcon, RotateCcwIcon, SparklesIcon, TriangleAlertIcon } from "lucide-react";
 import { getRegistration, clearRegistration, useRegistration } from "@/lib/registration-store";
 import { getDashboardData, type DashboardData } from "@/lib/api/course";
+import { clearSessionToken } from "@/lib/api/session";
+import { resetSavedStore } from "@/lib/saved/store";
 import { COURSE_TOPICS, topicIdFor } from "@/data/curriculum";
 import { localize } from "@/lib/i18n/localized";
 import { applyLocale, useLocale } from "@/lib/i18n/useLocale";
@@ -16,6 +18,7 @@ import ContinueCard from "@/components/kabinet/ContinueCard";
 import OverallProgress from "@/components/kabinet/OverallProgress";
 import CourseMap from "@/components/kabinet/CourseMap";
 import RandomTestBlock from "@/components/kabinet/RandomTestBlock";
+import SavedCard from "@/components/kabinet/SavedCard";
 import DeviceInfo from "@/components/kabinet/DeviceInfo";
 import { Card } from "@/components/shared/Card";
 import { buttonClasses } from "@/components/shared/Button";
@@ -73,6 +76,9 @@ export default function KabinetPage() {
 
   function handleLogout() {
     clearRegistration();
+    // Keyingi foydalanuvchi oldingisining saqlanganlarini ko'rmasligi uchun.
+    clearSessionToken();
+    resetSavedStore();
     router.push("/");
   }
 
@@ -181,6 +187,8 @@ function DashboardContent({
       )}
 
       <OverallProgress days={courseState.days} />
+
+      <SavedCard />
 
       <CourseMap
         courseState={courseState}
