@@ -14,6 +14,8 @@ import { TimerRing } from "./TimerRing";
 interface TestHeaderProps {
   testLabel: string | null;
   title: string | null;
+  /** Orqaga tugmasi manzili (sukut bo'yicha kabinet). */
+  backHref?: string;
   remainingSec: number;
   limitSec: number;
   urgency: TimeUrgency;
@@ -26,6 +28,7 @@ interface TestHeaderProps {
 export function TestHeader({
   testLabel,
   title,
+  backHref = "/kabinet",
   remainingSec,
   limitSec,
   urgency,
@@ -38,7 +41,7 @@ export function TestHeader({
   return (
     <AppHeader width="wide">
       <Link
-        href="/kabinet"
+        href={backHref}
         aria-label={t.kabinet.backToKabinet}
         title={t.kabinet.backToKabinet}
         className={buttonClasses({ variant: "secondary", size: "icon", className: "size-11 md:size-10" })}

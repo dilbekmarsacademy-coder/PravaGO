@@ -3,6 +3,15 @@ import { formatNumber } from "../localized";
 
 const num = (value: number) => formatNumber(value, "ru");
 
+/** Ruscha ko'plik shakli: 1 минуту, 2 минуты, 5 минут. */
+function plural(count: number, one: string, few: string, many: string): string {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+}
+
 /** Ruscha ko'plik: 1 вопрос, 2 вопроса, 5 вопросов. */
 function questionWord(count: number): string {
   const mod10 = count % 10;
@@ -382,5 +391,83 @@ export const ru: Dictionary = {
       `Вопрос ${index}${
         state === "correct" ? ", дан верный ответ" : state === "incorrect" ? ", дан неверный ответ" : state === "answered" ? ", ответ дан" : ""
       }${bookmarked ? ", сохранён" : ""}`,
+    kbdSave: "сохранить",
+  },
+
+  saved: {
+    title: "Сохранённые",
+    total: (count) => `${num(count)} ${questionWord(count)}`,
+    headerAria: (count) => `Сохранённые: ${num(count)} ${questionWord(count)}`,
+    toast: {
+      saved: "Добавлено в сохранённые",
+      removed: "Удалено из сохранённых",
+      view: "Открыть",
+      undo: "Отменить",
+      error: "Не удалось выполнить действие. Попробуйте ещё раз.",
+      limit: (limit) => `Можно сохранить не более ${num(limit)} вопросов. Сначала удалите ненужные.`,
+      dismiss: "Закрыть",
+    },
+    card: {
+      eyebrow: "Сохранённые",
+      desc: (count) => `${num(count)} ${questionWord(count)} сохранено для повторения`,
+      empty: "Сохраняйте трудные вопросы кнопкой 🔖 во время теста — они соберутся здесь.",
+      viewAll: "Смотреть все",
+    },
+    page: {
+      searchLabel: "Поиск",
+      searchPlaceholder: "Поиск по тексту вопроса",
+      topicLabel: "Тема",
+      allTopics: "Все темы",
+      sortLabel: "Сортировка",
+      sortNew: "Сначала новые",
+      sortOld: "Сначала старые",
+      modeLabel: "Режим просмотра",
+      modeView: "Просмотр",
+      modeReview: "Повторение",
+      filtersTitle: "Фильтры",
+      practice: "Пройти сохранённые как тест",
+      practiceTopic: "Тест по этой теме",
+      practiceTitle: "Тест по сохранённым вопросам",
+      loadMore: "Загрузить ещё",
+      loading: "Загрузка...",
+      emptyTitle: "Сохранённых вопросов пока нет",
+      emptyDesc: "Во время теста сохраняйте трудные вопросы кнопкой 🔖",
+      emptyCta: "Перейти к тестам",
+      noResultsTitle: "Ничего не найдено",
+      noResultsDesc: "Попробуйте другой запрос или сбросьте фильтры.",
+      clearFilters: "Сбросить фильтры",
+      errorTitle: "Не удалось загрузить сохранённые",
+      errorDesc: "Проверьте подключение к интернету и попробуйте ещё раз.",
+      retry: "Повторить",
+    },
+    item: {
+      location: (testNo, order) => `Тест ${testNo} · вопрос ${order}`,
+      questionNo: (order) => `Вопрос ${order}`,
+      correctAnswer: "Правильный ответ",
+      keyword: "Ключевое слово",
+      locked: "Ответ станет доступен после завершения экзамена",
+      reviewHint: "Выберите ответ — затем откроются правильный ответ и ключевое слово",
+      reviewCorrect: "Верно!",
+      reviewWrong: "Неверно",
+      reviewAgain: "Решить заново",
+      noteLabel: "Личная заметка",
+      addNote: "Добавить заметку",
+      editNote: "Изменить заметку",
+      notePlaceholder: "Напишите заметку для себя…",
+      noteSaving: "Сохранение…",
+      noteSaved: "Сохранено",
+      noteError: "Не удалось сохранить заметку",
+      remove: "Удалить",
+      video: "Видеоурок по теме",
+      sourceExam: "Из экзамена",
+    },
+    ago: {
+      justNow: "только что",
+      minutes: (n) => `${n} ${plural(n, "минуту", "минуты", "минут")} назад`,
+      hours: (n) => `${n} ${plural(n, "час", "часа", "часов")} назад`,
+      days: (n) => `${n} ${plural(n, "день", "дня", "дней")} назад`,
+      months: (n) => `${n} ${plural(n, "месяц", "месяца", "месяцев")} назад`,
+      years: (n) => `${n} ${plural(n, "год", "года", "лет")} назад`,
+    },
   },
 };

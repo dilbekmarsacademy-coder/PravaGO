@@ -13,7 +13,8 @@
     "prisma:migrate": "prisma migrate deploy",
     "prisma:migrate:dev": "prisma migrate dev",
     "postinstall": "prisma generate",
-    "lint": "eslint \"src/**/*.ts\""
+    "lint": "eslint \"src/**/*.ts\"",
+    "test:e2e": "vitest run"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -29,10 +30,16 @@
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.0",
+    "@nestjs/testing": "^11.2.6",
+    "@swc/core": "^1.16.2",
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.7",
+    "@types/supertest": "^7.2.1",
     "prisma": "^6.5.0",
+    "supertest": "^7.3.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "unplugin-swc": "^2.0.0",
+    "vitest": "^5.0.2"
   }
 }
