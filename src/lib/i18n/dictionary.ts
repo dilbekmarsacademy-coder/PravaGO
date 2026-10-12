@@ -306,6 +306,8 @@ export interface Dictionary {
       replay: string;
       watched: string;
       keyboardHint: string;
+      /** Skrinshot/ekran yozish urinishida video ustidagi qalqon matni. */
+      protected: string;
     };
     gate: {
       lockedTitle: string;

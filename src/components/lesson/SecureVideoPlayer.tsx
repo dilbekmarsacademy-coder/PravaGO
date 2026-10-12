@@ -7,7 +7,9 @@
 //    kenglik bo'yicha aynan konteynerga tushadi, pleyerning yuqori paneli va
 //    burchakdagi belgisi esa konteynerdan tashqarida qolib kesiladi;
 //  - boshlanishdan oldin, pauzada va tugaganda ustida o'zimizning qopqoq ekran;
-//  - iframe `sandbox`'da: yangi oyna ochish va sahifani boshqa manzilga o'tkazish taqiqlangan.
+//  - iframe `sandbox`'da: yangi oyna ochish va sahifani boshqa manzilga o'tkazish taqiqlangan;
+//  - skrinshot/ekran yozish urinishida video qora qalqon bilan yopiladi (captureGuard),
+//    ustida esa foydalanuvchi telefoni bilan suzuvchi suv belgisi — sizib chiqqan surat egasini ko'rsatadi.
 // "Ko'rildi" holatini faqat server belgilaydi — bu yerda faqat o'lchovlar.
 
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
@@ -15,6 +17,7 @@ import {
   CheckCircle2Icon,
   Loader2Icon,
   LockIcon,
+  ShieldAlertIcon,
   MaximizeIcon,
   MinimizeIcon,
   PauseIcon,
@@ -36,7 +39,9 @@ import {
   type PlaybackRate,
   type WatchTally,
 } from "@/lib/lesson/watch";
+import { useRegistration } from "@/lib/registration-store";
 import { PlayerState, embedSrc, loadEmbedApi, type EmbedPlayer } from "./embedApi";
+import { useCaptureGuard } from "./captureGuard";
 
 interface SecureVideoPlayerProps {
   lessonId: string;
@@ -61,6 +66,8 @@ const SEEK_BACK_SEC = 5;
 /** Bundan kam qolgan bo'lsa, davom ettirish o'rniga boshidan boshlanadi. */
 const RESUME_END_MARGIN_SEC = 5;
 const HINT_MS = 1800;
+/** Suv belgisi shu oraliqda boshqa joyga ko'chadi (kesib olib bo'lmasin). */
+const WATERMARK_MOVE_MS = 4000;
 
 const IFRAME_SANDBOX = "allow-scripts allow-same-origin allow-presentation";
 
@@ -118,6 +125,13 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
   const [tapThrough, setTapThrough] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [hint, setHint] = useState<string | null>(null);
+
+  const pauseForShield = useCallback(() => {
+    const player = playerRef.current;
+    const state = player?.getPlayerState();
+    if (state === PlayerState.PLAYING || state === PlayerState.BUFFERING) player?.pauseVideo();
+  }, []);
+  const shielded = useCaptureGuard(containerRef, pauseForShield);
 
   useEffect(() => {
     callbacksRef.current = { onCompleted, onProgress };
@@ -524,7 +538,7 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
         if (event.pointerType === "mouse") revealControls();
       }}
       className={cn(
-        "group/player relative overflow-hidden bg-[#05070b] select-none [-webkit-touch-callout:none] [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "group/player relative overflow-hidden print:hidden bg-[#05070b] select-none [-webkit-touch-callout:none] [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         isFullscreen ? "flex items-center justify-center" : "rounded-2xl border border-white/10 shadow-card",
         fullscreen === "pseudo" && "fixed inset-0 z-[100] h-dvh w-screen pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
         isFullscreen && !showControls && "cursor-none",
@@ -553,6 +567,20 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
           onClick={handleSurfaceClick}
           className={cn("absolute inset-0 z-10", tapThrough && "pointer-events-none")}
         />
+
+        {phase === "ready" && hasStarted && <Watermark />}
+
+        {shielded && (
+          <div
+            role="status"
+            className="absolute inset-0 z-[60] flex flex-col items-center justify-center gap-3 bg-black px-6 text-center"
+          >
+            <span className="flex size-12 items-center justify-center rounded-full bg-brand/15 text-brand">
+              <ShieldAlertIcon className="size-5" />
+            </span>
+            <p className="max-w-sm text-xs font-semibold text-white/80 sm:text-sm">{p.protected}</p>
+          </div>
+        )}
 
         {phase === "loading" && (
           <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-3 bg-[#070a0f]">
@@ -698,6 +726,32 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
         )}
       </div>
     </div>
+  );
+}
+
+/** Suzuvchi suv belgisi: foydalanuvchi telefoni va sana — har bir surat egasini ko'rsatadi. */
+function Watermark() {
+  const record = useRegistration();
+  const [spot, setSpot] = useState({ x: 12, y: 14 });
+  const who = record?.phone || [record?.firstName, record?.lastName].filter(Boolean).join(" ");
+  const label = who ? `${who} · ${new Date().toLocaleDateString()}` : "";
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setSpot({ x: 5 + Math.random() * 55, y: 8 + Math.random() * 72 });
+    }, WATERMARK_MOVE_MS);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  if (!label) return null;
+  return (
+    <span
+      aria-hidden="true"
+      className="pointer-events-none absolute z-[15] font-mono text-[10px] font-semibold whitespace-nowrap text-white/25 transition-[left,top] duration-1000 select-none sm:text-xs"
+      style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
+    >
+      {label}
+    </span>
   );
 }
 
