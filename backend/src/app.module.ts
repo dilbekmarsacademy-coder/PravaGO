@@ -7,6 +7,7 @@ import { QuestionsModule } from "./questions/questions.module";
 import { AuthModule } from "./auth/auth.module";
 import { UserThrottlerGuard } from "./auth/user-throttler.guard";
 import { SavedModule } from "./saved/saved.module";
+import { LessonsModule } from "./lessons/lessons.module";
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { SavedModule } from "./saved/saved.module";
     QuestionsModule,
     AuthModule,
     SavedModule,
+    LessonsModule,
   ],
   providers: [
     {

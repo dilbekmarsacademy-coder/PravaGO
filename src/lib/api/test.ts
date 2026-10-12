@@ -3,6 +3,7 @@
 // qaytarmaydi — ular faqat check-answer javobida keladi.
 
 import type { LocalizedText } from "@/lib/i18n/localized";
+import { authFetch } from "./session";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -55,8 +56,12 @@ interface RawQuestion extends Omit<ApiQuestion, "text" | "options"> {
   options: { id: string; text: RawText }[];
 }
 
+/**
+ * Video darsi bor mavzu uchun sessiya kerak: dars ko'rilmagan bo'lsa backend
+ * `ApiError(403, "LESSON_NOT_COMPLETED")` qaytaradi.
+ */
 export async function getTopicQuestions(topicSlug: string): Promise<ApiQuestion[]> {
-  const questions = await apiFetch<RawQuestion[]>(`/topics/${topicSlug}/questions`);
+  const questions = await authFetch<RawQuestion[]>(`/topics/${topicSlug}/questions`);
   return questions.map((q) => ({
     ...q,
     text: toLocalizedText(q.text),

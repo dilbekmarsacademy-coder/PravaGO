@@ -12,6 +12,7 @@ export interface Topic {
   number: number; // rasmiy test raqami (testNo), kunlar bo'ylab ketma-ket bo'lishi shart emas
   title: LocalizedText;
   testSlug?: string; // backend test bankidagi slug (mavjud bo'lsa mavzu bosilganda test boshlanadi)
+  lessonId?: string; // video dars — mavjud bo'lsa test video ko'rilguncha qulflangan
   dayId: string;
   questionCount: number;
 }

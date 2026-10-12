@@ -9,6 +9,7 @@ import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { Card } from "@/components/shared/Card";
 import { buttonClasses } from "@/components/shared/Button";
+import { LessonView } from "@/components/lesson/LessonView";
 
 interface MavzuPageProps {
   params: Promise<{ id: string }>;
@@ -21,6 +22,11 @@ export default function MavzuPage({ params }: MavzuPageProps) {
 
   if (!topic) {
     notFound();
+  }
+
+  // Video darsli mavzu: avval video, test — video oxirigacha ko'rilgach.
+  if (topic.lessonId && topic.testSlug) {
+    return <LessonView topic={{ ...topic, lessonId: topic.lessonId, testSlug: topic.testSlug }} />;
   }
 
   return (

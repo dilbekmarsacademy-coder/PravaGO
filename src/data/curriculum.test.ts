@@ -46,10 +46,12 @@ describe("curriculum", () => {
     }
   });
 
-  it("links topics with a test bank straight to the test page", () => {
+  it("links topics to their lesson page, or straight to the test when there is no video", () => {
     const topic15 = COURSE_TOPICS.find((t) => t.number === 15)!;
     const topic14 = COURSE_TOPICS.find((t) => t.number === 14)!;
-    expect(topicHref(topic15)).toBe("/test/1-kun-2-mavzu-tartibga-soluvchining-ishoralari");
+    // 15-mavzuda video dars bor — avval mavzu sahifasi (video), test keyin ochiladi.
+    expect(topicHref(topic15)).toBe("/kabinet/mavzu/topic-15");
+    expect(topicHref({ ...topic15, lessonId: undefined })).toBe("/test/1-kun-2-mavzu-tartibga-soluvchining-ishoralari");
     expect(topicHref(topic14)).toBe("/kabinet/mavzu/topic-14");
   });
 });

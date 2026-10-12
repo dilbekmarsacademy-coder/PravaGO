@@ -5,6 +5,10 @@
 // `testSlug` — backend test bankidagi mavzu slug'i; mavjud bo'lsa mavzuni
 // bosganda to'g'ridan-to'g'ri test boshlanadi.
 //
+// `lessonId` — video dars (backend/src/lessons/lessons.config.ts dagi kalit).
+// Mavjud bo'lsa mavzu sahifasida video ko'rsatiladi va test video oxirigacha
+// ko'rilmaguncha qulflanadi. Video manbai bu yerda EMAS — faqat serverda.
+//
 // `questionCount` hozircha shu yerdan olinadi; savollar banki to'liq import
 // qilingach, u DB'dan hisoblanadi va bu raqamlar faqat tekshiruv uchun qoladi.
 
@@ -14,6 +18,7 @@ import type { Day, Topic } from "@/lib/course-types";
 export interface CurriculumTopic {
   testNo: number | null;
   testSlug?: string;
+  lessonId?: string;
   questionCount: number;
   title: Required<LocalizedText>;
 }
@@ -26,7 +31,7 @@ export interface CurriculumDay {
 
 export const CURRICULUM: CurriculumDay[] = [
   { day: 1, topics: [
-    { testNo: 15, testSlug: "1-kun-2-mavzu-tartibga-soluvchining-ishoralari", questionCount: 32, title: { uz: "Tartibga soluvchining ishoralari", cyrl: "Тартибга солувчининг ишоралари", ru: "Сигналы регулировщика" } },
+    { testNo: 15, testSlug: "1-kun-2-mavzu-tartibga-soluvchining-ishoralari", lessonId: "day1-topic1", questionCount: 32, title: { uz: "Tartibga soluvchining ishoralari", cyrl: "Тартибга солувчининг ишоралари", ru: "Сигналы регулировщика" } },
     { testNo: 14, questionCount: 38, title: { uz: "Svetoforning ishoralari", cyrl: "Светофорнинг ишоралари", ru: "Сигналы светофора" } },
     { testNo: 22, questionCount: 14, title: { uz: "Chorrahalarda harakatlanish", cyrl: "Чорраҳаларда ҳаракатланиш", ru: "Проезд перекрёстков" } },
     { testNo: 23, questionCount: 21, title: { uz: "Tartibga solingan chorrahalar", cyrl: "Тартибга солинган чорраҳалар", ru: "Регулируемые перекрёстки" } },
@@ -88,9 +93,20 @@ export function topicIdFor(testNo: number): string {
   return `topic-${testNo}`;
 }
 
-/** Mavzu havolasi: test banki bo'lsa — test sahifasi, aks holda mavzu sahifasi. */
+/**
+ * Mavzu havolasi: video darsi bo'lsa — mavzu sahifasi (avval video, keyin
+ * test); faqat test banki bo'lsa — test sahifasi; aks holda mavzu sahifasi.
+ */
 export function topicHref(topic: Topic): string {
-  return topic.testSlug ? `/test/${topic.testSlug}` : `/kabinet/mavzu/${topic.id}`;
+  return topic.testSlug && !topic.lessonId ? testHref(topic.testSlug) : topicPageHref(topic);
+}
+
+export function topicPageHref(topic: Topic): string {
+  return `/kabinet/mavzu/${topic.id}`;
+}
+
+export function testHref(testSlug: string): string {
+  return `/test/${testSlug}`;
 }
 
 function dayIdFor(day: number): string {
@@ -114,6 +130,7 @@ export const COURSE_TOPICS: Topic[] = CURRICULUM.filter((d) => !d.isFinalExam).f
     number: t.testNo as number,
     title: t.title,
     testSlug: t.testSlug,
+    lessonId: t.lessonId,
     dayId: dayIdFor(d.day),
     questionCount: t.questionCount,
   })),

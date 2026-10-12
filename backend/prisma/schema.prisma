@@ -58,6 +58,7 @@ model User {
   sessions       Session[]
   examAttempts   ExamAttempt[]
   savedQuestions SavedQuestion[]
+  lessonProgress LessonProgress[]
   createdAt      DateTime         @default(now()) @db.Timestamptz(3)
 }
 
@@ -111,3 +112,25 @@ model SavedQuestion {
   @@index([userId, topicId])
 }
 
+/// Video dars progressi. Barcha qiymatlar serverda hisoblanadi (qarang:
+/// LessonsService.reportProgress) — klient faqat xom o'lchovlarni yuboradi.
+/// `lessonId` — src/lessons/lessons.config.ts dagi kalit.
+model LessonProgress {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId       String
+  /// Eng uzoq ko'rilgan nuqta (soniya) — oldinga faqat shu yergacha o'tish mumkin.
+  maxPosition    Float     @default(0)
+  /// PLAYING holatida haqiqatan ko'rilgan soniyalar (takroriy ko'rishlar ham kiradi).
+  watchedSeconds Float     @default(0)
+  /// Davom ettirish nuqtasi.
+  lastPosition   Float     @default(0)
+  completedAt    DateTime? @db.Timestamptz(3)
+  /// Oxirgi qabul qilingan hisobot — keyingi hisobotda qancha soniya qo'shish mumkinligini cheklaydi.
+  lastReportAt   DateTime  @default(now()) @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(3)
+
+  @@unique([userId, lessonId])
+}

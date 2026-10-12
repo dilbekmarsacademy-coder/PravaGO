@@ -2,11 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeftIcon, BookmarkIcon, RotateCcwIcon, TriangleAlertIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { checkAnswer, getTopicQuestions, type ApiQuestion, type CheckAnswerResult } from "@/lib/api/test";
 import { getSavedPracticeQuestions } from "@/lib/api/saved";
+import { LESSON_LOCKED_CODE } from "@/lib/api/lessons";
+import { ApiError } from "@/lib/api/session";
+import { topicPageHref } from "@/data/curriculum";
 import { Button, buttonClasses } from "@/components/shared/Button";
 import { Card } from "@/components/shared/Card";
 import { FinishModal } from "@/components/test/FinishModal";
@@ -83,6 +87,7 @@ function useCountdown(startedAt: number | null, limitSec: number, running: boole
 }
 
 export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong }: TestSessionProps) {
+  const router = useRouter();
   const { locale, t } = useLocale();
   const [questions, setQuestions] = useState<SessionQuestion[] | null>(null);
   // Xato matni kalit sifatida saqlanadi — til almashsa ham to'g'ri tarjima chiqadi.
@@ -141,13 +146,21 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong }
           setStartedAt(Date.now());
         }
       })
-      .catch(() => {
-        if (!cancelled) setError("loadError");
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        // Video dars hali ko'rilmagan (to'g'ridan-to'g'ri URL orqali kirilgan) —
+        // dars sahifasiga qaytaramiz; skeleton qoladi.
+        if (err instanceof ApiError && err.status === 403 && err.code === LESSON_LOCKED_CODE) {
+          const lockedTopic = sourceSlug ? topicBySlug(sourceSlug) : undefined;
+          router.replace(lockedTopic ? topicPageHref(lockedTopic) : "/kabinet");
+          return;
+        }
+        setError("loadError");
       });
     return () => {
       cancelled = true;
     };
-  }, [sourceKind, sourceSlug, sessionKey, onlyQuestionIds, persist]);
+  }, [sourceKind, sourceSlug, sessionKey, onlyQuestionIds, persist, router]);
 
   // Saqlangan savollar holati serverdan (javob/kalit so'zsiz, faqat id'lar).
   // Oldingi versiyada brauzerda saqlangan xatchoplar bir marta serverga ko'chiriladi.

@@ -281,6 +281,41 @@ export interface Dictionary {
     kbdSave: string;
   };
 
+  /** Video dars: player va testni qulflash ekrani. Matnlarda video manbai tilga olinmaydi. */
+  lesson: {
+    videoLabel: string;
+    player: {
+      play: string;
+      pause: string;
+      mute: string;
+      unmute: string;
+      volume: string;
+      speed: string;
+      fullscreen: string;
+      exitFullscreen: string;
+      timeline: string;
+      seekLocked: string;
+      loading: string;
+      errorTitle: string;
+      errorDesc: string;
+      retry: string;
+      start: string;
+      resume: (time: string) => string;
+      tapAgain: string;
+      paused: string;
+      replay: string;
+      watched: string;
+      keyboardHint: string;
+    };
+    gate: {
+      lockedTitle: string;
+      progress: (percent: number) => string;
+      unlocked: string;
+      startTest: string;
+      checking: string;
+    };
+  };
+
   saved: {
     title: string;
     total: (count: number) => string;
