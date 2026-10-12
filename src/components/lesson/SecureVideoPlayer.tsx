@@ -15,6 +15,7 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import {
   CheckCircle2Icon,
+  FastForwardIcon,
   Loader2Icon,
   LockIcon,
   ShieldAlertIcon,
@@ -63,6 +64,11 @@ const CONTROLS_HIDE_MS = 2500;
 /** Dasturiy ijro bloklangan bo'lsa (iOS), shundan keyin "yana bosing" rejimi. */
 const TAP_THROUGH_DELAY_MS = 1200;
 const SEEK_BACK_SEC = 5;
+// VAQTINCHA (sinov uchun): ko'rilmagan qismga oldinga o'tkazish ruxsat etilgan.
+// Rasmiy ishga tushirishdan oldin `false` qiling yoki tugmani olib tashlang.
+// "Ko'rildi" holatini baribir server tekshiradi — sakrab o'tilgan qism hisoblanmaydi.
+const TEMP_ALLOW_FORWARD_SEEK = true;
+const SEEK_FORWARD_SEC = 10;
 /** Bundan kam qolgan bo'lsa, davom ettirish o'rniga boshidan boshlanadi. */
 const RESUME_END_MARGIN_SEC = 5;
 const HINT_MS = 1800;
@@ -408,6 +414,12 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
   function seekTo(target: number) {
     const player = playerRef.current;
     if (!player || phase !== "ready") return;
+    if (TEMP_ALLOW_FORWARD_SEEK && target > tallyRef.current.maxPosition) {
+      // Oldinga sakrash qaytarib yuborilmasligi uchun chegara ham suriladi.
+      const end = durationRef.current || target;
+      tallyRef.current = { ...tallyRef.current, maxPosition: Math.min(target, end) };
+      setMaxPosition(tallyRef.current.maxPosition);
+    }
     const allowed = clampSeek(target, tallyRef.current.maxPosition, durationRef.current);
     if (target > allowed + 0.5) flashHint(p.seekLocked);
     player.seekTo(allowed, true);
@@ -665,6 +677,11 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
               <ControlButton label={isPlaying ? p.pause : p.play} onClick={togglePlay}>
                 {isPlaying ? <PauseIcon className="size-5" fill="currentColor" /> : <PlayIcon className="size-5" fill="currentColor" />}
               </ControlButton>
+              {TEMP_ALLOW_FORWARD_SEEK && (
+                <ControlButton label={p.skipForward} onClick={() => seekTo(lastTimeRef.current + SEEK_FORWARD_SEC)}>
+                  <FastForwardIcon className="size-5" />
+                </ControlButton>
+              )}
               <ControlButton label={muted ? p.unmute : p.mute} onClick={toggleMute}>
                 {muted || volume === 0 ? <VolumeXIcon className="size-5" /> : <Volume2Icon className="size-5" />}
               </ControlButton>

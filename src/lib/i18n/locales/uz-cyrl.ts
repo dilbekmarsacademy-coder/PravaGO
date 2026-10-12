@@ -400,6 +400,7 @@ export const uzCyrl: Dictionary = {
       watched: "Видео кўрилди",
       keyboardHint: "Space — пауза · ← — 5 сония орқага · F — тўлиқ экран",
       protected: "Видео ҳимояланган: скриншот ва экранни ёзиб олиш тақиқланган",
+      skipForward: "10 сония олдинга",
     },
     gate: {
       lockedTitle: "Тестни очиш учун видеони охиригача кўринг",

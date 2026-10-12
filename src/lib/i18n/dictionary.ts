@@ -308,6 +308,8 @@ export interface Dictionary {
       keyboardHint: string;
       /** Skrinshot/ekran yozish urinishida video ustidagi qalqon matni. */
       protected: string;
+      /** VAQTINCHA: sinov uchun oldinga o'tkazish tugmasi. */
+      skipForward: string;
     };
     gate: {
       lockedTitle: string;
