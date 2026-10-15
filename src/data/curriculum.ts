@@ -2,12 +2,23 @@
 // mavzular tartibi AYNAN shu ro'yxat bo'yicha (testNo bo'yicha saralanmaydi).
 // `testNo` — rasmiy test raqami, test banki shu raqamga bog'lanadi.
 //
+// `id` — mavzuning barqaror ID'si (masalan "day1-topic1"); berilmasa
+// `topic-<testNo>`. Video va test banki shu ID'ga ulanadi.
+//
 // `testSlug` — backend test bankidagi mavzu slug'i; mavjud bo'lsa mavzuni
 // bosganda to'g'ridan-to'g'ri test boshlanadi.
 //
 // `lessonId` — video dars (backend/src/lessons/lessons.config.ts dagi kalit).
 // Mavjud bo'lsa mavzu sahifasida video ko'rsatiladi va test video oxirigacha
 // ko'rilmaguncha qulflanadi. Video manbai bu yerda EMAS — faqat serverda.
+//
+// Video ID'si bu yerda yo'q: `lessonId` ga mos video backend xaritasida
+// bo'lmasa (masalan day1-topic7), mavzu sahifasida "video hali olinmagan"
+// holat-ekrani chiqadi — video qo'shish uchun faqat backend'ga bitta qator.
+//
+// Ikkalasi ham bo'lmagan mavzu "Tez orada" holatida ko'rinadi va keyingi
+// mavzularni qulflamaydi. Yangi mavzuga video/test qo'shish: README.md →
+// "Yangi mavzuga video va test qo'shish".
 //
 // `questionCount` hozircha shu yerdan olinadi; savollar banki to'liq import
 // qilingach, u DB'dan hisoblanadi va bu raqamlar faqat tekshiruv uchun qoladi.
@@ -16,6 +27,7 @@ import type { LocalizedText } from "@/lib/i18n/localized";
 import type { Day, Topic } from "@/lib/course-types";
 
 export interface CurriculumTopic {
+  id?: string;
   testNo: number | null;
   testSlug?: string;
   lessonId?: string;
@@ -31,22 +43,22 @@ export interface CurriculumDay {
 
 export const CURRICULUM: CurriculumDay[] = [
   { day: 1, topics: [
-    { testNo: 15, testSlug: "1-kun-2-mavzu-tartibga-soluvchining-ishoralari", lessonId: "day1-topic1", questionCount: 32, title: { uz: "Tartibga soluvchining ishoralari", cyrl: "Тартибга солувчининг ишоралари", ru: "Сигналы регулировщика" } },
-    { testNo: 14, questionCount: 38, title: { uz: "Svetoforning ishoralari", cyrl: "Светофорнинг ишоралари", ru: "Сигналы светофора" } },
-    { testNo: 22, questionCount: 14, title: { uz: "Chorrahalarda harakatlanish", cyrl: "Чорраҳаларда ҳаракатланиш", ru: "Проезд перекрёстков" } },
-    { testNo: 23, questionCount: 21, title: { uz: "Tartibga solingan chorrahalar", cyrl: "Тартибга солинган чорраҳалар", ru: "Регулируемые перекрёстки" } },
-    { testNo: 24, questionCount: 19, title: { uz: "Tartibga solinmagan chorrahalar: asosiy yo'l yo'nalishi to'g'risi", cyrl: "Тартибга солинмаган чорраҳалар: асосий йўл йўналиши тўғриси", ru: "Нерегулируемые перекрёстки: главная дорога прямо" } },
-    { testNo: 26, questionCount: 31, title: { uz: "Tartibga solinmagan chorrahalar: asosiy yo'l yo'nalishi o'zgarishi", cyrl: "Тартибга солинмаган чорраҳалар: асосий йўл йўналиши ўзгариши", ru: "Нерегулируемые перекрёстки: главная дорога меняет направление" } },
-    { testNo: 25, questionCount: 49, title: { uz: "Tartibga solinmagan chorrahalar: teng ahamiyatli", cyrl: "Тартибга солинмаган чорраҳалар: тенг аҳамиятли", ru: "Нерегулируемые перекрёстки равнозначных дорог" } },
+    { id: "day1-topic1", lessonId: "day1-topic1", testNo: 14, questionCount: 38, title: { uz: "Svetofor ishoralari", cyrl: "Светофор ишоралари", ru: "Сигналы светофора" } },
+    { id: "day1-topic2", lessonId: "day1-topic2", testNo: 15, questionCount: 32, title: { uz: "Tartibga soluvchining ishoralari", cyrl: "Тартибга солувчининг ишоралари", ru: "Сигналы регулировщика" } },
+    { id: "day1-topic3", lessonId: "day1-topic3", testNo: 22, questionCount: 14, title: { uz: "Chorrahalarda harakatlanish", cyrl: "Чорраҳаларда ҳаракатланиш", ru: "Движение через перекрёстки" } },
+    { id: "day1-topic4", lessonId: "day1-topic4", testNo: 23, questionCount: 21, title: { uz: "Tartibga solingan chorrahalar", cyrl: "Тартибга солинган чорраҳалар", ru: "Регулируемые перекрёстки" } },
+    { id: "day1-topic5", lessonId: "day1-topic5", testNo: 25, questionCount: 49, title: { uz: "Tartibga solinmagan chorrahalar: teng ahamiyatli yo'llar", cyrl: "Тартибга солинмаган чорраҳалар: тенг аҳамиятли йўллар", ru: "Нерегулируемые перекрёстки: равнозначные дороги" } },
+    { id: "day1-topic6", lessonId: "day1-topic6", testNo: 26, questionCount: 31, title: { uz: "Tartibga solinmagan chorrahalar: asosiy yo'l yo'nalishi o'zgarishi", cyrl: "Тартибга солинмаган чорраҳалар: асосий йўл йўналиши ўзгариши", ru: "Нерегулируемые перекрёстки: изменение направления главной дороги" } },
+    { id: "day1-topic7", lessonId: "day1-topic7", testNo: 24, questionCount: 19, title: { uz: "Tartibga solinmagan chorrahalar: asosiy yo'l yo'nalishi o'zgarishi to'g'risi", cyrl: "Тартибга солинмаган чорраҳалар: асосий йўл йўналиши ўзгариши тўғриси", ru: "Нерегулируемые перекрёстки: изменение направления главной дороги (продолжение)" } },
   ]},
   { day: 2, topics: [
-    { testNo: 5, questionCount: 37, title: { uz: "Ogohlantiruvchi belgilar", cyrl: "Огоҳлантирувчи белгилар", ru: "Предупреждающие знаки" } },
-    { testNo: 6, questionCount: 19, title: { uz: "Imtiyoz belgilari", cyrl: "Имтиёз белгилари", ru: "Знаки приоритета" } },
-    { testNo: 7, questionCount: 63, title: { uz: "Taqiqlovchi belgilar", cyrl: "Тақиқловчи белгилар", ru: "Запрещающие знаки" } },
-    { testNo: 8, questionCount: 31, title: { uz: "Buyuruvchi belgilar", cyrl: "Буюрувчи белгилар", ru: "Предписывающие знаки" } },
-    { testNo: 9, questionCount: 62, title: { uz: "Axborot-ko'rsatkich belgilari", cyrl: "Ахборот-кўрсаткич белгилари", ru: "Информационно-указательные знаки" } },
-    { testNo: 10, questionCount: 1, title: { uz: "Servis belgilari", cyrl: "Сервис белгилари", ru: "Знаки сервиса" } },
-    { testNo: 11, questionCount: 38, title: { uz: "Qo'shimcha axborot belgilari", cyrl: "Қўшимча ахборот белгилари", ru: "Знаки дополнительной информации (таблички)" } },
+    { id: "day2-topic1", testNo: 5, questionCount: 37, title: { uz: "Ogohlantiruvchi belgilar", cyrl: "Огоҳлантирувчи белгилар", ru: "Предупреждающие знаки" } },
+    { id: "day2-topic2", testNo: 6, questionCount: 19, title: { uz: "Imtiyoz belgilari", cyrl: "Имтиёз белгилари", ru: "Знаки приоритета" } },
+    { id: "day2-topic3", testNo: 7, questionCount: 63, title: { uz: "Ta'qiqlovchi belgilar", cyrl: "Тақиқловчи белгилар", ru: "Запрещающие знаки" } },
+    { id: "day2-topic4", testNo: 8, questionCount: 31, title: { uz: "Buyuruvchi belgilar", cyrl: "Буюрувчи белгилар", ru: "Предписывающие знаки" } },
+    { id: "day2-topic5", testNo: 9, questionCount: 62, title: { uz: "Axborot-ko'rsatkich belgilar", cyrl: "Ахборот-кўрсаткич белгилар", ru: "Информационно-указательные знаки" } },
+    { id: "day2-topic6", testNo: 10, questionCount: 1, title: { uz: "Servis belgilari", cyrl: "Сервис белгилари", ru: "Знаки сервиса" } },
+    { id: "day2-topic7", testNo: 11, questionCount: 38, title: { uz: "Qo'shimcha axborot belgilari", cyrl: "Қўшимча ахборот белгилари", ru: "Знаки дополнительной информации" } },
   ]},
   { day: 3, topics: [
     { testNo: 17, questionCount: 58, title: { uz: "Harakatlanishni boshlash, manyovr qilish", cyrl: "Ҳаракатланишни бошлаш, манёвр қилиш", ru: "Начало движения, маневрирование" } },
@@ -113,6 +125,11 @@ function dayIdFor(day: number): string {
   return `day-${day}`;
 }
 
+/** Mavzu qaysi kunda (1–6). */
+export function topicDayNumber(topic: Pick<Topic, "dayId">): number {
+  return Number(topic.dayId.replace("day-", ""));
+}
+
 /** Kurs kunlari (`Day`) — yakuniy imtihon kuni mavzusiz, `isFinalExam` bilan. */
 export const COURSE_DAYS: Day[] = CURRICULUM.map((d) => ({
   id: dayIdFor(d.day),
@@ -120,14 +137,15 @@ export const COURSE_DAYS: Day[] = CURRICULUM.map((d) => ({
   isFinalExam: d.isFinalExam ?? false,
   topicIds: d.isFinalExam
     ? []
-    : d.topics.map((t) => topicIdFor(t.testNo as number)),
+    : d.topics.map((t) => t.id ?? topicIdFor(t.testNo as number)),
 }));
 
 /** 1–6-kunlardagi barcha mavzular, kun ichidagi tartibda. */
 export const COURSE_TOPICS: Topic[] = CURRICULUM.filter((d) => !d.isFinalExam).flatMap((d) =>
-  d.topics.map((t) => ({
-    id: topicIdFor(t.testNo as number),
+  d.topics.map((t, index) => ({
+    id: t.id ?? topicIdFor(t.testNo as number),
     number: t.testNo as number,
+    order: index + 1,
     title: t.title,
     testSlug: t.testSlug,
     lessonId: t.lessonId,

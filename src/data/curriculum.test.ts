@@ -29,11 +29,38 @@ describe("curriculum", () => {
     expect(finalDay.topics[0].questionCount).toBe(pool);
   });
 
-  it("keeps the in-day topic order as listed, not sorted by testNo", () => {
+  it("keeps day 1 topics in the listed order with stable IDs", () => {
     const day1 = COURSE_DAYS.find((d) => d.number === 1)!;
-    expect(day1.topicIds).toEqual([
-      "topic-15", "topic-14", "topic-22", "topic-23", "topic-24", "topic-26", "topic-25",
+    expect(day1.topicIds).toEqual(Array.from({ length: 7 }, (_, i) => `day1-topic${i + 1}`));
+    const titles = CURRICULUM[0].topics.map((t) => t.title.uz);
+    expect(titles).toEqual([
+      "Svetofor ishoralari",
+      "Tartibga soluvchining ishoralari",
+      "Chorrahalarda harakatlanish",
+      "Tartibga solingan chorrahalar",
+      "Tartibga solinmagan chorrahalar: teng ahamiyatli yo'llar",
+      "Tartibga solinmagan chorrahalar: asosiy yo'l yo'nalishi o'zgarishi",
+      "Tartibga solinmagan chorrahalar: asosiy yo'l yo'nalishi o'zgarishi to'g'risi",
     ]);
+  });
+
+  it("keeps day 2 topics in the listed order with stable IDs", () => {
+    const day2 = COURSE_DAYS.find((d) => d.number === 2)!;
+    expect(day2.topicIds).toEqual(Array.from({ length: 7 }, (_, i) => `day2-topic${i + 1}`));
+    expect(CURRICULUM[1].topics.map((t) => t.title.ru)).toEqual([
+      "Предупреждающие знаки",
+      "Знаки приоритета",
+      "Запрещающие знаки",
+      "Предписывающие знаки",
+      "Информационно-указательные знаки",
+      "Знаки сервиса",
+      "Знаки дополнительной информации",
+    ]);
+  });
+
+  it("numbers topics by their position within the day", () => {
+    const day1 = COURSE_TOPICS.filter((t) => t.dayId === "day-1");
+    expect(day1.map((t) => t.order)).toEqual([1, 2, 3, 4, 5, 6, 7]);
   });
 
   it("has a title in all three languages for every topic", () => {
@@ -46,12 +73,17 @@ describe("curriculum", () => {
     }
   });
 
-  it("links topics to their lesson page, or straight to the test when there is no video", () => {
-    const topic15 = COURSE_TOPICS.find((t) => t.number === 15)!;
-    const topic14 = COURSE_TOPICS.find((t) => t.number === 14)!;
-    // 15-mavzuda video dars bor — avval mavzu sahifasi (video), test keyin ochiladi.
-    expect(topicHref(topic15)).toBe("/kabinet/mavzu/topic-15");
-    expect(topicHref({ ...topic15, lessonId: undefined })).toBe("/test/1-kun-2-mavzu-tartibga-soluvchining-ishoralari");
-    expect(topicHref(topic14)).toBe("/kabinet/mavzu/topic-14");
+  it("attaches video lessons to every day 1 topic (by topic ID) and no tests yet", () => {
+    expect(COURSE_TOPICS.filter((t) => t.lessonId).map((t) => t.lessonId)).toEqual(
+      Array.from({ length: 7 }, (_, i) => `day1-topic${i + 1}`),
+    );
+    expect(COURSE_TOPICS.filter((t) => t.testSlug)).toEqual([]);
+  });
+
+  it("links to the topic page, or straight to the test when there is only a test bank", () => {
+    const topic = COURSE_TOPICS.find((t) => t.id === "day1-topic1")!;
+    expect(topicHref(topic)).toBe("/kabinet/mavzu/day1-topic1");
+    expect(topicHref({ ...topic, lessonId: "day1-topic1", testSlug: "day1-topic1" })).toBe("/kabinet/mavzu/day1-topic1");
+    expect(topicHref({ ...topic, lessonId: undefined, testSlug: "day1-topic1" })).toBe("/test/day1-topic1");
   });
 });

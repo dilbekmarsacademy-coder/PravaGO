@@ -2,17 +2,20 @@
 // testlanadi). Bu faqat UI va server hisobotlari uchun: "ko'rildi" holatini
 // baribir server o'zi tekshiradi (backend/src/lessons/lessons.service.ts).
 
-/** Player o'lchov oralig'i (ms). */
+/**
+ * Player o'lchov oralig'i (ms). Har o'lchovda oldinga sakrash ham tekshiriladi —
+ * talab "kamida har 0.5 s", biz 0.25 s da tekshiramiz.
+ */
 export const TICK_MS = 250;
 /**
  * Bitta o'lchovda vaqt shundan ko'p o'zgarsa — bu tabiiy ijro emas, sakrash
- * (seek). 250 ms × 1.5x = 0.375 s; brauzer sekinlashgan holatlar uchun zaxira bilan.
+ * (seek). 250 ms × 2x = 0.5 s; brauzer sekinlashgan holatlar uchun zaxira bilan.
  */
 const MAX_NATURAL_STEP_SEC = 1.5;
 /** Eng uzoq nuqtadan shuncha oldinga o'tib ketsa — ruxsatsiz sakrash deb qaytariladi. */
 export const FORWARD_SEEK_TOLERANCE_SEC = 2;
 
-export const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5] as const;
+export const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 2] as const;
 export type PlaybackRate = (typeof PLAYBACK_RATES)[number];
 
 export interface WatchTally {

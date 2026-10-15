@@ -6,10 +6,13 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AppModule } from "../src/app.module";
 import { AuthService, hashToken } from "../src/auth/auth.service";
 import { PrismaService } from "../src/prisma/prisma.service";
-import { LESSONS } from "../src/lessons/lessons.config";
+import { LESSONS, type LessonConfig } from "../src/lessons/lessons.config";
 
-const LESSON_ID = "day1-topic1";
-const LESSON = LESSONS[LESSON_ID];
+// Real video xaritasi kontentga bog'liq (bo'sh bo'lishi ham mumkin) — test
+// o'zining soxta darsini xaritaga vaqtincha qo'shadi.
+const LESSON_ID = "e2e-lesson";
+const LESSON: LessonConfig = { videoId: "e2eVideoId0", durationSec: 1535, topicSlug: "e2e-lesson-topic" };
+const LESSON_MAP = LESSONS as Record<string, LessonConfig>;
 
 let app: INestApplication;
 let prisma: PrismaService;
@@ -33,12 +36,15 @@ async function elapse(userId: string, seconds: number) {
   });
 }
 
-/** Videoni halol 1.5x tezlikda "ko'radi" (60 s real vaqt = 90 s video; daqiqalik limitga sig'adi). */
-async function watchHonestly(auth: object, userId: string, until: number) {
+/**
+ * Videoni halol "ko'radi": har 60 s real vaqtda `perMinute` soniya video
+ * (1.5x = 90, 2x = 120; daqiqalik limitga sig'adi).
+ */
+async function watchHonestly(auth: object, userId: string, until: number, perMinute = 90) {
   let position = 0;
   let body: Record<string, unknown> = {};
   while (position < until) {
-    const step = Math.min(90, until - position);
+    const step = Math.min(perMinute, until - position);
     position += step;
     if (position > step) await elapse(userId, 60);
     body = (await report(auth, { position, maxPosition: position, watchedDelta: step }).expect(200)).body;
@@ -52,6 +58,7 @@ beforeAll(async () => {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
   await app.init();
   prisma = app.get(PrismaService);
+  LESSON_MAP[LESSON_ID] = LESSON;
 
   const existing = await prisma.topic.findUnique({ where: { slug: LESSON.topicSlug } });
   if (!existing) {
@@ -77,6 +84,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await prisma.lessonProgress.deleteMany();
   if (createdTopic) await prisma.topic.delete({ where: { slug: LESSON.topicSlug } });
+  delete LESSON_MAP[LESSON_ID];
   await app.close();
 });
 
@@ -119,8 +127,10 @@ describe("progress va test qulfi", () => {
       watchedDelta: LESSON.durationSec,
     }).expect(200);
     expect(res.body.completed).toBe(false);
-    expect(res.body.maxPosition).toBeLessThanOrEqual(92);
-    expect(res.body.watchedSeconds).toBeLessThanOrEqual(92);
+    // Birinchi hisobot: ko'pi bilan 60 s × 2x + 2 s zaxira.
+    expect(res.body.maxPosition).toBeLessThanOrEqual(122);
+    expect(res.body.watchedSeconds).toBeLessThanOrEqual(122);
+    expect(res.body.watchedPercent).toBe(Math.floor((res.body.maxPosition / LESSON.durationSec) * 100));
     // Davom ettirish nuqtasi ko'rilgan qismdan oshmaydi.
     expect(res.body.position).toBeLessThanOrEqual(res.body.maxPosition);
   });
@@ -134,7 +144,7 @@ describe("progress va test qulfi", () => {
     expect(res.body.maxPosition).toBeLessThan(13);
   });
 
-  it("oxirigacha yetmasa yoki 95% dan kam ko'rilsa — ko'rilmagan", async () => {
+  it("oxirigacha yetmasa — ko'rilmagan", async () => {
     const { auth, userId } = await newUser();
     const body = await watchHonestly(auth, userId, LESSON.durationSec - 60);
     expect(body.completed).toBe(false);
@@ -155,6 +165,30 @@ describe("progress va test qulfi", () => {
     // Boshqa foydalanuvchiga ta'sir qilmaydi.
     const other = await newUser();
     await request(app.getHttpServer()).get(`/topics/${LESSON.topicSlug}/questions`).set(other.auth).expect(403);
+  });
+
+  it("2x tezlikda oxirigacha ko'rilgan dars ham ko'rildi", async () => {
+    const { auth, userId } = await newUser();
+    const body = await watchHonestly(auth, userId, LESSON.durationSec, 120);
+    expect(body).toMatchObject({ completed: true, watchedPercent: 100 });
+  });
+
+  it("2x dan tez sakrash qabul qilinmaydi", async () => {
+    const { auth, userId } = await newUser();
+    await report(auth, { position: 100, maxPosition: 100, watchedDelta: 100 }).expect(200);
+    await elapse(userId, 30);
+    // 30 s ichida 2x bilan ko'pi bilan 60 s (+2 s zaxira) — 400 s ga sakrash kesiladi.
+    const res = await report(auth, { position: 500, maxPosition: 500, watchedDelta: 400 }).expect(200);
+    expect(res.body.maxPosition).toBeLessThanOrEqual(163);
+  });
+
+  it("darslar ro'yxati — har bir dars holati", async () => {
+    const { auth, userId } = await newUser();
+    await watchHonestly(auth, userId, 120);
+    const res = await request(app.getHttpServer()).get("/lessons").set(auth).expect(200);
+    const mine = (res.body as { lessonId: string; watchedPercent: number }[]).find((s) => s.lessonId === LESSON_ID);
+    expect(mine?.watchedPercent).toBe(Math.floor((120 / LESSON.durationSec) * 100));
+    expect(JSON.stringify(res.body)).not.toContain(LESSON.videoId);
   });
 
   it("noto'g'ri qiymatlar — 400", async () => {

@@ -3,11 +3,12 @@
 import { use } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeftIcon, ConstructionIcon } from "lucide-react";
-import { COURSE_TOPICS } from "@/data/curriculum";
+import { ArrowLeftIcon, ClockIcon } from "lucide-react";
+import { COURSE_TOPICS, testHref, topicDayNumber } from "@/data/curriculum";
 import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { Card } from "@/components/shared/Card";
+import { Badge } from "@/components/shared/Badge";
 import { buttonClasses } from "@/components/shared/Button";
 import { LessonView } from "@/components/lesson/LessonView";
 
@@ -24,29 +25,48 @@ export default function MavzuPage({ params }: MavzuPageProps) {
     notFound();
   }
 
-  // Video darsli mavzu: avval video, test — video oxirigacha ko'rilgach.
-  if (topic.lessonId && topic.testSlug) {
-    return <LessonView topic={{ ...topic, lessonId: topic.lessonId, testSlug: topic.testSlug }} />;
+  // Video darsli mavzu: avval video, test (bo'lsa) — video oxirigacha ko'rilgach.
+  if (topic.lessonId) {
+    return <LessonView topic={{ ...topic, lessonId: topic.lessonId }} />;
   }
 
+  // Video yo'q, lekin test banki ulangan — to'g'ridan-to'g'ri testga.
+  const testLink = topic.testSlug ? testHref(topic.testSlug) : null;
+
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center bg-background px-5 py-10 text-center sm:px-8">
-      <Card className="flex max-w-md flex-col items-center gap-4 p-10">
-        <span className="flex size-14 items-center justify-center rounded-full bg-foreground/5 text-brand">
-          <ConstructionIcon className="size-6" />
+    <main className="flex min-h-dvh flex-col items-center justify-center bg-background px-4 py-10 text-center sm:px-8">
+      <Card className="relative flex w-full max-w-md flex-col items-center gap-5 overflow-hidden px-6 py-10 sm:px-10">
+        <div
+          className="pointer-events-none absolute -top-16 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full bg-brand/20 blur-[80px]"
+          aria-hidden="true"
+        />
+        <span className="glow-orange relative flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-brand to-brand-2 font-mono text-xl font-bold text-background tabular-nums">
+          {topic.order}
         </span>
-        <div>
-          <span className="font-mono text-xs tracking-wide text-muted-foreground uppercase">
-            {t.kabinet.topic.testNo(topic.number)} &middot; {t.kabinet.topic.questions(topic.questionCount)}
+        <div className="relative w-full">
+          <span className="font-mono text-xs tracking-[0.2em] text-brand uppercase">
+            {t.kabinet.topicPage.dayTopic(topicDayNumber(topic), topic.order)}
           </span>
-          <h1 className="mt-1 font-display text-xl font-bold text-foreground">
+          <h1 className="mt-2 font-display text-xl leading-snug font-bold break-words text-foreground sm:text-2xl">
             {localize(topic.title, locale)}
           </h1>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t.kabinet.topicPage.soon}</p>
+          {!testLink && (
+            <>
+              <Badge tone="brand" className="mt-4">
+                <ClockIcon className="size-3" /> {t.kabinet.topic.comingSoon}
+              </Badge>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{t.kabinet.topicPage.soon}</p>
+            </>
+          )}
         </div>
+        {testLink && (
+          <Link href={testLink} className={buttonClasses({ variant: "primary", size: "md", className: "relative" })}>
+            {t.kabinet.continueCard.stages.test}
+          </Link>
+        )}
         <Link
           href="/kabinet"
-          className={buttonClasses({ variant: "secondary", size: "md", className: "mt-2" })}
+          className={buttonClasses({ variant: "secondary", size: "md", className: "relative" })}
         >
           <ArrowLeftIcon className="size-4" />
           {t.kabinet.backToKabinet}

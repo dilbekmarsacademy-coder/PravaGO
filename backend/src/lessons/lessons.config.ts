@@ -2,28 +2,41 @@
 // kodida hech qachon yozilmaydi: klient uni sessiya bilan
 // GET /lessons/:lessonId/video orqali oladi.
 //
-// Yangi dars qo'shish = shu ro'yxatga bitta qator:
-//   - kalit (lessonId) frontend'dagi src/data/curriculum.ts → `lessonId` bilan bir xil;
+// Yangi dars qo'shish = shu ro'yxatga BITTA qator:
+//   "day1-topic1": { videoId: "...", durationSec: 1562 },
+//   - kalit (lessonId) — mavzu ID'si, frontend'dagi src/data/curriculum.ts →
+//     `lessonId` bilan bir xil (1-kun mavzularida u allaqachon yozilgan);
 //   - `durationSec` — videoning to'liq davomiyligi (soniya). "Ko'rildi" holati
 //     klient aytgan davomiylikka emas, shu qiymatga qarab hisoblanadi;
-//   - `topicSlug` — shu darsdan keyin ochiladigan test (savollar endpointi
-//     dars ko'rilmaguncha 403 qaytaradi).
+//   - `topicSlug` (ixtiyoriy, standart — lessonId) — shu darsdan keyin
+//     ochiladigan test banki (savollar endpointi dars ko'rilmaguncha 403).
+// Ro'yxatda yo'q dars (masalan day1-topic7) — "video hali olinmagan" holati.
 
 export interface LessonConfig {
   videoId: string;
   durationSec: number;
-  topicSlug: string;
+  topicSlug?: string;
 }
 
 export const LESSONS: Readonly<Record<string, LessonConfig>> = {
-  "day1-topic1": { videoId: "F20q4XLwCa8", durationSec: 1535, topicSlug: "1-kun-2-mavzu-tartibga-soluvchining-ishoralari" },
+  "day1-topic1": { videoId: "A9F3zO9crj0", durationSec: 1562 },
+  "day1-topic2": { videoId: "F20q4XLwCa8", durationSec: 1535 },
+  "day1-topic3": { videoId: "pv7W13CHRGk", durationSec: 300 },
+  "day1-topic4": { videoId: "5jjEzVv7Pws", durationSec: 942 },
+  "day1-topic5": { videoId: "lrpcduEhtLo", durationSec: 1313 },
+  "day1-topic6": { videoId: "O1mZdoWf2Bs", durationSec: 1250 },
 };
 
 export function findLesson(lessonId: string): LessonConfig | undefined {
   return Object.prototype.hasOwnProperty.call(LESSONS, lessonId) ? LESSONS[lessonId] : undefined;
 }
 
+/** Dars ochadigan test banki slug'i. */
+export function lessonTopicSlug(lessonId: string): string {
+  return LESSONS[lessonId]?.topicSlug ?? lessonId;
+}
+
 /** Mavzu testini qulflab turgan dars (bo'lmasa — test ochiq). */
 export function findLessonIdForTopic(topicSlug: string): string | undefined {
-  return Object.keys(LESSONS).find((id) => LESSONS[id].topicSlug === topicSlug);
+  return Object.keys(LESSONS).find((id) => lessonTopicSlug(id) === topicSlug);
 }

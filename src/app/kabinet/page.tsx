@@ -1,15 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRightIcon, RotateCcwIcon, SparklesIcon, TriangleAlertIcon } from "lucide-react";
+import { RotateCcwIcon, SparklesIcon, TriangleAlertIcon } from "lucide-react";
 import { getRegistration, clearRegistration, useRegistration } from "@/lib/registration-store";
 import { getDashboardData, type DashboardData } from "@/lib/api/course";
 import { clearSessionToken } from "@/lib/api/session";
 import { resetSavedStore } from "@/lib/saved/store";
-import { COURSE_TOPICS, topicHref, topicIdFor } from "@/data/curriculum";
-import { localize } from "@/lib/i18n/localized";
 import { applyLocale, useLocale } from "@/lib/i18n/useLocale";
 import { buildCourseState } from "@/lib/progress/unlock";
 import type { ExamStatus } from "@/components/home/types";
@@ -24,9 +21,6 @@ import { Card } from "@/components/shared/Card";
 import { buttonClasses } from "@/components/shared/Button";
 
 type DataState = "loading" | "error" | "ready";
-
-// Backend'ga ulangan yagona sinov testi (1-kun, 15-test) — to'liq integratsiyagacha.
-const TRIAL_TEST_NO = 15;
 
 export default function KabinetPage() {
   const router = useRouter();
@@ -142,30 +136,11 @@ function DashboardContent({
   data: DashboardData;
   examStatus: ExamStatus;
 }) {
-  const { locale, t } = useLocale();
+  const { t } = useLocale();
   const courseState = buildCourseState(data.days, data.topics, data.topicProgress, data.examProgress);
-  const trialTopic = COURSE_TOPICS.find((topic) => topic.id === topicIdFor(TRIAL_TEST_NO));
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Vaqtinchalik: haqiqiy backend bilan ulangan yagona mavzu hozircha
-          quyidagi ro'yxatga (mock ma'lumotlar) kiritilmagan — to'liq
-          integratsiya keyingi bosqichda. */}
-      <Link
-        href={trialTopic ? topicHref(trialTopic) : "/kabinet"}
-        className="glass glow-orange-hover flex items-center justify-between gap-3 rounded-2xl p-5 transition-colors hover:bg-foreground/5"
-      >
-        <div>
-          <p className="text-xs font-semibold tracking-wide text-brand uppercase">
-            {t.kabinet.trial.badge}
-          </p>
-          <p className="mt-1 font-display text-sm font-bold text-foreground sm:text-base">
-            {trialTopic && t.kabinet.trial.title(localize(trialTopic.title, locale))}
-          </p>
-        </div>
-        <ArrowRightIcon className="size-5 shrink-0 text-brand" />
-      </Link>
-
       {courseState.allRegularDaysCompleted ? (
         <Card className="relative overflow-hidden p-6 text-center sm:p-8">
           <div

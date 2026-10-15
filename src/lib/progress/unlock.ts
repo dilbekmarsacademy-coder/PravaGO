@@ -10,6 +10,38 @@ export type TopicStage = "video" | "pdf" | "test";
 export type ProgressByTopicId = Record<string, TopicProgress | undefined>;
 export type TopicsByDayId = Record<string, Topic[]>;
 
+/**
+ * Mavzuda hali video ham, test ham yo'q — "Tez orada". Bunday mavzu ochiq
+ * ko'rinadi, lekin tugatib bo'lmaydi, shuning uchun keyingi mavzu/kunlarni
+ * qulflamaydi va "davom ettirish" nishoni bo'lmaydi.
+ */
+export function isTopicComingSoon(topic: Pick<Topic, "testSlug" | "lessonId">): boolean {
+  return !topic.testSlug && !topic.lessonId;
+}
+
+/**
+ * Mavzu tugaganmi: test banki bo'lsa — test o'tilgan; faqat video bo'lsa —
+ * video serverda "ko'rildi" deb belgilangan.
+ */
+export function isTopicDone(topic: Topic, progress: TopicProgress | undefined): boolean {
+  if (topic.testSlug) return isTopicCompleted(progress);
+  return Boolean(topic.lessonId && progress?.videoWatched);
+}
+
+/**
+ * Keyingi mavzuni ochish uchun bu mavzu to'siq emas: tugagan yoki hali testi
+ * yo'q (video/"Tez orada" mavzular ketma-ketlikni qulflamaydi — test darvozasi
+ * esa mavzu ichida, video oxirigacha ko'rilguncha yopiq).
+ */
+function isTopicPassable(topic: Topic, progressByTopicId: ProgressByTopicId): boolean {
+  return !topic.testSlug || isTopicDone(topic, progressByTopicId[topic.id]);
+}
+
+/** "Davom ettirish" uchun yaroqli: testi bor yoki videosi serverda mavjud. */
+function isTopicStudyable(topic: Topic, progress: TopicProgress | undefined): boolean {
+  return Boolean(topic.testSlug) || (Boolean(topic.lessonId) && progress?.videoPercent !== undefined);
+}
+
 /** Mavzu "tugagan" — oxirgi urinishlardan biri PASS_PERCENT dan katta yoki teng bo'lsa. */
 export function isTopicCompleted(progress: TopicProgress | undefined): boolean {
   if (!progress || progress.attempts.length === 0) return false;
@@ -37,7 +69,7 @@ export function getTopicStage(progress: TopicProgress | undefined): TopicStage {
 
 /**
  * Mavzu ochiqmi: kunning birinchi mavzusi (kun ochiq bo'lsa) YOKI oldingi
- * mavzu tugagan bo'lsa. `dayTopics` — shu kunning mavzulari, kun ichidagi
+ * barcha mavzular tugagan (yoki "Tez orada") bo'lsa. `dayTopics` — shu kunning mavzulari, kun ichidagi
  * tartibda (masalan `day.topicIds` bo'yicha) berilishi kerak.
  */
 export function isTopicUnlocked(
@@ -51,12 +83,12 @@ export function isTopicUnlocked(
   const index = dayTopics.findIndex((t) => t.id === topic.id);
   if (index <= 0) return true;
 
-  const previousTopic = dayTopics[index - 1];
-  return isTopicCompleted(progressByTopicId[previousTopic.id]);
+  return dayTopics.slice(0, index).every((t) => isTopicPassable(t, progressByTopicId));
 }
 
 /**
- * Kun ochiqmi: 1-kun YOKI oldingi kunning barcha mavzulari tugagan bo'lsa.
+ * Kun ochiqmi: 1-kun YOKI oldingi kunning barcha mavzulari tugagan (yoki
+ * "Tez orada") bo'lsa.
  * `days` kamida shu kun va undan oldingi kunlarni o'z ichiga olishi kerak.
  */
 export function isDayUnlocked(
@@ -73,7 +105,7 @@ export function isDayUnlocked(
   const previousTopics = topicsByDayId[previousDay.id] ?? [];
   if (previousTopics.length === 0) return true;
 
-  return previousTopics.every((topic) => isTopicCompleted(progressByTopicId[topic.id]));
+  return previousTopics.every((topic) => isTopicPassable(topic, progressByTopicId));
 }
 
 /** Yakuniy imtihon (7-kun) ochiqmi: 1-6-kunlarning barcha mavzulari tugagan bo'lsa. */
@@ -90,7 +122,7 @@ export function isFinalExamUnlocked(
     // 1-6-kunlar har doim mavzuga ega bo'lishi kerak — mavzu ro'yxati
     // noma'lum/bo'sh bo'lsa, bu kun "tugagan" deb hisoblanmaydi.
     if (dayTopics.length === 0) return false;
-    return dayTopics.every((topic) => isTopicCompleted(progressByTopicId[topic.id]));
+    return dayTopics.every((topic) => isTopicDone(topic, progressByTopicId[topic.id]));
   });
 }
 
@@ -163,7 +195,7 @@ export function buildCourseState(
 
     const topicStates: TopicViewState[] = dayTopics.map((topic) => {
       const progress = progressByTopicId[topic.id];
-      const completed = isTopicCompleted(progress);
+      const completed = isTopicDone(topic, progress);
       const topicUnlocked = isTopicUnlocked(topic, dayTopics, progressByTopicId, unlocked);
 
       const state: TopicViewState = {
@@ -176,7 +208,7 @@ export function buildCourseState(
         stage: getTopicStage(progress),
       };
 
-      if (!continueTarget && topicUnlocked && !completed) {
+      if (!continueTarget && topicUnlocked && !completed && isTopicStudyable(topic, progress)) {
         continueTarget = { dayNumber: day.number, topic: state };
       }
 

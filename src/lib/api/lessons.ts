@@ -26,6 +26,13 @@ export interface ProgressReport {
 
 /** Test savollari endpointi dars ko'rilmaguncha shu kod bilan 403 qaytaradi. */
 export const LESSON_LOCKED_CODE = "LESSON_NOT_COMPLETED";
+/** Darsga hali video ulanmagan (serverdagi xaritada yo'q) — 404. */
+export const LESSON_NOT_FOUND_CODE = "LESSON_NOT_FOUND";
+
+/** Video ulangan barcha darslar holati (kabinetdagi foizlar uchun). */
+export function listLessonStatuses(): Promise<LessonStatus[]> {
+  return authFetch<LessonStatus[]>("/lessons");
+}
 
 export function getLessonStatus(lessonId: string): Promise<LessonStatus> {
   return authFetch<LessonStatus>(`/lessons/${encodeURIComponent(lessonId)}`);

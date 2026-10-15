@@ -51,7 +51,7 @@ export default function ContinueCard({ target }: ContinueCardProps) {
         </span>
         <div className="min-w-0">
           <span className="font-mono text-[0.65rem] tracking-wide text-muted-foreground uppercase">
-            {labels.location(target.dayNumber, topic.topic.number)}
+            {labels.location(target.dayNumber, topic.topic.order)}
           </span>
           <h2 className="mt-0.5 font-display text-lg font-bold text-foreground sm:text-xl">
             {localize(topic.topic.title, locale)}

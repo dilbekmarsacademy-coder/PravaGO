@@ -36,12 +36,69 @@ o'qib DB'ga yozadi va rasmlarni `public/images/` ga nusxalaydi — bu skript
 xavfsiz tarzda qayta-qayta ishga tushirilishi mumkin (mavjud yozuvlarni
 yangilaydi, dublikat yaratmaydi).
 
-> **Eslatma:** manba `questions.json`dagi 15-savol ikkilanishli javob bilan
-> keldi (`correctOptionId` bir nechta variant), shuning uchun seed skripti
-> uni avtomatik `needsReview=true` deb belgilaydi va hech qaysi variantni
-> to'g'ri deb belgilamaydi. Bunday savol uchun `check-answer` chaqirilsa,
-> backend to'g'ri javob hali belgilanmagani haqida xato qaytaradi — buni
-> to'g'ridan-to'g'ri DB'da (`Option.isCorrect`) qo'lda tuzatish kerak.
+> Hozircha `questions.json` bo'sh (`[]`) — test banklari mavzuma-mavzu
+> qaytadan qo'shiladi. Bo'sh fayl bilan seed xatosiz o'tadi.
+
+## Yangi mavzuga video va test qo'shish
+
+Har bir mavzuning barqaror ID'si bor: `day1-topic1` … `day1-topic7`,
+`day2-topic1` … (frontend: `src/data/curriculum.ts`). Video va test shu ID'ga
+ulanadi. Video ham, test ham bo'lmagan mavzu kabinetda "Tez orada" bo'lib
+ko'rinadi va keyingi mavzularni qulflamaydi.
+
+**1. Test banki** (masalan `day1-topic1` uchun):
+
+1. Rasmlarni `prisma/seed-data/images/` ga qo'ying.
+2. `prisma/seed-data/questions.json` ga savollarni qo'shing — `topic` maydoni
+   mavzu ID'si bilan bir xil bo'lsin:
+   ```json
+   { "id": 1, "topic": "day1-topic1", "text": "Савол матни", "image": "d1t1-q01.jpg",
+     "options": [{ "id": "a", "text": "Жавоб" }, { "id": "b", "text": "Жавоб" }],
+     "correctOptionId": "a", "keyword": "Калит сўз" }
+   ```
+   Ruscha tarjima (ixtiyoriy) — `questions.ru.json` da savol `id` si bo'yicha.
+   `id` (tartib) mavzu ichida takrorlanmasin.
+3. `prisma/seed.ts` → `TOPIC_TITLES` ga sarlavha qo'shing:
+   `"day1-topic1": "1-kun 1-mavzu: Svetofor ishoralari"`.
+4. `npm run seed`.
+5. Frontend: `src/data/curriculum.ts` da mavzuga `testSlug: "day1-topic1"` qo'shing.
+
+**2. Video dars** — faqat backend'da, bitta qator:
+
+`src/lessons/lessons.config.ts` → `LESSONS`:
+`"day2-topic1": { videoId: "VIDEO_ID", durationSec: 1234 },`
+
+- Kalit — mavzu ID'si. `durationSec` — videoning aniq davomiyligi (soniya);
+  "ko'rildi" holati shunga qarab serverda hisoblanadi.
+- `topicSlug` ixtiyoriy (standart — kalitning o'zi): shu dars ochadigan test banki.
+- 1-kun mavzularida frontend'da `lessonId` allaqachon yozilgan — ular uchun
+  yuqoridagi qatorning o'zi yetarli (masalan day1-topic7). Boshqa kunlarda
+  `src/data/curriculum.ts` dagi mavzuga `lessonId: "dayN-topicM"` ham qo'shing.
+- Video ID frontend kodiga hech qachon yozilmaydi: klient uni sessiya bilan
+  `GET /lessons/:lessonId/video` orqali oladi.
+
+Endpointlar (hammasi sessiya talab qiladi):
+- `GET /lessons` — barcha darslar holati (kabinetdagi foizlar);
+- `GET /lessons/:lessonId` — holat; xaritada yo'q dars — 404 `LESSON_NOT_FOUND`
+  (frontend "video hali olinmagan" ekranini ko'rsatadi);
+- `GET /lessons/:lessonId/video` — video ID;
+- `POST /lessons/:lessonId/progress` — `{ position, maxPosition, watchedDelta }`.
+  Server eng uzoq nuqtani hisobotlar orasidagi real vaqt × 2 (maksimal tezlik)
+  + 2 s dan ortiq oshirmaydi. Foiz = eng uzoq nuqta / davomiylik; "ko'rildi" —
+  ≥ 98% va oxirigacha yetilgan (faqat serverda).
+
+Ikkalasi ham bo'lsa: mavzu sahifasida avval video, test esa video oxirigacha
+ko'rilgandan keyin ochiladi (backend ham `GET /topics/:slug/questions` ni shu
+vaqtgacha 403 `LESSON_NOT_COMPLETED` bilan yopadi). Faqat test bo'lsa — mavzu
+bosilganda to'g'ridan-to'g'ri test boshlanadi. Faqat video bo'lsa — "Test
+ishlash" tugmasi ko'rilgandan keyin "tez orada" modalini ochadi.
+
+**Kontentni butunlay tozalash** (savollar, mavzular, saqlanganlar, imtihon
+urinishlari, video progress; foydalanuvchilar qoladi):
+
+```bash
+npm run content:clear   # DATABASE_URL dagi bazada
+```
 
 ## Bepul deploy: Render (API) + Supabase (Postgres)
 

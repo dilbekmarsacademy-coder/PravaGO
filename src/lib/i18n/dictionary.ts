@@ -166,11 +166,10 @@ export interface Dictionary {
       category: Record<ExamStatus, string>;
     };
     loadError: { title: string; desc: string; retry: string };
-    trial: { badge: string; title: (topicTitle: string) => string };
     ready: { title: string; desc: string };
     continueCard: {
       eyebrow: string;
-      location: (day: number, testNo: number) => string;
+      location: (day: number, order: number) => string;
       stages: { video: string; pdf: string; test: string };
       retryTest: (percent: number) => string;
       cta: string;
@@ -192,6 +191,11 @@ export interface Dictionary {
       testNo: (testNo: number) => string;
       questions: (count: number) => string;
       notStarted: string;
+      order: (order: number) => string;
+      comingSoon: string;
+      videoWatched: string;
+      videoPercent: (percent: number) => string;
+      videoSoon: string;
       lockedHint: (percent: number) => string;
     };
     finalExam: {
@@ -220,7 +224,7 @@ export interface Dictionary {
       current: string;
       singleDevice: string;
     };
-    topicPage: { soon: string };
+    topicPage: { soon: string; dayTopic: (day: number, order: number) => string };
     backToKabinet: string;
   };
 
@@ -308,8 +312,19 @@ export interface Dictionary {
       keyboardHint: string;
       /** Skrinshot/ekran yozish urinishida video ustidagi qalqon matni. */
       protected: string;
-      /** VAQTINCHA: sinov uchun oldinga o'tkazish tugmasi. */
-      skipForward: string;
+      /** "10 soniya orqaga" tugmasi. */
+      seekBack: string;
+      /** Tugash ekrani sarlavhasi. */
+      ended: string;
+      /** Qalqondan (fokus yo'qotish, skrinshot) keyin ijroni qaytarish. */
+      continue: string;
+      /** Oyna fokusni yo'qotganda qalqon matni. */
+      away: string;
+      /** Dasturchi vositalari ochilganda (pauza qilinadi). */
+      devtools: string;
+      /** Darsga hali video ulanmagan. */
+      notReadyTitle: string;
+      notReadyDesc: string;
     };
     gate: {
       lockedTitle: string;
@@ -317,6 +332,10 @@ export interface Dictionary {
       unlocked: string;
       startTest: string;
       checking: string;
+      /** Test sahifasi hali ulanmagan — modal. */
+      soonTitle: string;
+      soonDesc: string;
+      close: string;
     };
   };
 

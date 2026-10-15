@@ -1,9 +1,9 @@
 "use client";
 
-import { CheckIcon, ChevronDownIcon, LockIcon } from "lucide-react";
+import { CheckIcon, ChevronDownIcon, ClockIcon, LockIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/useLocale";
-import type { DayViewState } from "@/lib/progress/unlock";
+import { isTopicComingSoon, type DayViewState } from "@/lib/progress/unlock";
 import TopicRow from "./TopicRow";
 import { Card } from "@/components/shared/Card";
 import { Badge } from "@/components/shared/Badge";
@@ -18,8 +18,16 @@ export default function DayCard({ dayState, expanded, onToggle }: DayCardProps) 
   const { t } = useLocale();
   const labels = t.kabinet.curriculum;
   const { day, topics, unlocked, completed } = dayState;
+  // Video/testi ulangan mavzular; savollar soni — faqat test banki ulanganlari bo'yicha.
+  const readyTopics = topics.filter((topic) => !isTopicComingSoon(topic.topic));
+  const testTopics = topics.filter((topic) => topic.topic.testSlug);
+  const comingSoon = topics.length > 0 && readyTopics.length === 0;
 
-  const statusBadge = completed ? (
+  const statusBadge = comingSoon ? (
+    <Badge tone="brand">
+      <ClockIcon className="size-3" /> {t.kabinet.topic.comingSoon}
+    </Badge>
+  ) : completed ? (
     <Badge tone="success">
       <CheckIcon className="size-3" /> {labels.status.completed}
     </Badge>
@@ -34,7 +42,7 @@ export default function DayCard({ dayState, expanded, onToggle }: DayCardProps) 
   );
 
   const completedCount = topics.filter((topic) => topic.completed).length;
-  const questionCount = topics.reduce((sum, topic) => sum + topic.topic.questionCount, 0);
+  const questionCount = testTopics.reduce((sum, topic) => sum + topic.topic.questionCount, 0);
   const percent = topics.length > 0 ? Math.round((completedCount / topics.length) * 100) : 0;
   // Qulflangan kunning mavzularini ham ko'rish mumkin (ular ichida qulflangan holda).
   const canExpand = topics.length > 0;
@@ -54,9 +62,11 @@ export default function DayCard({ dayState, expanded, onToggle }: DayCardProps) 
             <span className="font-display text-base font-bold text-foreground">
               {labels.dayTitle(day.number)}
             </span>
-            <span className="font-mono text-xs text-muted-foreground tabular-nums">
-              {labels.dayQuestions(questionCount)}
-            </span>
+            {questionCount > 0 && (
+              <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                {labels.dayQuestions(questionCount)}
+              </span>
+            )}
           </div>
           <div className="flex shrink-0 items-center gap-3">
             {statusBadge}

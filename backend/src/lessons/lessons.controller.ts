@@ -13,6 +13,11 @@ import { LessonsService } from "./lessons.service";
 export class LessonsController {
   constructor(private readonly lessons: LessonsService) {}
 
+  @Get()
+  list(@CurrentUser() user: SessionUser): Promise<LessonStatusDto[]> {
+    return this.lessons.list(user.id);
+  }
+
   @Get(":lessonId")
   status(@CurrentUser() user: SessionUser, @Param() params: LessonIdParamDto): Promise<LessonStatusDto> {
     return this.lessons.status(user.id, params.lessonId);

@@ -7,8 +7,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeftIcon, PlayCircleIcon } from "lucide-react";
 import type { Topic } from "@/lib/course-types";
-import { testHref } from "@/data/curriculum";
-import { getLessonStatus, type LessonStatus } from "@/lib/api/lessons";
+import { testHref, topicDayNumber } from "@/data/curriculum";
+import { LESSON_NOT_FOUND_CODE, getLessonStatus, type LessonStatus } from "@/lib/api/lessons";
+import { ApiError } from "@/lib/api/session";
 import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { getRegistration } from "@/lib/registration-store";
@@ -21,13 +22,16 @@ import { SecureVideoPlayer } from "./SecureVideoPlayer";
 import { LessonTestGate } from "./LessonTestGate";
 
 interface LessonViewProps {
-  topic: Topic & { lessonId: string; testSlug: string };
+  /** `testSlug` bo'lmasa — faqat video (test darvozasi ko'rsatilmaydi). */
+  topic: Topic & { lessonId: string };
 }
 
 export function LessonView({ topic }: LessonViewProps) {
   const router = useRouter();
   const { locale, t } = useLocale();
   const [status, setStatus] = useState<LessonStatus | null>(null);
+  // Darsga hali video ulanmagan (serverda yo'q) — holat-ekran, test qulflangan.
+  const [unavailable, setUnavailable] = useState(false);
   const title = localize(topic.title, locale);
 
   // Kabinet bilan bir xil: ro'yxatdan o'tmagan / to'lovi faol bo'lmagan foydalanuvchi kirmaydi.
@@ -44,7 +48,11 @@ export function LessonView({ topic }: LessonViewProps) {
       .then((next) => {
         if (!cancelled) setStatus((prev) => prev ?? next);
       })
-      .catch(() => undefined); // pleyer o'zi xatoni ko'rsatadi va qayta urinadi
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        if (error instanceof ApiError && error.status === 404 && error.code === LESSON_NOT_FOUND_CODE) setUnavailable(true);
+        // Boshqa xatolarni pleyer o'zi ko'rsatadi va qayta urinadi.
+      });
     return () => {
       cancelled = true;
     };
@@ -61,8 +69,8 @@ export function LessonView({ topic }: LessonViewProps) {
         >
           <ArrowLeftIcon className="size-4.5" />
         </Link>
-        <p className="min-w-0 flex-1 truncate font-mono text-xs font-semibold tracking-wide text-brand uppercase">
-          {t.kabinet.topic.testNo(topic.number)}
+        <p className="min-w-0 flex-1 truncate font-mono text-[0.65rem] font-semibold text-brand uppercase sm:text-xs sm:tracking-wide">
+          {t.kabinet.topicPage.dayTopic(topicDayNumber(topic), topic.order)}
         </p>
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <LanguageSwitcher />
@@ -83,14 +91,22 @@ export function LessonView({ topic }: LessonViewProps) {
           lessonId={topic.lessonId}
           title={title}
           onProgress={setStatus}
+          onUnavailable={() => setUnavailable(true)}
           onCompleted={() => showToast({ tone: "success", message: t.lesson.gate.unlocked })}
         />
 
-        <p className="hidden text-center text-xs text-muted-foreground pointer-fine:block">
-          {t.lesson.player.keyboardHint}
-        </p>
+        {!unavailable && (
+          <p className="hidden text-center text-xs text-muted-foreground pointer-fine:block">
+            {t.lesson.player.keyboardHint}
+          </p>
+        )}
 
-        <LessonTestGate status={status} testHref={testHref(topic.testSlug)} />
+        {/* Test sahifasi ulanmagan bo'lsa tugma "tez orada" modalini ochadi. */}
+        <LessonTestGate
+          status={status}
+          unavailable={unavailable}
+          testHref={topic.testSlug ? testHref(topic.testSlug) : null}
+        />
       </main>
     </>
   );

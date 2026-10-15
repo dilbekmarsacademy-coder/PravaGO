@@ -5,6 +5,7 @@ import {
   getTopicStage,
   isDayUnlocked,
   isFinalExamUnlocked,
+  isTopicComingSoon,
   isTopicCompleted,
   isTopicUnlocked,
 } from "./unlock";
@@ -13,23 +14,28 @@ import { MOCK_EXAM_PROGRESS, MOCK_TOPIC_PROGRESS } from "@/lib/mock/progress";
 import type { Day, Topic, TopicProgress } from "@/lib/course-types";
 import { PASS_PERCENT } from "@/config/rules";
 
-// 1-kunning birinchi 3 ta mavzusi tugatilgan (topic-22 — 2 urinishda: 74% dan
-// keyin 99%), 4-mavzu (topic-23)da video ko'rilgan, PDF hali ochilmagan.
+// Qulf mantig'i video/testi ulangan mavzularda tekshiriladi — haqiqiy dasturda
+// kontent hozircha yo'q ("Tez orada"), shuning uchun har bir mavzuga soxta
+// test banki ulanadi.
+const TOPICS_WITH_CONTENT: Topic[] = COURSE_TOPICS.map((t) => ({ ...t, testSlug: t.id }));
+
+// 1-kunning birinchi 3 ta mavzusi tugatilgan (day1-topic3 — 2 urinishda: 74% dan
+// keyin 99%), 4-mavzu (day1-topic4)da video ko'rilgan, PDF hali ochilmagan.
 const PARTIAL_PROGRESS: TopicProgress[] = [
   {
-    topicId: "topic-14",
+    topicId: "day1-topic1",
     videoWatched: true,
     pdfOpened: true,
     attempts: [{ percent: 98, date: "2026-09-15T09:20:00.000Z" }],
   },
   {
-    topicId: "topic-15",
+    topicId: "day1-topic2",
     videoWatched: true,
     pdfOpened: true,
     attempts: [{ percent: 100, date: "2026-09-15T10:05:00.000Z" }],
   },
   {
-    topicId: "topic-22",
+    topicId: "day1-topic3",
     videoWatched: true,
     pdfOpened: true,
     attempts: [
@@ -38,7 +44,7 @@ const PARTIAL_PROGRESS: TopicProgress[] = [
     ],
   },
   {
-    topicId: "topic-23",
+    topicId: "day1-topic4",
     videoWatched: true,
     pdfOpened: false,
     attempts: [],
@@ -46,7 +52,7 @@ const PARTIAL_PROGRESS: TopicProgress[] = [
 ];
 
 function topic(id: string, dayId: string, number = 1): Topic {
-  return { id, number, title: { uz: id }, dayId, questionCount: 10 };
+  return { id, number, order: number, title: { uz: id }, dayId, questionCount: 10, testSlug: id };
 }
 
 function day(id: string, number: number, topicIds: string[]): Day {
@@ -162,7 +168,7 @@ describe("isFinalExamUnlocked", () => {
 
   it("unlocks once every day 1-6 topic is completed", () => {
     const topicsByDayId: Record<string, Topic[]> = {};
-    for (const t of COURSE_TOPICS) {
+    for (const t of TOPICS_WITH_CONTENT) {
       (topicsByDayId[t.dayId] ??= []).push(t);
     }
     const progressByTopicId = Object.fromEntries(
@@ -176,40 +182,97 @@ describe("isFinalExamUnlocked", () => {
 });
 
 describe("buildCourseState (new user)", () => {
-  const state = buildCourseState(COURSE_DAYS, COURSE_TOPICS, MOCK_TOPIC_PROGRESS, MOCK_EXAM_PROGRESS);
+  const state = buildCourseState(COURSE_DAYS, TOPICS_WITH_CONTENT, MOCK_TOPIC_PROGRESS, MOCK_EXAM_PROGRESS);
 
   it("starts with nothing completed and only the first topic of day 1 open", () => {
     const topics = state.days.flatMap((d) => d.topics);
     expect(topics.some((t) => t.completed)).toBe(false);
-    expect(topics.filter((t) => t.unlocked).map((t) => t.topic.id)).toEqual(["topic-15"]);
-    expect(state.continueTarget?.topic.topic.id).toBe("topic-15");
+    expect(topics.filter((t) => t.unlocked).map((t) => t.topic.id)).toEqual(["day1-topic1"]);
+    expect(state.continueTarget?.topic.topic.id).toBe("day1-topic1");
+  });
+});
+
+describe("buildCourseState (coming soon topics)", () => {
+  const state = buildCourseState(COURSE_DAYS, COURSE_TOPICS, MOCK_TOPIC_PROGRESS, MOCK_EXAM_PROGRESS);
+  const day1 = state.days.find((d) => d.day.number === 1)!;
+
+  it("treats topics without video or test as coming soon", () => {
+    // 1-kunda video darslar bor, qolgan kunlarda hali hech narsa yo'q.
+    expect(COURSE_TOPICS.filter((t) => !isTopicComingSoon(t)).map((t) => t.dayId)).toEqual(Array(7).fill("day-1"));
+    expect(isTopicComingSoon({ testSlug: "x" })).toBe(false);
+    expect(isTopicComingSoon({ lessonId: "x" })).toBe(false);
+  });
+
+  it("keeps every coming-soon topic open and none of them completed", () => {
+    expect(day1.topics.map((t) => t.unlocked)).toEqual(Array(7).fill(true));
+    expect(day1.topics.some((t) => t.completed)).toBe(false);
+  });
+
+  it("does not let coming-soon topics block the next topic", () => {
+    const topics = [topic("a", "d1"), { ...topic("b", "d1"), testSlug: undefined }, topic("c", "d1")];
+    const progress = { a: { topicId: "a", videoWatched: true, pdfOpened: true, attempts: [{ percent: 100, date: "" }] } };
+    expect(isTopicUnlocked(topics[2], topics, progress, true)).toBe(true);
+    expect(isTopicUnlocked(topics[2], topics, {}, true)).toBe(false);
+  });
+
+  it("has no continue target when nothing can be studied yet", () => {
+    expect(state.continueTarget).toBeNull();
+  });
+});
+
+describe("buildCourseState (video-only topics)", () => {
+  const video = (topicId: string, percent: number, watched = false): TopicProgress => ({
+    topicId,
+    videoWatched: watched,
+    videoPercent: percent,
+    pdfOpened: false,
+    attempts: [],
+  });
+
+  it("marks a video-only topic done once the server says it was watched", () => {
+    const state = buildCourseState(COURSE_DAYS, COURSE_TOPICS, [video("day1-topic1", 100, true), video("day1-topic2", 40)], MOCK_EXAM_PROGRESS);
+    const day1 = state.days[0];
+    expect(day1.topics.map((t) => t.completed)).toEqual([true, false, false, false, false, false, false]);
+    // Faqat video bor mavzular ketma-ketlikni qulflamaydi.
+    expect(day1.topics.every((t) => t.unlocked)).toBe(true);
+    expect(state.continueTarget?.topic.topic.id).toBe("day1-topic2");
+    expect(state.continueTarget?.topic.stage).toBe("video");
+  });
+
+  it("skips topics whose video is not available yet when picking the continue target", () => {
+    const watched = ["day1-topic1", "day1-topic2", "day1-topic3", "day1-topic4", "day1-topic5", "day1-topic6"].map((id) =>
+      video(id, 100, true),
+    );
+    const state = buildCourseState(COURSE_DAYS, COURSE_TOPICS, watched, MOCK_EXAM_PROGRESS);
+    expect(state.continueTarget).toBeNull();
+    expect(state.days[0].completed).toBe(false); // 7-mavzu videosi hali yo'q
   });
 });
 
 describe("buildCourseState (partial progress)", () => {
-  const state = buildCourseState(COURSE_DAYS, COURSE_TOPICS, PARTIAL_PROGRESS, MOCK_EXAM_PROGRESS);
+  const state = buildCourseState(COURSE_DAYS, TOPICS_WITH_CONTENT, PARTIAL_PROGRESS, MOCK_EXAM_PROGRESS);
   const day1 = state.days.find((d) => d.day.number === 1)!;
   const day2 = state.days.find((d) => d.day.number === 2)!;
 
   it("marks the first three topics of day 1 as completed", () => {
     const completed = day1.topics.filter((t) => t.completed).map((t) => t.topic.id);
-    expect(completed).toEqual(["topic-15", "topic-14", "topic-22"]);
+    expect(completed).toEqual(["day1-topic1", "day1-topic2", "day1-topic3"]);
   });
 
   it("keeps day 1's best percent for the two-attempt topic at 99", () => {
-    const topic22 = day1.topics.find((t) => t.topic.id === "topic-22")!;
+    const topic22 = day1.topics.find((t) => t.topic.id === "day1-topic3")!;
     expect(topic22.bestPercent).toBe(99);
   });
 
   it("unlocks but does not complete the 4th topic (video watched, pdf pending)", () => {
-    const topic23 = day1.topics.find((t) => t.topic.id === "topic-23")!;
+    const topic23 = day1.topics.find((t) => t.topic.id === "day1-topic4")!;
     expect(topic23.unlocked).toBe(true);
     expect(topic23.completed).toBe(false);
     expect(topic23.stage).toBe("pdf");
   });
 
   it("locks the remaining day-1 topics after the unfinished one", () => {
-    const remaining = day1.topics.filter((t) => ["topic-24", "topic-25", "topic-26"].includes(t.topic.id));
+    const remaining = day1.topics.filter((t) => ["day1-topic5", "day1-topic6", "day1-topic7"].includes(t.topic.id));
     expect(remaining.every((t) => !t.unlocked)).toBe(true);
   });
 
@@ -217,9 +280,9 @@ describe("buildCourseState (partial progress)", () => {
     expect(day2.unlocked).toBe(false);
   });
 
-  it("points the continue target at day 1 / topic-23", () => {
+  it("points the continue target at day 1 / day1-topic4", () => {
     expect(state.continueTarget?.dayNumber).toBe(1);
-    expect(state.continueTarget?.topic.topic.id).toBe("topic-23");
+    expect(state.continueTarget?.topic.topic.id).toBe("day1-topic4");
   });
 
   it("keeps the final exam locked", () => {
@@ -230,14 +293,14 @@ describe("buildCourseState (partial progress)", () => {
 
 describe("buildCourseState (all days completed)", () => {
   it("unlocks the final exam and clears the continue target", () => {
-    const fullProgress: TopicProgress[] = COURSE_TOPICS.filter((t) => t.dayId !== "day-7").map((t) => ({
+    const fullProgress: TopicProgress[] = TOPICS_WITH_CONTENT.filter((t) => t.dayId !== "day-7").map((t) => ({
       topicId: t.id,
       videoWatched: true,
       pdfOpened: true,
       attempts: [{ percent: 100, date: "2026-01-01" }],
     }));
 
-    const state = buildCourseState(COURSE_DAYS, COURSE_TOPICS, fullProgress, MOCK_EXAM_PROGRESS);
+    const state = buildCourseState(COURSE_DAYS, TOPICS_WITH_CONTENT, fullProgress, MOCK_EXAM_PROGRESS);
 
     expect(state.allRegularDaysCompleted).toBe(true);
     expect(state.finalExamUnlocked).toBe(true);

@@ -31,8 +31,9 @@ describe("formatAgo", () => {
 });
 
 describe("topicBySlug", () => {
-  it("backend slug'i bo'yicha mavzuni topadi", () => {
-    expect(topicBySlug("1-kun-2-mavzu-tartibga-soluvchining-ishoralari")?.number).toBe(15);
+  it("test banki ulanmagan slug uchun undefined qaytaradi", () => {
+    // Test banklari hozircha olib tashlangan — eski slug ham endi hech qaysi mavzuga bog'lanmagan.
+    expect(topicBySlug("1-kun-2-mavzu-tartibga-soluvchining-ishoralari")).toBeUndefined();
     expect(topicBySlug("mavjud-emas")).toBeUndefined();
   });
 });

@@ -3,10 +3,14 @@
 // Himoyalangan video pleyer. Tashqi pleyer faqat "ekran" sifatida ishlatiladi:
 //  - iframe'ga hech qanday hodisa yetib bormaydi (pointer-events: none) —
 //    barcha boshqaruv o'zimizning qatlamlarda;
-//  - iframe konteynerdan 3 barobar baland qilib, vertikal markazlanadi: video
-//    kenglik bo'yicha aynan konteynerga tushadi, pleyerning yuqori paneli va
-//    burchakdagi belgisi esa konteynerdan tashqarida qolib kesiladi;
-//  - boshlanishdan oldin, pauzada va tugaganda ustida o'zimizning qopqoq ekran;
+//  - iframe konteynerdan 3 barobar baland qilib, vertikal markazlanadi va biroz
+//    kattalashtiriladi (scale): video kenglik bo'yicha konteynerga tushadi,
+//    pleyerning yuqori paneli va burchakdagi belgisi esa kesilib qoladi;
+//  - boshlanishdan oldin, pauzada va tugaganda ustida o'zimizning qopqoq ekran —
+//    tashqi pleyerning o'z preview/pauza/tavsiya ekranlari hech qachon ko'rinmaydi;
+//  - oldinga o'tkazib bo'lmaydi: vaqt chizig'i faqat ko'rsatadi, → ishlamaydi,
+//    har o'lchovda (0.25 s) eng uzoq ko'rilgan nuqtadan +2 s o'tib ketish
+//    (masalan, konsol orqali) darhol shu nuqtaga qaytariladi; orqaga — ruxsat;
 //  - iframe `sandbox`'da: yangi oyna ochish va sahifani boshqa manzilga o'tkazish taqiqlangan;
 //  - skrinshot/ekran yozish urinishida video qora qalqon bilan yopiladi (captureGuard),
 //    ustida esa foydalanuvchi telefoni bilan suzuvchi suv belgisi — sizib chiqqan surat egasini ko'rsatadi.
@@ -15,7 +19,7 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import {
   CheckCircle2Icon,
-  FastForwardIcon,
+  ClapperboardIcon,
   Loader2Icon,
   LockIcon,
   ShieldAlertIcon,
@@ -25,12 +29,20 @@ import {
   PlayIcon,
   RotateCcwIcon,
   TriangleAlertIcon,
+  Undo2Icon,
   Volume2Icon,
   VolumeXIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/useLocale";
-import { getLessonStatus, getLessonVideo, reportLessonProgress, type LessonStatus } from "@/lib/api/lessons";
+import {
+  LESSON_NOT_FOUND_CODE,
+  getLessonStatus,
+  getLessonVideo,
+  reportLessonProgress,
+  type LessonStatus,
+} from "@/lib/api/lessons";
+import { ApiError } from "@/lib/api/session";
 import {
   PLAYBACK_RATES,
   TICK_MS,
@@ -52,28 +64,38 @@ interface SecureVideoPlayerProps {
   onCompleted?: (status: LessonStatus) => void;
   /** Har bir server javobida (dastlabki holat ham) — progress foizi uchun. */
   onProgress?: (status: LessonStatus) => void;
+  /** Darsga hali video ulanmagan (serverdagi xaritada yo'q). */
+  onUnavailable?: () => void;
   className?: string;
 }
 
-type Phase = "loading" | "ready" | "error";
+type Phase = "loading" | "ready" | "error" | "unavailable";
 type FullscreenMode = "none" | "native" | "pseudo";
 
-/** Progress serverga shu oraliqda (ijro paytida) va pauza/chiqishda yuboriladi. */
-const REPORT_INTERVAL_MS = 12_000;
+/** Progress serverga shu oraliqda (ijro paytida) va pauza/chiqish/tugashda yuboriladi. */
+const REPORT_INTERVAL_MS = 10_000;
 const CONTROLS_HIDE_MS = 2500;
 /** Dasturiy ijro bloklangan bo'lsa (iOS), shundan keyin "yana bosing" rejimi. */
 const TAP_THROUGH_DELAY_MS = 1200;
-const SEEK_BACK_SEC = 5;
-// VAQTINCHA (sinov uchun): ko'rilmagan qismga oldinga o'tkazish ruxsat etilgan.
-// Rasmiy ishga tushirishdan oldin `false` qiling yoki tugmani olib tashlang.
-// "Ko'rildi" holatini baribir server tekshiradi — sakrab o'tilgan qism hisoblanmaydi.
-const TEMP_ALLOW_FORWARD_SEEK = true;
-const SEEK_FORWARD_SEC = 10;
+const SEEK_BACK_SEC = 10;
 /** Bundan kam qolgan bo'lsa, davom ettirish o'rniga boshidan boshlanadi. */
 const RESUME_END_MARGIN_SEC = 5;
 const HINT_MS = 1800;
-/** Suv belgisi shu oraliqda boshqa joyga ko'chadi (kesib olib bo'lmasin). */
-const WATERMARK_MOVE_MS = 4000;
+/**
+ * Tashqi pleyer har bir ijro boshlanishi va seek'dan keyin markazda o'z
+ * play/pause belgisini (va ingichka gorizontal chiziqni) ijro boshlangach
+ * ~4 s ko'rsatadi — o'lchangan: 3.75 s da bor, 4.0 s da yo'q. Parametr bilan
+ * o'chmaydi; tezlik va ovoz o'zgarishi esa uni chaqirmaydi. Shuning uchun har ijro "kirish" bilan
+ * boshlanadi: qopqoq ostida ovozsiz, 0.25x tezlikda, nishondan biroz oldindan —
+ * belgi yo'qolganda tezlik va ovoz tiklanadi, qopqoq ko'tariladi va video
+ * aynan to'xtagan joydan davom etadi (hech narsa o'tkazib yuborilmaydi).
+ */
+const LEAD_IN_MS = 4300;
+const LEAD_IN_RATE = 0.25;
+const LEAD_IN_BACK_SEC = (LEAD_IN_MS / 1000) * LEAD_IN_RATE;
+/** Suv belgisi har 20–30 soniyada tasodifiy joyga ko'chadi (kesib olib bo'lmasin). */
+const WATERMARK_MOVE_MIN_MS = 20_000;
+const WATERMARK_MOVE_MAX_MS = 30_000;
 
 const IFRAME_SANDBOX = "allow-scripts allow-same-origin allow-presentation";
 
@@ -94,7 +116,14 @@ function fullscreenElement(): Element | null {
   return document.fullscreenElement ?? doc.webkitFullscreenElement ?? null;
 }
 
-export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, className }: SecureVideoPlayerProps) {
+export function SecureVideoPlayer({
+  lessonId,
+  title,
+  onCompleted,
+  onProgress,
+  onUnavailable,
+  className,
+}: SecureVideoPlayerProps) {
   const { t } = useLocale();
   const p = t.lesson.player;
 
@@ -107,12 +136,23 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
   const lastSentPositionRef = useRef(0);
   const reportingRef = useRef(false);
   const completedRef = useRef(false);
-  const callbacksRef = useRef({ onCompleted, onProgress });
+  const callbacksRef = useRef({ onCompleted, onProgress, onUnavailable });
+  /** Qalqon tushganda video o'ynayotgan edi — "Davom etish" ijroni qaytaradi. */
+  const resumeAfterShieldRef = useRef(false);
   const stateHandlerRef = useRef<(state: number) => void>(() => undefined);
   const hideTimerRef = useRef<number | undefined>(undefined);
   const hintTimerRef = useRef<number | undefined>(undefined);
   const tapTimerRef = useRef<number | undefined>(undefined);
   const pointerTypeRef = useRef<string>("mouse");
+  /**
+   * Qopqoq holati. `since` — kirish paytida ijro boshlangan vaqt; `leadIn` —
+   * kirish tugagach tiklanadigan tezlik va ovoz (null — oddiy qopqoq, masalan pauzada).
+   */
+  const veilRef = useRef<{
+    active: boolean;
+    since: number | null;
+    leadIn: { rate: number; unmute: boolean } | null;
+  }>({ active: false, since: null, leadIn: null });
 
   const [attempt, setAttempt] = useState(0);
   const [phase, setPhase] = useState<Phase>("loading");
@@ -131,17 +171,56 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
   const [tapThrough, setTapThrough] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [hint, setHint] = useState<string | null>(null);
+  /** Qopqoq majburan ko'rsatilmoqda (pauza qilinmoqda yoki ijro "kirish"i). */
+  const [veil, setVeil] = useState(false);
 
-  const pauseForShield = useCallback(() => {
+  /** Tugallanmagan kirish bo'lsa — foydalanuvchi tanlagan tezlik va ovozni qaytaradi. */
+  const restoreLeadIn = useCallback(() => {
+    const lead = veilRef.current.leadIn;
+    const player = playerRef.current;
+    if (!lead || !player) return;
+    player.setPlaybackRate(lead.rate);
+    if (lead.unmute) player.unMute();
+  }, []);
+
+  const raiseVeil = useCallback(() => {
+    restoreLeadIn();
+    veilRef.current = { active: true, since: null, leadIn: null };
+    setVeil(true);
+  }, [restoreLeadIn]);
+
+  const liftVeil = useCallback(() => {
+    restoreLeadIn();
+    veilRef.current = { active: false, since: null, leadIn: null };
+    setVeil(false);
+  }, [restoreLeadIn]);
+
+  const flashHint = useCallback((text: string) => {
+    setHint(text);
+    window.clearTimeout(hintTimerRef.current);
+    hintTimerRef.current = window.setTimeout(() => setHint(null), HINT_MS);
+  }, []);
+
+  /** O'ynayotgan bo'lsa pauza qiladi; o'ynayotgan edimi — qaytaradi. */
+  const pauseIfPlaying = useCallback((): boolean => {
     const player = playerRef.current;
     const state = player?.getPlayerState();
-    if (state === PlayerState.PLAYING || state === PlayerState.BUFFERING) player?.pauseVideo();
-  }, []);
-  const shielded = useCaptureGuard(containerRef, pauseForShield);
+    if (state !== PlayerState.PLAYING && state !== PlayerState.BUFFERING) return false;
+    raiseVeil();
+    player?.pauseVideo();
+    return true;
+  }, [raiseVeil]);
+  const pauseForShield = useCallback(() => {
+    if (pauseIfPlaying()) resumeAfterShieldRef.current = true;
+  }, [pauseIfPlaying]);
+  const pauseForDevtools = useCallback(() => {
+    if (pauseIfPlaying()) flashHint(p.devtools);
+  }, [pauseIfPlaying, flashHint, p.devtools]);
+  const guard = useCaptureGuard(containerRef, pauseForShield, pauseForDevtools);
 
   useEffect(() => {
-    callbacksRef.current = { onCompleted, onProgress };
-  }, [onCompleted, onProgress]);
+    callbacksRef.current = { onCompleted, onProgress, onUnavailable };
+  }, [onCompleted, onProgress, onUnavailable]);
 
   const applyStatus = useCallback((status: LessonStatus) => {
     if (status.completed) {
@@ -161,7 +240,12 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
     }
   }, []);
 
-  /** Yuborilmagan ko'rilgan soniyalarni serverga yuboradi; xato bo'lsa keyingi safar qayta. */
+  /**
+   * Yuborilmagan ko'rilgan soniyalarni serverga yuboradi; xato bo'lsa keyingi safar qayta.
+   * Sahifadan chiqishda `keepalive` fetch ishlatiladi — u sendBeacon kabi sahifa
+   * yopilgandan keyin ham yetib boradi, lekin sendBeacon'dan farqli ravishda
+   * sessiya sarlavhasini (Authorization) yubora oladi.
+   */
   const report = useCallback(
     async (options?: { keepalive?: boolean; force?: boolean }) => {
       if (reportingRef.current && !options?.keepalive) return;
@@ -193,12 +277,6 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
     [lessonId, applyStatus],
   );
 
-  const flashHint = useCallback((text: string) => {
-    setHint(text);
-    window.clearTimeout(hintTimerRef.current);
-    hintTimerRef.current = window.setTimeout(() => setHint(null), HINT_MS);
-  }, []);
-
   /** Bitta o'lchov: ko'rilgan vaqtni hisoblaydi va ko'rilmagan qismga sakrashni qaytaradi. */
   const sample = useCallback(() => {
     const player = playerRef.current;
@@ -216,7 +294,15 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
     lastTimeRef.current = now;
     setCurrent(now);
     setMaxPosition(result.tally.maxPosition);
-  }, []);
+
+    const guard = veilRef.current;
+    // Har qanday qopqoq (kirish yoki iOS'da iframe'ga to'g'ridan-to'g'ri teginish) —
+    // ijro LEAD_IN_MS davom etgach ko'tariladi.
+    if (guard.active && playing) {
+      if (guard.since === null) guard.since = Date.now();
+      else if (Date.now() - guard.since >= LEAD_IN_MS) liftVeil();
+    }
+  }, [liftVeil]);
 
   // Pleyerni yaratish: video manbai va progress serverdan, iframe — o'zimizniki.
   useEffect(() => {
@@ -277,8 +363,14 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
           },
         });
       })
-      .catch(() => {
-        if (!cancelled) setPhase("error");
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        if (error instanceof ApiError && error.status === 404 && error.code === LESSON_NOT_FOUND_CODE) {
+          setPhase("unavailable");
+          callbacksRef.current.onUnavailable?.();
+        } else {
+          setPhase("error");
+        }
       });
 
     return () => {
@@ -302,6 +394,7 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
     stateHandlerRef.current = (state: number) => {
       setPlayerState(state);
       if (state === PlayerState.PLAYING) {
+        // Kirish qopqog'i sample() ichida, LEAD_IN_MS ijrodan keyin ko'tariladi.
         setHasStarted(true);
         setTapThrough(false);
         window.clearTimeout(tapTimerRef.current);
@@ -377,7 +470,9 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
 
   const isPlaying = playerState === PlayerState.PLAYING || playerState === PlayerState.BUFFERING;
   const ended = playerState === PlayerState.ENDED;
-  const showCover = phase === "ready" && (!hasStarted || !isPlaying);
+  const showCover = phase === "ready" && (!hasStarted || !isPlaying || veil);
+  /** Ijro so'raldi, qopqoq hali turibdi — tugma o'rnida yuklanish belgisi. */
+  const starting = veil && isPlaying;
   const showControls = phase === "ready" && hasStarted && (controlsVisible || !isPlaying || speedOpen);
 
   function revealControls() {
@@ -386,19 +481,35 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
     hideTimerRef.current = window.setTimeout(() => setControlsVisible(false), CONTROLS_HIDE_MS);
   }
 
+  /** Ijro `target` nuqtadan — qopqoq ostidagi kirish bilan (qarang: LEAD_IN_MS). */
+  function playWithLeadIn(target: number) {
+    const player = playerRef.current;
+    if (!player) return;
+    restoreLeadIn();
+    const unmute = !player.isMuted();
+    if (unmute) player.mute();
+    player.setPlaybackRate(LEAD_IN_RATE);
+    veilRef.current = { active: true, since: null, leadIn: { rate, unmute } };
+    setVeil(true);
+    const from = Math.max(0, target - LEAD_IN_BACK_SEC);
+    if (Math.abs(currentTimeOf(player, lastTimeRef.current) - from) > 0.3) {
+      player.seekTo(from, true);
+      lastTimeRef.current = from;
+      setCurrent(from);
+    }
+    player.playVideo();
+  }
+
   function togglePlay() {
     const player = playerRef.current;
     if (!player || phase !== "ready") return;
     const state = player.getPlayerState();
     if (state === PlayerState.PLAYING || state === PlayerState.BUFFERING) {
+      raiseVeil();
       player.pauseVideo();
       return;
     }
-    if (state === PlayerState.ENDED) {
-      player.seekTo(0, true);
-      lastTimeRef.current = 0;
-    }
-    player.playVideo();
+    playWithLeadIn(state === PlayerState.ENDED ? 0 : currentTimeOf(player, lastTimeRef.current));
     revealControls();
     if (!hasStarted) {
       // Ba'zi brauzerlar (iOS Safari) boshqa domendagi pleyerni dasturiy ishga
@@ -411,26 +522,34 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
     }
   }
 
+  /** Faqat orqaga (yoki ko'rilgan qism ichida) — eng uzoq ko'rilgan nuqtadan oshmaydi. */
   function seekTo(target: number) {
     const player = playerRef.current;
     if (!player || phase !== "ready") return;
-    if (TEMP_ALLOW_FORWARD_SEEK && target > tallyRef.current.maxPosition) {
-      // Oldinga sakrash qaytarib yuborilmasligi uchun chegara ham suriladi.
-      const end = durationRef.current || target;
-      tallyRef.current = { ...tallyRef.current, maxPosition: Math.min(target, end) };
-      setMaxPosition(tallyRef.current.maxPosition);
-    }
     const allowed = clampSeek(target, tallyRef.current.maxPosition, durationRef.current);
     if (target > allowed + 0.5) flashHint(p.seekLocked);
-    player.seekTo(allowed, true);
-    lastTimeRef.current = allowed;
-    setCurrent(allowed);
+    const state = player.getPlayerState();
+    if (state === PlayerState.PLAYING || state === PlayerState.BUFFERING) {
+      // O'ynab turganda seek ham tashqi belgini chaqiradi — kirish bilan.
+      playWithLeadIn(allowed);
+    } else {
+      player.seekTo(allowed, true);
+      lastTimeRef.current = allowed;
+      setCurrent(allowed);
+    }
     revealControls();
   }
 
   function toggleMute() {
     const player = playerRef.current;
     if (!player) return;
+    const lead = veilRef.current.leadIn;
+    if (lead) {
+      // Kirish paytida pleyer ataylab ovozsiz — tanlov kirish tugaganda qo'llanadi.
+      lead.unmute = !lead.unmute;
+      setMuted(!lead.unmute);
+      return;
+    }
     if (player.isMuted()) {
       player.unMute();
       if (player.getVolume() === 0) {
@@ -449,6 +568,12 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
     if (!player) return;
     player.setVolume(value);
     setVolume(value);
+    const lead = veilRef.current.leadIn;
+    if (lead) {
+      lead.unmute = value > 0;
+      setMuted(value === 0);
+      return;
+    }
     if (value > 0 && player.isMuted()) {
       player.unMute();
       setMuted(false);
@@ -460,7 +585,9 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
   }
 
   function changeRate(value: PlaybackRate) {
-    playerRef.current?.setPlaybackRate(value);
+    const lead = veilRef.current.leadIn;
+    if (lead) lead.rate = value;
+    else playerRef.current?.setPlaybackRate(value);
     setRate(value);
     setSpeedOpen(false);
   }
@@ -495,6 +622,9 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
     } else if (event.key === "ArrowLeft" && !(event.target instanceof HTMLInputElement)) {
       event.preventDefault();
       seekTo(lastTimeRef.current - SEEK_BACK_SEC);
+    } else if (event.key === "ArrowRight" && !(event.target instanceof HTMLInputElement)) {
+      // Oldinga o'tkazish yo'q.
+      event.preventDefault();
     } else if (event.code === "KeyF") {
       event.preventDefault();
       toggleFullscreen();
@@ -518,6 +648,15 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
     pointerTypeRef.current = event.pointerType;
   }
 
+  function resumeAfterShield() {
+    guard.resume();
+    if (resumeAfterShieldRef.current && playerRef.current) {
+      resumeAfterShieldRef.current = false;
+      playWithLeadIn(currentTimeOf(playerRef.current, lastTimeRef.current));
+    }
+    containerRef.current?.focus({ preventScroll: true });
+  }
+
   function retry() {
     setPhase("loading");
     setHasStarted(false);
@@ -529,7 +668,7 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
   const coverLabel = tapThrough
     ? p.tapAgain
     : ended
-      ? p.replay
+      ? p.ended
       : !hasStarted
         ? resumeAt > RESUME_END_MARGIN_SEC
           ? p.resume(formatTime(resumeAt))
@@ -545,12 +684,14 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
       tabIndex={0}
       onKeyDown={handleKeyDown}
       onContextMenu={(event) => event.preventDefault()}
+      onDragStart={(event) => event.preventDefault()}
+      onCopy={(event) => event.preventDefault()}
       onPointerDown={handlePointerDown}
       onPointerMove={(event) => {
         if (event.pointerType === "mouse") revealControls();
       }}
       className={cn(
-        "group/player relative overflow-hidden print:hidden bg-[#05070b] select-none [-webkit-touch-callout:none] [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "group/player relative overflow-hidden bg-[#05070b] select-none print:invisible [-webkit-touch-callout:none] [-webkit-tap-highlight-color:transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         isFullscreen ? "flex items-center justify-center" : "rounded-2xl border border-white/10 shadow-card",
         fullscreen === "pseudo" && "fixed inset-0 z-[100] h-dvh w-screen pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
         isFullscreen && !showControls && "cursor-none",
@@ -563,12 +704,13 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
           isFullscreen ? "w-[min(100vw,calc(100dvh*16/9))]" : "w-full",
         )}
       >
-        {/* Iframe: 300% balandlik, -100% siljish — faqat video qismi ko'rinadi. */}
+        {/* Iframe: 300% balandlik, -100% siljish va 1.06x kattalashtirish — faqat
+            video qismi ko'rinadi, pleyer paneli va burchak belgisi kesiladi. */}
         <div
           ref={frameHostRef}
           aria-hidden="true"
           className={cn(
-            "absolute inset-x-0 top-[-100%] h-[300%] [&>iframe]:block [&>iframe]:size-full [&>iframe]:border-0",
+            "absolute inset-x-0 top-[-100%] h-[300%] scale-[1.06] [&>iframe]:block [&>iframe]:size-full [&>iframe]:border-0",
             !tapThrough && "pointer-events-none [&>iframe]:pointer-events-none",
           )}
         />
@@ -582,7 +724,7 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
 
         {phase === "ready" && hasStarted && <Watermark />}
 
-        {shielded && (
+        {guard.reason && (
           <div
             role="status"
             className="absolute inset-0 z-[60] flex flex-col items-center justify-center gap-3 bg-black px-6 text-center"
@@ -590,7 +732,38 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
             <span className="flex size-12 items-center justify-center rounded-full bg-brand/15 text-brand">
               <ShieldAlertIcon className="size-5" />
             </span>
-            <p className="max-w-sm text-xs font-semibold text-white/80 sm:text-sm">{p.protected}</p>
+            <p className="max-w-sm text-xs font-semibold text-white/80 sm:text-sm">
+              {guard.reason === "capture" ? p.protected : p.away}
+            </p>
+            {guard.canResume && (
+              <button
+                type="button"
+                onClick={resumeAfterShield}
+                className="glow-orange mt-1 inline-flex h-10 items-center gap-2 rounded-full bg-gradient-to-br from-brand to-brand-2 px-5 text-sm font-bold text-brand-foreground transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none active:scale-95"
+              >
+                <PlayIcon className="size-4" fill="currentColor" />
+                {p.continue}
+              </button>
+            )}
+          </div>
+        )}
+
+        {phase === "unavailable" && (
+          <div
+            role="status"
+            className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-3 overflow-hidden bg-[#070a0f] px-6 text-center"
+          >
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,94,0,0.18),transparent_60%),linear-gradient(180deg,#0b1020,#070a0f)]"
+            />
+            <span className="relative flex size-14 items-center justify-center rounded-full border border-brand/30 bg-brand/10 text-brand sm:size-16">
+              <ClapperboardIcon className="size-6 sm:size-7" />
+            </span>
+            <div className="relative max-w-sm">
+              <p className="font-display text-base font-bold text-white sm:text-lg">{p.notReadyTitle}</p>
+              <p className="mt-1 text-xs leading-relaxed text-white/60 sm:text-sm">{p.notReadyDesc}</p>
+            </div>
           </div>
         )}
 
@@ -636,7 +809,8 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
             playLabel={ended ? p.replay : p.play}
             tapThrough={tapThrough}
             ended={ended}
-            compactLabel={hasStarted}
+            starting={starting}
+            compactLabel={hasStarted && !ended}
             onPlay={togglePlay}
           />
         )}
@@ -666,22 +840,17 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
               showControls ? "opacity-100" : "pointer-events-none opacity-0",
             )}
           >
-            <Timeline
-              current={current}
-              duration={duration}
-              maxPosition={maxPosition}
-              label={p.timeline}
-              onSeek={seekTo}
-            />
+            <Timeline current={current} duration={duration} maxPosition={maxPosition} label={p.timeline} />
             <div className="mt-1.5 flex items-center gap-0.5 sm:gap-1.5">
               <ControlButton label={isPlaying ? p.pause : p.play} onClick={togglePlay}>
                 {isPlaying ? <PauseIcon className="size-5" fill="currentColor" /> : <PlayIcon className="size-5" fill="currentColor" />}
               </ControlButton>
-              {TEMP_ALLOW_FORWARD_SEEK && (
-                <ControlButton label={p.skipForward} onClick={() => seekTo(lastTimeRef.current + SEEK_FORWARD_SEC)}>
-                  <FastForwardIcon className="size-5" />
-                </ControlButton>
-              )}
+              <ControlButton label={p.seekBack} onClick={() => seekTo(lastTimeRef.current - SEEK_BACK_SEC)}>
+                <span className="relative flex items-center justify-center">
+                  <Undo2Icon className="size-5" />
+                  <span className="absolute -right-1.5 -bottom-1.5 font-mono text-[9px] font-bold">10</span>
+                </span>
+              </ControlButton>
               <ControlButton label={muted ? p.unmute : p.mute} onClick={toggleMute}>
                 {muted || volume === 0 ? <VolumeXIcon className="size-5" /> : <Volume2Icon className="size-5" />}
               </ControlButton>
@@ -746,7 +915,11 @@ export function SecureVideoPlayer({ lessonId, title, onCompleted, onProgress, cl
   );
 }
 
-/** Suzuvchi suv belgisi: foydalanuvchi telefoni va sana — har bir surat egasini ko'rsatadi. */
+/**
+ * Suzuvchi yarim shaffof suv belgisi: foydalanuvchi telefoni (yoki ismi) va sana.
+ * Skrinshotni to'xtatmaydi, lekin sizib chiqqan surat egasini ko'rsatadi.
+ * Bosishlarga xalaqit bermaydi (pointer-events: none).
+ */
 function Watermark() {
   const record = useRegistration();
   const [spot, setSpot] = useState({ x: 12, y: 14 });
@@ -754,17 +927,23 @@ function Watermark() {
   const label = who ? `${who} · ${new Date().toLocaleDateString()}` : "";
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
-      setSpot({ x: 5 + Math.random() * 55, y: 8 + Math.random() * 72 });
-    }, WATERMARK_MOVE_MS);
-    return () => window.clearInterval(timer);
+    let timer: number | undefined;
+    const schedule = () => {
+      const wait = WATERMARK_MOVE_MIN_MS + Math.random() * (WATERMARK_MOVE_MAX_MS - WATERMARK_MOVE_MIN_MS);
+      timer = window.setTimeout(() => {
+        setSpot({ x: 5 + Math.random() * 55, y: 8 + Math.random() * 72 });
+        schedule();
+      }, wait);
+    };
+    schedule();
+    return () => window.clearTimeout(timer);
   }, []);
 
   if (!label) return null;
   return (
     <span
       aria-hidden="true"
-      className="pointer-events-none absolute z-[15] font-mono text-[10px] font-semibold whitespace-nowrap text-white/25 transition-[left,top] duration-1000 select-none sm:text-xs"
+      className="pointer-events-none absolute z-[15] font-mono text-[10px] font-semibold whitespace-nowrap text-white/30 transition-[left,top] duration-1000 select-none sm:text-xs"
       style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
     >
       {label}
@@ -802,6 +981,7 @@ function Cover({
   playLabel,
   tapThrough,
   ended,
+  starting,
   compactLabel,
   onPlay,
 }: {
@@ -812,6 +992,7 @@ function Cover({
   playLabel: string;
   tapThrough: boolean;
   ended: boolean;
+  starting: boolean;
   /** Pastki panel ko'rinib turganda — kichik ekranda yozuv yashiriladi (ustma-ust tushmasin). */
   compactLabel: boolean;
   onPlay: () => void;
@@ -855,7 +1036,9 @@ function Cover({
           tapThrough && "pointer-events-none animate-pulse",
         )}
       >
-        {ended ? (
+        {starting ? (
+          <Loader2Icon className="size-7 animate-spin sm:size-8" />
+        ) : ended ? (
           <RotateCcwIcon className="size-7 sm:size-8" strokeWidth={2.5} />
         ) : (
           <PlayIcon className="ml-1 size-7 sm:size-8" fill="currentColor" />
@@ -865,6 +1048,7 @@ function Cover({
       <p
         className={cn(
           "absolute inset-x-0 top-[calc(50%+3rem)] px-4 text-center text-xs font-semibold text-white/80 sm:top-[calc(50%+3.75rem)] sm:text-sm",
+          ended && "font-display text-base font-bold text-white sm:text-xl",
           compactLabel && "max-sm:sr-only",
         )}
       >
@@ -894,74 +1078,44 @@ function TapThroughBlockers() {
   );
 }
 
-/** Vaqt chizig'i: ko'rilgan qism ichida erkin, undan oldinga — yo'q. */
+/**
+ * Vaqt chizig'i — FAQAT ko'rsatish uchun: bosib ham, sudrab ham bo'lmaydi
+ * (oldinga o'tkazish umuman yo'q; orqaga — "10 soniya orqaga" va ← orqali).
+ */
 function Timeline({
   current,
   duration,
   maxPosition,
   label,
-  onSeek,
 }: {
   current: number;
   duration: number;
   maxPosition: number;
   label: string;
-  onSeek: (time: number) => void;
 }) {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [dragTime, setDragTime] = useState<number | null>(null);
-
-  function timeAt(clientX: number): number {
-    const rect = trackRef.current?.getBoundingClientRect();
-    if (!rect || rect.width === 0 || duration <= 0) return 0;
-    return Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1) * duration;
-  }
-
-  const shown = dragTime ?? current;
   const percent = (value: number) => (duration > 0 ? Math.min(100, (value / duration) * 100) : 0);
 
   return (
     <div
-      ref={trackRef}
-      role="slider"
-      tabIndex={0}
+      role="progressbar"
       aria-label={label}
       aria-valuemin={0}
       aria-valuemax={Math.round(duration)}
-      aria-valuenow={Math.round(shown)}
-      aria-valuetext={`${formatTime(shown)} / ${formatTime(duration)}`}
-      onKeyDown={(event) => {
-        if (event.key === "ArrowRight") {
-          event.preventDefault();
-          onSeek(current + 5);
-        }
-      }}
-      onPointerDown={(event) => {
-        event.currentTarget.setPointerCapture(event.pointerId);
-        setDragTime(Math.min(timeAt(event.clientX), maxPosition));
-      }}
-      onPointerMove={(event) => {
-        if (dragTime !== null) setDragTime(Math.min(timeAt(event.clientX), maxPosition));
-      }}
-      onPointerUp={(event) => {
-        if (dragTime === null) return;
-        setDragTime(null);
-        onSeek(timeAt(event.clientX));
-      }}
-      onPointerCancel={() => setDragTime(null)}
-      className="group/timeline relative flex h-5 cursor-pointer touch-none items-center rounded-full focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
+      aria-valuenow={Math.round(current)}
+      aria-valuetext={`${formatTime(current)} / ${formatTime(duration)}`}
+      className="pointer-events-none relative flex h-4 items-center"
     >
-      <div className="relative h-1 w-full overflow-hidden rounded-full bg-white/15 transition-[height] group-hover/timeline:h-1.5">
+      <div className="relative h-1 w-full overflow-hidden rounded-full bg-white/15">
         <div className="absolute inset-y-0 left-0 bg-white/30" style={{ width: `${percent(maxPosition)}%` }} />
         <div
           className="absolute inset-y-0 left-0 bg-gradient-to-r from-brand to-brand-2"
-          style={{ width: `${percent(shown)}%` }}
+          style={{ width: `${percent(current)}%` }}
         />
       </div>
       <div
         aria-hidden="true"
-        className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_0_3px_rgba(255,94,0,0.45)] transition-transform group-hover/timeline:scale-125"
-        style={{ left: `${percent(shown)}%` }}
+        className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_0_3px_rgba(255,94,0,0.45)]"
+        style={{ left: `${percent(current)}%` }}
       />
     </div>
   );

@@ -37,10 +37,9 @@ const SOURCE_IMAGES_DIR = path.join(SEED_DATA_DIR, "images");
 // public/ is served as static files by the NestJS app (see main.ts).
 const PUBLIC_IMAGES_DIR = path.join(__dirname, "..", "public", "images");
 
-const TOPIC_TITLES: Record<string, string> = {
-  "1-kun-2-mavzu-tartibga-soluvchining-ishoralari":
-    "1-kun 2-mavzu: Tartibga soluvchining ishoralari",
-};
+// Test banki slug'i → DB'dagi sarlavha. Slug frontend mavzu ID'si bilan bir xil
+// (masalan "day1-topic1") — qarang: README "Yangi mavzuga video va test qo'shish".
+const TOPIC_TITLES: Record<string, string> = {};
 
 /** JPEG/PNG fayl sarlavhasidan rasm o'lchamlarini o'qiydi (kutubxonasiz). */
 function readImageSize(filePath: string): { width: number; height: number } | null {
@@ -84,7 +83,9 @@ function resolvePublicBaseUrl(): string {
 
 function copyImages(): void {
   fs.mkdirSync(PUBLIC_IMAGES_DIR, { recursive: true });
-  const files = fs.readdirSync(SOURCE_IMAGES_DIR);
+  const files = fs.existsSync(SOURCE_IMAGES_DIR)
+    ? fs.readdirSync(SOURCE_IMAGES_DIR).filter((file) => !file.startsWith("."))
+    : [];
   for (const file of files) {
     fs.copyFileSync(
       path.join(SOURCE_IMAGES_DIR, file),
@@ -104,6 +105,10 @@ async function main() {
 
   const raw = fs.readFileSync(QUESTIONS_JSON_PATH, "utf-8");
   const questions: SeedQuestion[] = JSON.parse(raw);
+  if (questions.length === 0) {
+    console.log("questions.json bo'sh — import qilinadigan test banki yo'q.");
+    return;
+  }
   const ruTranslations: Record<string, SeedTranslation> = fs.existsSync(QUESTIONS_RU_JSON_PATH)
     ? JSON.parse(fs.readFileSync(QUESTIONS_RU_JSON_PATH, "utf-8"))
     : {};

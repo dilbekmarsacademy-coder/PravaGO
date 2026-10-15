@@ -10,6 +10,7 @@ export interface Day {
 export interface Topic {
   id: string;
   number: number; // rasmiy test raqami (testNo), kunlar bo'ylab ketma-ket bo'lishi shart emas
+  order: number; // kun ichidagi tartib raqami (1, 2, 3...)
   title: LocalizedText;
   testSlug?: string; // backend test bankidagi slug (mavjud bo'lsa mavzu bosilganda test boshlanadi)
   lessonId?: string; // video dars — mavjud bo'lsa test video ko'rilguncha qulflangan
@@ -24,7 +25,9 @@ export interface TopicAttempt {
 
 export interface TopicProgress {
   topicId: string;
-  videoWatched: boolean;
+  videoWatched: boolean; // serverda "ko'rildi" deb belgilangan
+  /** Video dars foizi (serverdan); `undefined` — darsga video hali ulanmagan. */
+  videoPercent?: number;
   pdfOpened: boolean;
   attempts: TopicAttempt[];
 }

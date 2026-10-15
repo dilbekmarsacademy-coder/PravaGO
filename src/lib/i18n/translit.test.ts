@@ -66,11 +66,16 @@ describe("latinToCyrillic", () => {
   it("reproduces the hand-written Cyrillic curriculum titles", () => {
     for (const day of CURRICULUM) {
       for (const topic of day.topics) {
+        if (SPELLING_MISMATCH.has(topic.title.uz)) continue;
         expect(latinToCyrillic(topic.title.uz), `testNo ${topic.testNo}`).toBe(topic.title.cyrl);
       }
     }
   });
 });
+
+// Buyurtmachi bergan matn aynan saqlangan: lotinda tutuq belgisi bor
+// ("Ta'qiqlovchi"), kirillda yo'q ("Тақиқловчи") — transliteratsiya mos kelmaydi.
+const SPELLING_MISMATCH = new Set(["Ta'qiqlovchi belgilar"]);
 
 describe("cyrillicToLatin", () => {
   const normalizeApostrophes = (text: string) => text.replace(/[ʻʼ‘’]/g, "'");
@@ -103,6 +108,7 @@ describe("cyrillicToLatin", () => {
   it("round-trips the curriculum titles back to their Latin spelling", () => {
     for (const day of CURRICULUM) {
       for (const topic of day.topics) {
+        if (SPELLING_MISMATCH.has(topic.title.uz)) continue;
         expect(
           normalizeApostrophes(cyrillicToLatin(topic.title.cyrl)),
           `testNo ${topic.testNo}`,

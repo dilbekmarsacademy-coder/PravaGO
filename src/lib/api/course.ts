@@ -6,6 +6,7 @@
 import type { Day, ExamProgress, Topic, TopicProgress } from "@/lib/course-types";
 import { COURSE_DAYS, COURSE_TOPICS } from "@/data/curriculum";
 import { MOCK_EXAM_PROGRESS, MOCK_TOPIC_PROGRESS } from "@/lib/mock/progress";
+import { listLessonStatuses, type LessonStatus } from "./lessons";
 
 const NETWORK_DELAY_MS = 700;
 // Xato holatini (skeleton → "qayta urinish") tabiiy ravishda sinash imkonini
@@ -30,10 +31,31 @@ export async function getDashboardData(options?: { forceError?: boolean }): Prom
     throw new Error("Ma'lumotlarni yuklab bo'lmadi");
   }
 
+  // Video progressi haqiqiy backend'dan; u ishlamasa ham kabinet ochiladi
+  // (foizlar shunchaki ko'rsatilmaydi).
+  const lessons = await listLessonStatuses().catch(() => [] as LessonStatus[]);
+
   return {
     days: COURSE_DAYS,
     topics: COURSE_TOPICS,
-    topicProgress: MOCK_TOPIC_PROGRESS,
+    topicProgress: withLessonProgress(MOCK_TOPIC_PROGRESS, COURSE_TOPICS, lessons),
     examProgress: MOCK_EXAM_PROGRESS,
   };
+}
+
+/** Server bergan video holatini mavzu progressiga qo'shadi (`lessonId` bo'yicha). */
+export function withLessonProgress(
+  progress: TopicProgress[],
+  topics: Topic[],
+  lessons: LessonStatus[],
+): TopicProgress[] {
+  const byLesson = new Map(lessons.map((lesson) => [lesson.lessonId, lesson]));
+  const byTopic = new Map(progress.map((item) => [item.topicId, item]));
+  for (const topic of topics) {
+    const lesson = topic.lessonId ? byLesson.get(topic.lessonId) : undefined;
+    if (!lesson) continue;
+    const base = byTopic.get(topic.id) ?? { topicId: topic.id, videoWatched: false, pdfOpened: false, attempts: [] };
+    byTopic.set(topic.id, { ...base, videoWatched: lesson.completed, videoPercent: lesson.watchedPercent });
+  }
+  return [...byTopic.values()];
 }

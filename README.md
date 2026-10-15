@@ -1,5 +1,11 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Kontent: mavzular, video va testlar
+
+O'quv dasturi (7 kun, mavzu nomlari 3 tilda) — `src/data/curriculum.ts`.
+Mavzuga video yoki test qo'shish yo'riqnomasi:
+[backend/README.md → "Yangi mavzuga video va test qo'shish"](backend/README.md#yangi-mavzuga-video-va-test-qoshish).
+
 ## Getting Started
 
 First, run the development server:
