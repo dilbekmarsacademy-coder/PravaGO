@@ -73,10 +73,11 @@ describe("curriculum", () => {
     }
   });
 
-  it("attaches video lessons to every day 1 topic (by topic ID) and no tests yet", () => {
+  it("attaches video lessons to every day 1–2 topic (by topic ID) and no tests yet", () => {
     expect(COURSE_TOPICS.filter((t) => t.lessonId).map((t) => t.lessonId)).toEqual(
-      Array.from({ length: 7 }, (_, i) => `day1-topic${i + 1}`),
+      [1, 2].flatMap((day) => Array.from({ length: 7 }, (_, i) => `day${day}-topic${i + 1}`)),
     );
+    expect(COURSE_TOPICS.filter((t) => t.lessonId).every((t) => t.lessonId === t.id)).toBe(true);
     expect(COURSE_TOPICS.filter((t) => t.testSlug)).toEqual([]);
   });
 
