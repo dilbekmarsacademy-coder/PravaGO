@@ -61,12 +61,12 @@ export const CURRICULUM: CurriculumDay[] = [
     { id: "day2-topic7", lessonId: "day2-topic7", testNo: 11, questionCount: 38, title: { uz: "Qo'shimcha axborot belgilari", cyrl: "Қўшимча ахборот белгилари", ru: "Знаки дополнительной информации" } },
   ]},
   { day: 3, topics: [
-    { testNo: 17, questionCount: 58, title: { uz: "Harakatlanishni boshlash, manyovr qilish", cyrl: "Ҳаракатланишни бошлаш, манёвр қилиш", ru: "Начало движения, маневрирование" } },
-    { testNo: 37, questionCount: 17, title: { uz: "Yuk tashish", cyrl: "Юк ташиш", ru: "Перевозка грузов" } },
-    { testNo: 38, questionCount: 13, title: { uz: "Velosiped, moped va aravalar harakatlanishi", cyrl: "Велосипед, мопед ва аравалар ҳаракатланиши", ru: "Движение велосипедов, мопедов и гужевых повозок" } },
-    { testNo: 40, questionCount: 46, title: { uz: "Transport vositalaridan foydalanish", cyrl: "Транспорт воситаларидан фойдаланиш", ru: "Эксплуатация транспортных средств" } },
-    { testNo: 41, questionCount: 71, title: { uz: "Harakat xavfsizligi asoslari", cyrl: "Ҳаракат хавфсизлиги асослари", ru: "Основы безопасности движения" } },
-    { testNo: 42, questionCount: 34, title: { uz: "Birinchi tibbiy yordam", cyrl: "Биринчи тиббий ёрдам", ru: "Первая медицинская помощь" } },
+    { id: "day3-topic1", lessonId: "day3-topic1", testNo: 17, questionCount: 58, title: { uz: "Harakatlanishni boshlash, manyovr qilish", cyrl: "Ҳаракатланишни бошлаш, манёвр қилиш", ru: "Начало движения, маневрирование" } },
+    { id: "day3-topic2", lessonId: "day3-topic2", testNo: 37, questionCount: 17, title: { uz: "Yuk tashish", cyrl: "Юк ташиш", ru: "Перевозка грузов" } },
+    { id: "day3-topic3", lessonId: "day3-topic3", testNo: 38, questionCount: 13, title: { uz: "Velosiped, moped va aravalar harakatlanishi", cyrl: "Велосипед, мопед ва аравалар ҳаракатланиши", ru: "Движение велосипедов, мопедов и гужевых повозок" } },
+    { id: "day3-topic4", lessonId: "day3-topic4", testNo: 40, questionCount: 46, title: { uz: "Transport vositalaridan foydalanish", cyrl: "Транспорт воситаларидан фойдаланиш", ru: "Эксплуатация транспортных средств" } },
+    { id: "day3-topic5", lessonId: "day3-topic5", testNo: 41, questionCount: 71, title: { uz: "Harakat xavfsizligi asoslari", cyrl: "Ҳаракат хавфсизлиги асослари", ru: "Основы безопасности движения" } },
+    { id: "day3-topic6", lessonId: "day3-topic6", testNo: 42, questionCount: 34, title: { uz: "Birinchi tibbiy yordam", cyrl: "Биринчи тиббий ёрдам", ru: "Первая медицинская помощь" } },
   ]},
   { day: 4, topics: [
     { testNo: 13, questionCount: 5, title: { uz: "Tik chiziqlar", cyrl: "Тик чизиқлар", ru: "Вертикальная разметка" } },

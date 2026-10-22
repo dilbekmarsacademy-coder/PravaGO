@@ -32,6 +32,12 @@ export const LESSONS: Readonly<Record<string, LessonConfig>> = {
   "day2-topic5": { videoId: "3xcj_TYlJbc", durationSec: 1621 },
   "day2-topic6": { videoId: "UINxck9k_Fs", durationSec: 24 },
   "day2-topic7": { videoId: "c6D7TSJxSWc", durationSec: 885 },
+  "day3-topic1": { videoId: "knHaqTZNfEw", durationSec: 1634 },
+  "day3-topic2": { videoId: "PeP8q0ZK9ks", durationSec: 540 },
+  "day3-topic3": { videoId: "B5ktqGG6IHM", durationSec: 276 },
+  "day3-topic4": { videoId: "LJ5FSZ_-bao", durationSec: 1222 },
+  "day3-topic5": { videoId: "jXXjjkFbMPk", durationSec: 1903 },
+  "day3-topic6": { videoId: "ib18XEiInp4", durationSec: 781 },
 };
 
 export function findLesson(lessonId: string): LessonConfig | undefined {

@@ -197,10 +197,11 @@ describe("buildCourseState (coming soon topics)", () => {
   const day1 = state.days.find((d) => d.day.number === 1)!;
 
   it("treats topics without video or test as coming soon", () => {
-    // 1–2-kunlarda video darslar bor, qolgan kunlarda hali hech narsa yo'q.
+    // 1–3-kunlarda video darslar bor, qolgan kunlarda hali hech narsa yo'q.
     expect(COURSE_TOPICS.filter((t) => !isTopicComingSoon(t)).map((t) => t.dayId)).toEqual([
       ...Array(7).fill("day-1"),
       ...Array(7).fill("day-2"),
+      ...Array(6).fill("day-3"),
     ]);
     expect(isTopicComingSoon({ testSlug: "x" })).toBe(false);
     expect(isTopicComingSoon({ lessonId: "x" })).toBe(false);
