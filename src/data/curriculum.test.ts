@@ -73,9 +73,9 @@ describe("curriculum", () => {
     }
   });
 
-  it("attaches video lessons to every day 1–5 topic (by topic ID) and no tests yet", () => {
+  it("attaches video lessons to every day 1–6 topic (by topic ID) and no tests yet", () => {
     expect(COURSE_TOPICS.filter((t) => t.lessonId).map((t) => t.lessonId)).toEqual(
-      [[1, 7], [2, 7], [3, 6], [4, 7], [5, 8]].flatMap(([day, count]) =>
+      [[1, 7], [2, 7], [3, 6], [4, 7], [5, 8], [6, 7]].flatMap(([day, count]) =>
         Array.from({ length: count }, (_, i) => `day${day}-topic${i + 1}`),
       ),
     );
