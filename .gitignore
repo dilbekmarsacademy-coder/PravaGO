@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Test kontenti manbalari (docx/html) — katta fayllar, git'ga tushmaydi
+/content-source/
