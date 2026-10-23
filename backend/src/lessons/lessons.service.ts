@@ -123,8 +123,12 @@ export class LessonsService {
   }
 
   /**
-   * Mavzu testi dars ko'rilmaguncha yopiq. Darsi yo'q mavzular uchun hech
-   * narsa qilmaydi. Har qanday kelajakdagi dars uchun ham shu ishlaydi.
+   * Mavzu kontentiga (test, javob tekshiruvi, "Kalit so'zlar") kirish huquqi.
+   * Hamma joyda shu bitta tekshiruv ishlatiladi: sessiya (AuthGuard) + video
+   * sharti. Darsi yo'q mavzular uchun video sharti yo'q.
+   *
+   * TODO(payment): to'lov holati hozircha faqat klientda (registration-store).
+   * Backend'da to'lov/tarif ma'lumoti paydo bo'lganda tekshiruv shu yerga qo'shiladi.
    */
   async assertTopicUnlocked(topicSlug: string, userId: string | undefined): Promise<void> {
     const lessonId = findLessonIdForTopic(topicSlug);

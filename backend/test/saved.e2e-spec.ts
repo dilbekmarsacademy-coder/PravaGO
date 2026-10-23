@@ -31,8 +31,8 @@ async function createTopic(slug: string, count: number, textPrefix: string) {
         keyword: `KALIT ${order}`,
         options: {
           create: [
-            { text: "Биринчи", isCorrect: false },
-            { text: "Иккинчи", isCorrect: true },
+            { order: 1, text: "Биринчи", isCorrect: false },
+            { order: 2, text: "Иккинчи", isCorrect: true },
           ],
         },
       },

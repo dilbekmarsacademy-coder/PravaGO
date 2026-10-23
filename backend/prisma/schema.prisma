@@ -8,35 +8,52 @@ datasource db {
 }
 
 model Topic {
-  id             String          @id @default(uuid())
-  slug           String          @unique
-  title          String
+  id             String             @id @default(uuid())
+  slug           String             @unique
+  title          String // o'zbek lotin
+  titleCyrl      String?
+  titleRu        String?
+  /// Kurs kuni (1–6) va kun ichidagi tartib — frontend'dagi src/data/curriculum.ts bilan bir xil.
+  day            Int?
+  dayOrder       Int?
   questions      Question[]
   savedQuestions SavedQuestion[]
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  testAttempts   TopicTestAttempt[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
 }
 
 model Question {
-  id            String          @id @default(uuid())
-  topicId       String
-  topic         Topic           @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  text          String // o'zbek kirill
-  textRu        String? // ruscha tarjima
-  imageUrl      String
+  id              String           @id @default(uuid())
+  topicId         String
+  topic           Topic            @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  text            String // o'zbek kirill
+  /// O'zbek lotin (bo'lmasa frontend kirilldan transliteratsiya qiladi).
+  textLatn        String?
+  textRu          String? // ruscha tarjima
+  /// Rasm yo'li (`/images/...` — backend manziliga nisbatan, klient to'liq URL qiladi) yoki to'liq URL.
+  /// Rasmsiz savolda null.
+  imageUrl        String?
   /// Rasmning asl o'lchamlari — frontend joyni oldindan ajratadi (layout shift bo'lmaydi).
-  imageWidth    Int?
-  imageHeight   Int?
-  order         Int
-  keyword       String // o'zbek (lotin yoki kirill — manbaga qarab)
-  keywordRu     String?
-  needsReview   Boolean         @default(false)
+  imageWidth      Int?
+  imageHeight     Int?
+  order           Int
+  /// Izoh (manbada bo'lsa): kirill / lotin / rus.
+  explanation     String?
+  explanationLatn String?
+  explanationRu   String?
+  /// Eski format: javob kalit so'zi bitta matn sifatida. Yangi kalit so'zlar — QuestionKeyword.
+  keyword         String
+  keywordRu       String?
+  needsReview     Boolean          @default(false)
   /// Ruscha tarjima qo'lda tekshirilmagan (mashina/AI tarjimasi).
-  ruNeedsReview Boolean         @default(false)
-  options       Option[]
-  savedBy       SavedQuestion[]
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  ruNeedsReview   Boolean          @default(false)
+  options         Option[]
+  keywords        QuestionKeyword?
+  savedBy         SavedQuestion[]
+  keywordReviews  KeywordReview[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   @@unique([topicId, order])
 }
@@ -45,21 +62,68 @@ model Option {
   id         String   @id @default(uuid())
   questionId String
   question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  /// Manbadagi tartib (F1, F2, ...) — 1 dan.
+  order      Int      @default(0)
   text       String // o'zbek kirill
+  textLatn   String?
   textRu     String?
   isCorrect  Boolean  @default(false)
   createdAt  DateTime @default(now())
+
+  @@unique([questionId, order])
+}
+
+/// Savol va javob kalit so'zlari. Faqat javob berilgandan keyin (yoki
+/// "Kalit so'zlar" bo'limida) chiqariladi. Matn bo'lmasa — "kalit so'z mavjud emas".
+///
+/// `highlights` — matndagi belgilash oralig'i `[start, end)`:
+///   { question: { uz?, cyrl?, ru? }, answer: { uz?, cyrl?, ru? } }
+/// `question.*` — savol matniga (Question.textLatn / text / textRu) nisbatan,
+/// `answer.*` — to'g'ri variant matniga (Option.textLatn / text / textRu) nisbatan.
+model QuestionKeyword {
+  questionId       String   @id
+  question         Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  /// Savol kaliti (lotin / kirill / rus).
+  questionText     String?
+  questionTextCyrl String?
+  questionTextRu   String?
+  /// Javob kaliti (lotin / kirill / rus).
+  answerText       String?
+  answerTextCyrl   String?
+  answerTextRu     String?
+  highlights       Json     @default("{}")
+  /// "html" | "docx" | "none"
+  source           String
+  /// Manba docx'dagi "Kalit so'z: ..." qatori (agar bo'lsa) — HTML kaliti asosiy.
+  docxKeyword      String?
+  /// Kirill/rus kalit so'zi yoki belgilash avtomatik topilmagan — qo'lda tekshirish kerak.
+  needsReview      Boolean  @default(false)
+  updatedAt        DateTime @updatedAt
+}
+
+/// "Kalit so'zlar" bo'limidagi "ko'rib chiqdim" belgisi.
+model KeywordReview {
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  @@id([userId, questionId])
+  @@index([questionId])
 }
 
 /// Foydalanuvchi. Hozircha anonim (qurilma sessiyasi orqali yaratiladi) —
 /// real login (telefon + OTP) qo'shilganda profil maydonlari shu yerga qo'shiladi.
 model User {
-  id             String           @id @default(uuid())
+  id             String             @id @default(uuid())
   sessions       Session[]
   examAttempts   ExamAttempt[]
   savedQuestions SavedQuestion[]
   lessonProgress LessonProgress[]
-  createdAt      DateTime         @default(now()) @db.Timestamptz(3)
+  keywordReviews KeywordReview[]
+  testAttempts   TopicTestAttempt[]
+  createdAt      DateTime           @default(now()) @db.Timestamptz(3)
 }
 
 /// Bearer token sessiyasi. Tokenning o'zi hech qayerda saqlanmaydi — faqat sha256 xeshi.
@@ -133,4 +197,20 @@ model LessonProgress {
   updatedAt      DateTime  @updatedAt @db.Timestamptz(3)
 
   @@unique([userId, lessonId])
+}
+
+/// Mavzu testi natijasi. Foiz serverda hisoblanadi (yuborilgan javoblar bazadagi
+/// to'g'ri javoblar bilan solishtiriladi) — kabinetdagi 98% qoidasi shunga tayanadi.
+model TopicTestAttempt {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topicId   String
+  topic     Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  correct   Int
+  total     Int
+  percent   Int
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([userId, topicId])
 }

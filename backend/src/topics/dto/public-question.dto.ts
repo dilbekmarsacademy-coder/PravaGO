@@ -17,7 +17,8 @@ export class PublicOptionDto {
 export class PublicQuestionDto {
   id: string;
   text: LocalizedTextDto;
-  imageUrl: string;
+  /** `/images/...` (API manziliga nisbatan) yoki to'liq URL; rasmsiz savolda null. */
+  imageUrl: string | null;
   imageWidth: number | null;
   imageHeight: number | null;
   options: PublicOptionDto[];
@@ -25,7 +26,7 @@ export class PublicQuestionDto {
   constructor(params: {
     id: string;
     text: LocalizedTextDto;
-    imageUrl: string;
+    imageUrl: string | null;
     imageWidth: number | null;
     imageHeight: number | null;
     options: PublicOptionDto[];

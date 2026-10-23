@@ -1,10 +1,12 @@
-import { Controller, Get, Param, Req } from "@nestjs/common";
-import type { RequestWithUser } from "../auth/session.middleware";
+import { Controller, Get, Param, UseGuards } from "@nestjs/common";
+import { AuthGuard, CurrentUser } from "../auth/auth.guard";
+import type { SessionUser } from "../auth/auth.service";
 import { LessonsService } from "../lessons/lessons.service";
 import { TopicsService } from "./topics.service";
 import { PublicQuestionDto } from "./dto/public-question.dto";
 
 @Controller("topics")
+@UseGuards(AuthGuard)
 export class TopicsController {
   constructor(
     private readonly topicsService: TopicsService,
@@ -13,8 +15,8 @@ export class TopicsController {
 
   /** Video darsi bor mavzu — dars ko'rilmaguncha 403 (LESSON_NOT_COMPLETED). */
   @Get(":slug/questions")
-  async getQuestions(@Param("slug") slug: string, @Req() req: RequestWithUser): Promise<PublicQuestionDto[]> {
-    await this.lessons.assertTopicUnlocked(slug, req.user?.id);
+  async getQuestions(@Param("slug") slug: string, @CurrentUser() user: SessionUser): Promise<PublicQuestionDto[]> {
+    await this.lessons.assertTopicUnlocked(slug, user.id);
     return this.topicsService.getPublicQuestions(slug);
   }
 }

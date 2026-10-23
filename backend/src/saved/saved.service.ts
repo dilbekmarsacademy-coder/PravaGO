@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { toLocalizedText } from "../common/localized-text";
+import { OPTION_ORDER, optionText, questionText, toKeywordsDto } from "../common/question-content";
 import { PublicOptionDto, PublicQuestionDto } from "../topics/dto/public-question.dto";
 import type {
   CreateSavedDto,
@@ -193,7 +194,7 @@ export class SavedService {
         id: true,
         attempt: { select: { finishedAt: true } },
         question: {
-          include: { options: { orderBy: { createdAt: "asc" } } },
+          include: { options: { orderBy: OPTION_ORDER }, keywords: true },
         },
       },
     });
@@ -210,11 +211,11 @@ export class SavedService {
         ...toRecord(row),
         question: {
           order: q.order,
-          text: toLocalizedText(q.text, q.textRu),
+          text: questionText(q),
           imageUrl: q.imageUrl,
           imageWidth: q.imageWidth,
           imageHeight: q.imageHeight,
-          options: q.options.map((o) => ({ id: o.id, text: toLocalizedText(o.text, o.textRu) })),
+          options: q.options.map((o) => ({ id: o.id, text: optionText(o) })),
         },
         answerLocked,
       };
@@ -222,6 +223,7 @@ export class SavedService {
         const correct = q.options.find((o) => o.isCorrect);
         if (correct) item.correctOptionId = correct.id;
         item.keyword = toLocalizedText(q.keyword, q.keywordRu);
+        item.keywords = toKeywordsDto(q.keywords);
       }
       return item;
     });
@@ -244,18 +246,18 @@ export class SavedService {
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       select: {
         topic: { select: { slug: true } },
-        question: { include: { options: { orderBy: { createdAt: "asc" } } } },
+        question: { include: { options: { orderBy: OPTION_ORDER } } },
       },
     });
 
     return rows.map(({ topic, question: q }) => {
       const dto = new PracticeQuestionDto({
         id: q.id,
-        text: toLocalizedText(q.text, q.textRu),
+        text: questionText(q),
         imageUrl: q.imageUrl,
         imageWidth: q.imageWidth,
         imageHeight: q.imageHeight,
-        options: q.options.map((o) => new PublicOptionDto(o.id, toLocalizedText(o.text, o.textRu))),
+        options: q.options.map((o) => new PublicOptionDto(o.id, optionText(o))),
       });
       dto.topicSlug = topic.slug;
       return dto;
@@ -273,6 +275,7 @@ export class SavedService {
   /** Savol matni bo'yicha qidiruv (rus tilida — ruscha tarjima ham). */
   private searchFilter(q: string, lang: ListSavedQueryDto["lang"]): Prisma.QuestionWhereInput {
     const contains = { contains: q, mode: "insensitive" as const };
-    return lang === "ru" ? { OR: [{ textRu: contains }, { text: contains }] } : { text: contains };
+    if (lang === "ru") return { OR: [{ textRu: contains }, { text: contains }] };
+    return lang === "uz-latn" ? { OR: [{ textLatn: contains }, { text: contains }] } : { text: contains };
   }
 }

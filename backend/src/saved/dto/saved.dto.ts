@@ -13,6 +13,7 @@ import {
   ValidateIf,
 } from "class-validator";
 import type { LocalizedTextDto } from "../../common/localized-text";
+import type { QuestionKeywordsDto } from "../../common/question-content";
 
 export const SAVED_SOURCE_MODES = ["practice", "exam"] as const;
 export type SavedSourceModeValue = (typeof SAVED_SOURCE_MODES)[number];
@@ -110,14 +111,14 @@ export interface SavedOptionDto {
 }
 
 /**
- * To'liq saqlangan savol. `answerLocked=true` bo'lsa `correctOptionId` va
- * `keyword` JSON'da umuman bo'lmaydi (imtihon urinishi hali yakunlanmagan).
+ * To'liq saqlangan savol. `answerLocked=true` bo'lsa `correctOptionId`,
+ * `keyword` va `keywords` JSON'da umuman bo'lmaydi (imtihon urinishi hali yakunlanmagan).
  */
 export interface SavedItemDto extends SavedRecordDto {
   question: {
     order: number;
     text: LocalizedTextDto;
-    imageUrl: string;
+    imageUrl: string | null;
     imageWidth: number | null;
     imageHeight: number | null;
     options: SavedOptionDto[];
@@ -125,6 +126,8 @@ export interface SavedItemDto extends SavedRecordDto {
   answerLocked: boolean;
   correctOptionId?: string;
   keyword?: LocalizedTextDto;
+  /** `null` — kalit so'z mavjud emas. */
+  keywords?: QuestionKeywordsDto | null;
 }
 
 export interface SavedListDto {

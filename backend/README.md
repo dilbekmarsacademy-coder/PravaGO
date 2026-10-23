@@ -13,11 +13,23 @@ qaytariladi — savollar ro'yxati so'ralganda hech qachon chiqmaydi.
 
 ## Endpointlar
 
-- `GET /topics/:slug/questions` — mavzudagi barcha savollar (`correctOptionId`
-  va `keyword` YO'Q).
+Hammasi sessiya talab qiladi (`Authorization: Bearer`, aks holda 401) va mavzu
+kontentiga kirish huquqini tekshiradi: video darsi bor mavzu dars ko'rilmaguncha
+403 `LESSON_NOT_COMPLETED` (`LessonsService.assertTopicUnlocked`).
+
+- `GET /topics/:slug/questions` — mavzudagi barcha savollar: matn `{ uz, cyrl, ru }`,
+  rasm (`/images/...` — backend manziliga nisbatan, rasmsiz savolda `null`),
+  variantlar manbadagi tartibda. `correctOptionId`, `isCorrect` va kalit so'zlar YO'Q.
 - `POST /questions/:id/check-answer` — body: `{ "optionId": string }`,
-  javob: `{ correct, correctOptionId, keyword }`. Bitta IP daqiqasiga 20 ta
-  so'rov bilan cheklangan.
+  javob: `{ correct, correctOptionId, keyword, keywords }`. `keywords` —
+  `{ question, answer }` (har biri `{ text, highlight: { uz?, cyrl?, ru? } }` yoki
+  `null`); `keywords: null` — "kalit so'z mavjud emas". Foydalanuvchi daqiqasiga 20 ta.
+- `POST /topics/:slug/attempts` — to'liq test natijasi: `{ answers: [{ questionId, optionId }] }`.
+  Foizni server bazadagi to'g'ri javoblar bo'yicha hisoblaydi (kabinetdagi 98% qoidasi).
+  `GET /attempts` — foydalanuvchining barcha natijalari.
+- `GET /topics/:slug/keywords` — "Kalit so'zlar" bo'limi: mavzuning barcha
+  savollari to'g'ri javob, kalit so'zlar va "ko'rib chiqdim" belgisi bilan.
+  `PUT /topics/:slug/keywords/:questionId/review` — `{ "reviewed": boolean }` (idempotent).
 
 ## Mahalliy ishga tushirish
 
@@ -62,6 +74,20 @@ ko'rinadi va keyingi mavzularni qulflamaydi.
    `"day1-topic1": "1-kun 1-mavzu: Svetofor ishoralari"`.
 4. `npm run seed`.
 5. Frontend: `src/data/curriculum.ts` da mavzuga `testSlug: "day1-topic1"` qo'shing.
+
+**1-kun test banklari** (docx + kalit so'z HTML'laridan) — alohida import:
+
+```bash
+npm run import:day1 -- --dry-run   # faqat hisobot: ../content-source/day1/import-report.md
+npm run import:day1                # DATABASE_URL dagi bazaga (idempotent)
+```
+
+Manba fayllar `<repo>/content-source/day1/{docx,keywords,ru}/` da (git'ga
+tushmaydi). To'g'ri javob — docx'dagi qalin variant, kalit so'zlar — HTML;
+mavzular va savollar raqam bo'yicha emas, nomi/matni bo'yicha bog'lanadi.
+Rasmlar WebP qilib `prisma/seed-data/images/` ga yoziladi (`npm run seed` ularni
+`public/images/` ga ko'chiradi). Production bazaga import qilishdan oldin
+`pg_dump` bilan zaxira oling.
 
 **2. Video dars** — faqat backend'da, bitta qator:
 

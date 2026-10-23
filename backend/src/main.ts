@@ -21,7 +21,7 @@ async function bootstrap() {
   const allowedOrigin = process.env.ALLOWED_ORIGIN;
   app.enableCors({
     origin: allowedOrigin ? allowedOrigin.split(",") : false,
-    methods: ["GET", "POST", "PATCH", "DELETE"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   });
 
   app.useGlobalPipes(

@@ -73,7 +73,7 @@ beforeAll(async () => {
             text: "Савол",
             imageUrl: "http://example.test/q.jpg",
             keyword: "KALIT",
-            options: { create: [{ text: "А", isCorrect: true }, { text: "Б" }] },
+            options: { create: [{ order: 1, text: "А", isCorrect: true }, { order: 2, text: "Б" }] },
           },
         },
       },
@@ -115,8 +115,8 @@ describe("progress va test qulfi", () => {
       .set(auth)
       .expect(403);
     expect(locked.body).toMatchObject({ code: "LESSON_NOT_COMPLETED", lessonId: LESSON_ID });
-    // Sessiyasiz ham ochilmaydi.
-    await request(app.getHttpServer()).get(`/topics/${LESSON.topicSlug}/questions`).expect(403);
+    // Sessiyasiz umuman ochilmaydi.
+    await request(app.getHttpServer()).get(`/topics/${LESSON.topicSlug}/questions`).expect(401);
   });
 
   it("bitta soxta hisobot bilan butun videoni 'ko'rib' bo'lmaydi", async () => {

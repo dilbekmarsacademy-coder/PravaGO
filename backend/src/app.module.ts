@@ -8,6 +8,7 @@ import { AuthModule } from "./auth/auth.module";
 import { UserThrottlerGuard } from "./auth/user-throttler.guard";
 import { SavedModule } from "./saved/saved.module";
 import { LessonsModule } from "./lessons/lessons.module";
+import { KeywordsModule } from "./keywords/keywords.module";
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { LessonsModule } from "./lessons/lessons.module";
     AuthModule,
     SavedModule,
     LessonsModule,
+    KeywordsModule,
   ],
   providers: [
     {
