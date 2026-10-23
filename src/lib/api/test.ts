@@ -17,28 +17,49 @@ export interface ApiOption {
 export interface ApiQuestion {
   id: string;
   text: LocalizedText;
-  imageUrl: string;
+  /** To'liq URL; rasmsiz savolda null. */
+  imageUrl: string | null;
   /** Asl o'lchamlar (eski backend'da bo'lmasligi mumkin). */
   imageWidth?: number | null;
   imageHeight?: number | null;
   options: ApiOption[];
 }
 
+/** Matndagi belgilash `[start, end)` — har bir til matniga nisbatan. */
+export interface HighlightRanges {
+  uz?: [number, number];
+  cyrl?: [number, number];
+  ru?: [number, number];
+}
+
+export interface KeywordPart {
+  /** Kalit so'zning o'zi (chip uchun). */
+  text: LocalizedText;
+  /** Savol kaliti — savol matnida, javob kaliti — to'g'ri variant matnida. */
+  highlight: HighlightRanges;
+}
+
+/** `null` — kalit so'z mavjud emas. */
+export interface QuestionKeywords {
+  question: KeywordPart | null;
+  answer: KeywordPart | null;
+}
+
 export interface CheckAnswerResult {
   correct: boolean;
   correctOptionId: string;
   keyword: LocalizedText;
+  /** Eski backend'da bo'lmaydi (`undefined`); `null` — kalit so'z mavjud emas. */
+  keywords?: QuestionKeywords | null;
 }
 
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
-  });
-  if (!res.ok) {
-    throw new Error(`So'rov muvaffaqiyatsiz tugadi: ${res.status}`);
-  }
-  return res.json() as Promise<T>;
+/**
+ * Backend rasm yo'lini `/images/...` ko'rinishida (API manziliga nisbatan)
+ * qaytaradi — shu yerda to'liq URL'ga aylantiriladi. Eski yozuvlar to'liq URL.
+ */
+export function resolveAssetUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  return url.startsWith("/") ? `${API_BASE_URL}${url}` : url;
 }
 
 // Eski backend matnni oddiy satr sifatida qaytaradi — deploy vaqtida ikkala
@@ -48,12 +69,22 @@ type RawText = string | LocalizedText;
 function toLocalizedText(raw: RawText): LocalizedText {
   if (typeof raw !== "string") return raw;
   if (!raw.trim()) return {};
-  return /[\u0400-\u04FF]/.test(raw) ? { cyrl: raw } : { uz: raw };
+  return /[Ѐ-ӿ]/.test(raw) ? { cyrl: raw } : { uz: raw };
 }
 
 interface RawQuestion extends Omit<ApiQuestion, "text" | "options"> {
   text: RawText;
   options: { id: string; text: RawText }[];
+}
+
+/** API'dan kelgan savolni klient formatiga keltiradi (matnlar, rasm URL'i). */
+export function normalizeQuestion<T extends RawQuestion>(q: T): Omit<T, "text" | "options"> & ApiQuestion {
+  return {
+    ...q,
+    text: toLocalizedText(q.text),
+    imageUrl: resolveAssetUrl(q.imageUrl),
+    options: q.options.map((o) => ({ id: o.id, text: toLocalizedText(o.text) })),
+  };
 }
 
 /**
@@ -62,17 +93,36 @@ interface RawQuestion extends Omit<ApiQuestion, "text" | "options"> {
  */
 export async function getTopicQuestions(topicSlug: string): Promise<ApiQuestion[]> {
   const questions = await authFetch<RawQuestion[]>(`/topics/${topicSlug}/questions`);
-  return questions.map((q) => ({
-    ...q,
-    text: toLocalizedText(q.text),
-    options: q.options.map((o) => ({ id: o.id, text: toLocalizedText(o.text) })),
-  }));
+  return questions.map(normalizeQuestion);
 }
 
 export async function checkAnswer(questionId: string, optionId: string): Promise<CheckAnswerResult> {
-  const result = await apiFetch<Omit<CheckAnswerResult, "keyword"> & { keyword: RawText }>(
+  const result = await authFetch<Omit<CheckAnswerResult, "keyword"> & { keyword: RawText }>(
     `/questions/${questionId}/check-answer`,
     { method: "POST", body: JSON.stringify({ optionId }) },
   );
   return { ...result, keyword: toLocalizedText(result.keyword) };
+}
+
+export interface TestAttempt {
+  topicSlug: string;
+  correct: number;
+  total: number;
+  percent: number;
+  createdAt: string;
+}
+
+/** To'liq mavzu testi natijasi — foizni server javoblarni qayta tekshirib hisoblaydi. */
+export function submitTestAttempt(
+  topicSlug: string,
+  answers: { questionId: string; optionId: string }[],
+): Promise<TestAttempt> {
+  return authFetch<TestAttempt>(`/topics/${topicSlug}/attempts`, {
+    method: "POST",
+    body: JSON.stringify({ answers }),
+  });
+}
+
+export function listTestAttempts(): Promise<TestAttempt[]> {
+  return authFetch<TestAttempt[]>("/attempts");
 }

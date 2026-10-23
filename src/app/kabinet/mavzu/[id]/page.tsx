@@ -3,8 +3,8 @@
 import { use } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeftIcon, ClockIcon } from "lucide-react";
-import { COURSE_TOPICS, testHref, topicDayNumber } from "@/data/curriculum";
+import { ArrowLeftIcon, ClockIcon, KeyRoundIcon } from "lucide-react";
+import { COURSE_TOPICS, keywordsHref, testHref, topicDayNumber } from "@/data/curriculum";
 import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { Card } from "@/components/shared/Card";
@@ -62,6 +62,12 @@ export default function MavzuPage({ params }: MavzuPageProps) {
         {testLink && (
           <Link href={testLink} className={buttonClasses({ variant: "primary", size: "md", className: "relative" })}>
             {t.kabinet.continueCard.stages.test}
+          </Link>
+        )}
+        {testLink && (
+          <Link href={keywordsHref(topic)} className={buttonClasses({ variant: "secondary", size: "md", className: "relative" })}>
+            <KeyRoundIcon className="size-4" />
+            {t.keywords.open}
           </Link>
         )}
         <Link

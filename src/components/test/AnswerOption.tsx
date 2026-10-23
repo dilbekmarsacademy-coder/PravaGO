@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { CheckIcon, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -11,7 +12,7 @@ export type AnswerState = "idle" | "selected" | "correct" | "incorrect" | "dimme
 
 interface AnswerOptionProps {
   label: string;
-  text: string;
+  text: ReactNode;
   state: AnswerState;
   disabled: boolean;
   onSelect: () => void;

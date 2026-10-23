@@ -192,8 +192,11 @@ describe("buildCourseState (new user)", () => {
   });
 });
 
+// Test banki ulanmagan holat (faqat video yoki "Tez orada") — kontentdan qat'i nazar.
+const VIDEO_ONLY_TOPICS: Topic[] = COURSE_TOPICS.map((t) => ({ ...t, testSlug: undefined }));
+
 describe("buildCourseState (coming soon topics)", () => {
-  const state = buildCourseState(COURSE_DAYS, COURSE_TOPICS, MOCK_TOPIC_PROGRESS, MOCK_EXAM_PROGRESS);
+  const state = buildCourseState(COURSE_DAYS, VIDEO_ONLY_TOPICS, MOCK_TOPIC_PROGRESS, MOCK_EXAM_PROGRESS);
   const day1 = state.days.find((d) => d.day.number === 1)!;
 
   it("treats topics without video or test as coming soon", () => {
@@ -237,7 +240,7 @@ describe("buildCourseState (video-only topics)", () => {
   });
 
   it("marks a video-only topic done once the server says it was watched", () => {
-    const state = buildCourseState(COURSE_DAYS, COURSE_TOPICS, [video("day1-topic1", 100, true), video("day1-topic2", 40)], MOCK_EXAM_PROGRESS);
+    const state = buildCourseState(COURSE_DAYS, VIDEO_ONLY_TOPICS, [video("day1-topic1", 100, true), video("day1-topic2", 40)], MOCK_EXAM_PROGRESS);
     const day1 = state.days[0];
     expect(day1.topics.map((t) => t.completed)).toEqual([true, false, false, false, false, false, false]);
     // Faqat video bor mavzular ketma-ketlikni qulflamaydi.
@@ -250,9 +253,31 @@ describe("buildCourseState (video-only topics)", () => {
     const watched = ["day1-topic1", "day1-topic2", "day1-topic3", "day1-topic4", "day1-topic5", "day1-topic6"].map((id) =>
       video(id, 100, true),
     );
-    const state = buildCourseState(COURSE_DAYS, COURSE_TOPICS, watched, MOCK_EXAM_PROGRESS);
+    const state = buildCourseState(COURSE_DAYS, VIDEO_ONLY_TOPICS, watched, MOCK_EXAM_PROGRESS);
     expect(state.continueTarget).toBeNull();
     expect(state.days[0].completed).toBe(false); // 7-mavzu videosi hali yo'q
+  });
+});
+
+describe("buildCourseState (day 1 test banks)", () => {
+  const passed = (topicId: string, percent: number): TopicProgress => ({
+    topicId,
+    videoWatched: true,
+    videoPercent: 100,
+    pdfOpened: false,
+    attempts: [{ percent, date: "2026-10-23T10:00:00.000Z" }],
+  });
+
+  it("opens the next day 1 topic only after the previous test is passed with 98%", () => {
+    const fresh = buildCourseState(COURSE_DAYS, COURSE_TOPICS, MOCK_TOPIC_PROGRESS, MOCK_EXAM_PROGRESS);
+    expect(fresh.days[0].topics.map((t) => t.unlocked)).toEqual([true, false, false, false, false, false, false]);
+
+    const almost = buildCourseState(COURSE_DAYS, COURSE_TOPICS, [passed("day1-topic1", 97)], MOCK_EXAM_PROGRESS);
+    expect(almost.days[0].topics[1].unlocked).toBe(false);
+
+    const done = buildCourseState(COURSE_DAYS, COURSE_TOPICS, [passed("day1-topic1", 98)], MOCK_EXAM_PROGRESS);
+    expect(done.days[0].topics.map((t) => t.unlocked).slice(0, 3)).toEqual([true, true, false]);
+    expect(done.days[0].topics[0].completed).toBe(true);
   });
 });
 

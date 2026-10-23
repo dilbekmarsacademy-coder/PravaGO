@@ -23,6 +23,7 @@ import { HeaderMenu } from "@/components/shared/HeaderMenu";
 import LanguageSwitcher from "@/components/shared/LanguageSwitcher";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import { SavedQuestionCard, type SavedViewMode } from "@/components/saved/SavedQuestionCard";
+import { topicDayNumber } from "@/data/curriculum";
 import { getSavedList, type SavedItem, type SavedSort } from "@/lib/api/saved";
 import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
@@ -158,12 +159,13 @@ export default function SavedPage() {
           return {
             slug: group.topicSlug,
             count: group.count,
-            number: topic?.number ?? Number.MAX_SAFE_INTEGER,
+            // Kurs tartibi: kun, so'ng kun ichidagi mavzu tartibi.
+            rank: topic ? topicDayNumber(topic) * 100 + topic.order : Number.MAX_SAFE_INTEGER,
             title: topic ? localize(topic.title, locale) : group.topicSlug,
-            short: topic ? t.kabinet.topic.testNo(topic.number) : group.topicSlug,
+            short: topic ? t.kabinet.topicPage.dayTopic(topicDayNumber(topic), topic.order) : group.topicSlug,
           };
         })
-        .sort((a, b) => a.number - b.number),
+        .sort((a, b) => a.rank - b.rank),
     [count, locale, t],
   );
 

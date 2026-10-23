@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeftIcon, PlayCircleIcon } from "lucide-react";
 import type { Topic } from "@/lib/course-types";
-import { testHref, topicDayNumber } from "@/data/curriculum";
+import { keywordsHref, testHref, topicDayNumber } from "@/data/curriculum";
 import { LESSON_NOT_FOUND_CODE, getLessonStatus, type LessonStatus } from "@/lib/api/lessons";
 import { ApiError } from "@/lib/api/session";
 import { localize } from "@/lib/i18n/localized";
@@ -106,6 +106,7 @@ export function LessonView({ topic }: LessonViewProps) {
           status={status}
           unavailable={unavailable}
           testHref={topic.testSlug ? testHref(topic.testSlug) : null}
+          keywordsHref={topic.testSlug ? keywordsHref(topic) : null}
         />
       </main>
     </>

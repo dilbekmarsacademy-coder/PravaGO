@@ -11,6 +11,8 @@ import { useLocale } from "@/lib/i18n/useLocale";
 import { AnswerOption, type AnswerState } from "./AnswerOption";
 import { QuestionImage } from "./QuestionImage";
 import { BookmarkButton } from "@/components/saved/BookmarkButton";
+import { KeywordChip } from "@/components/keywords/KeywordChip";
+import { KeywordText } from "@/components/keywords/KeywordText";
 
 export type TestMode = "practice" | "exam";
 
@@ -57,23 +59,31 @@ export function QuestionView({
   const { locale, t } = useLocale();
   const text = localize(question.text, locale);
   const answered = mode === "exam" ? selectedOptionId !== null : result !== null;
-  // Noto'g'ri javobdan keyin izoh avtomatik ochiladi; foydalanuvchi uni yopishi mumkin.
+  // Javobdan keyin kalit so'zlar darhol ko'rinadi; foydalanuvchi blokni yopishi mumkin.
   const [hintToggled, setHintToggled] = useState<boolean | null>(null);
-  const hintOpen = hintToggled ?? (result !== null && !result.correct);
+  const hintOpen = hintToggled ?? result !== null;
   const optionCount = question.options.length;
+  const hasImage = Boolean(question.imageUrl);
+  // Kalit so'z belgilashi faqat mashq rejimida, javob tekshirilgandan keyin.
+  const keywords = mode === "practice" && result ? result.keywords : undefined;
 
   return (
     <article
       className={cn(
         "grid gap-4 sm:gap-5",
-        text
-          ? "[grid-template-areas:'meta'_'text'_'image'_'answers']"
-          : "[grid-template-areas:'meta'_'image'_'answers']",
+        !hasImage
+          ? // Rasmsiz savol: bitta ustun, o'qish uchun qulay kenglikda.
+            "mx-auto w-full max-w-3xl [grid-template-areas:'meta'_'text'_'answers']"
+          : text
+            ? "[grid-template-areas:'meta'_'text'_'image'_'answers']"
+            : "[grid-template-areas:'meta'_'image'_'answers']",
         // Katta va yotiq ekranlar: rasm chapda, savol va javoblar o'ngda.
-        "twocol:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] twocol:grid-rows-[auto_auto_1fr] twocol:gap-x-6 twocol:gap-y-4 lg:gap-x-8",
-        text
-          ? "twocol:[grid-template-areas:'image_meta'_'image_text'_'image_answers']"
-          : "twocol:[grid-template-areas:'image_meta'_'image_answers'_'image_.']",
+        hasImage &&
+          "twocol:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] twocol:grid-rows-[auto_auto_1fr] twocol:gap-x-6 twocol:gap-y-4 lg:gap-x-8",
+        hasImage &&
+          (text
+            ? "twocol:[grid-template-areas:'image_meta'_'image_text'_'image_answers']"
+            : "twocol:[grid-template-areas:'image_meta'_'image_answers'_'image_.']"),
       )}
     >
       <div className="flex items-center justify-between gap-3 [grid-area:meta]">
@@ -85,25 +95,33 @@ export function QuestionView({
 
       {text && (
         <h2 className="text-[clamp(1.125rem,0.98rem+0.62vw,1.5rem)] leading-snug font-semibold text-balance text-foreground [grid-area:text]">
-          {text}
+          <KeywordText text={question.text} highlight={keywords?.question?.highlight} tone="question" />
         </h2>
       )}
 
-      <div className="self-start [grid-area:image]">
-        <QuestionImage
-          src={question.imageUrl}
-          alt={text || t.testSession.imageAlt}
-          width={question.imageWidth}
-          height={question.imageHeight}
-        />
-      </div>
+      {question.imageUrl && (
+        <div className="self-start [grid-area:image]">
+          <QuestionImage
+            src={question.imageUrl}
+            alt={text || t.testSession.imageAlt}
+            width={question.imageWidth}
+            height={question.imageHeight}
+          />
+        </div>
+      )}
 
       <div className="flex flex-col gap-2.5 [grid-area:answers]">
         {question.options.map((option, optionIndex) => (
           <AnswerOption
             key={option.id}
             label={`F${optionIndex + 1}`}
-            text={localize(option.text, locale)}
+            text={
+              keywords && option.id === result?.correctOptionId ? (
+                <KeywordText text={option.text} highlight={keywords.answer?.highlight} tone="answer" />
+              ) : (
+                localize(option.text, locale)
+              )
+            }
             state={getAnswerState(mode, option.id, selectedOptionId, result)}
             disabled={answered || checking}
             onSelect={() => onAnswer(option.id)}
@@ -144,10 +162,15 @@ export function QuestionView({
                       className="overflow-hidden"
                     >
                       <div className="border-t border-border px-4 py-3 text-sm leading-relaxed text-foreground/90">
-                        <p>
-                          <span className="font-semibold text-success">{t.testSession.keyword} </span>
-                          {localize(result.keyword, locale)}
-                        </p>
+                        {result.keywords !== undefined ? (
+                          <KeywordChip keywords={result.keywords} />
+                        ) : (
+                          // Eski backend: kalit so'z bitta matn sifatida.
+                          <p>
+                            <span className="font-semibold text-success">{t.testSession.keyword} </span>
+                            {localize(result.keyword, locale)}
+                          </p>
+                        )}
                         {videoHref && (
                           <Link
                             href={videoHref}

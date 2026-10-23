@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRightIcon, BookmarkIcon } from "lucide-react";
 import { Card } from "@/components/shared/Card";
 import { buttonClasses } from "@/components/shared/Button";
+import { topicDayNumber } from "@/data/curriculum";
 import { getSavedList, type SavedItem } from "@/lib/api/saved";
 import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
@@ -69,7 +70,7 @@ export default function SavedCard() {
               const topic = topicBySlug(item.topicSlug);
               const text = localize(item.question.text, locale);
               const location = topic
-                ? t.saved.item.location(topic.number, item.question.order)
+                ? t.saved.item.location(topicDayNumber(topic), topic.order, item.question.order)
                 : t.saved.item.questionNo(item.question.order);
               return (
                 <li key={item.questionId}>

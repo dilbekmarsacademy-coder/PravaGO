@@ -4,7 +4,7 @@
 
 import type { Locale } from "@/lib/i18n/dictionary";
 import type { LocalizedText } from "@/lib/i18n/localized";
-import type { ApiQuestion } from "./test";
+import { normalizeQuestion, resolveAssetUrl, type ApiQuestion, type QuestionKeywords } from "./test";
 import { authFetch } from "./session";
 
 export type SavedSourceMode = "practice" | "exam";
@@ -23,7 +23,8 @@ export interface SavedItem extends SavedRecord {
   question: {
     order: number;
     text: LocalizedText;
-    imageUrl: string;
+    /** To'liq URL; rasmsiz savolda null. */
+    imageUrl: string | null;
     imageWidth: number | null;
     imageHeight: number | null;
     options: { id: string; text: LocalizedText }[];
@@ -31,6 +32,8 @@ export interface SavedItem extends SavedRecord {
   answerLocked: boolean;
   correctOptionId?: string;
   keyword?: LocalizedText;
+  /** `null` — kalit so'z mavjud emas; `undefined` — javob yopiq yoki eski backend. */
+  keywords?: QuestionKeywords | null;
 }
 
 export interface SavedPage {
@@ -90,11 +93,19 @@ export function getSavedCount(): Promise<SavedCount> {
   return authFetch<SavedCount>("/saved/count");
 }
 
-export function getSavedList(params: SavedListParams): Promise<SavedPage> {
-  return authFetch<SavedPage>(`/saved${query({ ...params })}`);
+export async function getSavedList(params: SavedListParams): Promise<SavedPage> {
+  const page = await authFetch<SavedPage>(`/saved${query({ ...params })}`);
+  return {
+    ...page,
+    items: page.items.map((item) => ({
+      ...item,
+      question: { ...item.question, imageUrl: resolveAssetUrl(item.question.imageUrl) },
+    })),
+  };
 }
 
 /** Saqlangan savollar — test formatida (javobsiz), "test qilib ishlash" uchun. */
-export function getSavedPracticeQuestions(topicSlug?: string | null): Promise<PracticeQuestion[]> {
-  return authFetch<PracticeQuestion[]>(`/saved/practice${query({ topicSlug })}`);
+export async function getSavedPracticeQuestions(topicSlug?: string | null): Promise<PracticeQuestion[]> {
+  const questions = await authFetch<PracticeQuestion[]>(`/saved/practice${query({ topicSlug })}`);
+  return questions.map(normalizeQuestion);
 }

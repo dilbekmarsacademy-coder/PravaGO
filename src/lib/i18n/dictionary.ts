@@ -387,7 +387,8 @@ export interface Dictionary {
       retry: string;
     };
     item: {
-      location: (testNo: number, order: number) => string;
+      /** Kun, kun ichidagi mavzu tartibi va savol tartibi. */
+      location: (day: number, topicOrder: number, questionOrder: number) => string;
       questionNo: (order: number) => string;
       correctAnswer: string;
       keyword: string;
@@ -414,6 +415,43 @@ export interface Dictionary {
       days: (n: number) => string;
       months: (n: number) => string;
       years: (n: number) => string;
+    };
+  };
+
+  /** Kalit so'zlar: test natijasi, "Saqlanganlar" va mavzudagi "Kalit so'zlar" bo'limi. */
+  keywords: {
+    none: string;
+    questionKey: string;
+    answerKey: string;
+    open: string;
+    openDesc: string;
+    page: {
+      eyebrow: string;
+      title: string;
+      progress: (done: number, total: number) => string;
+      progressAria: string;
+      searchLabel: string;
+      searchPlaceholder: string;
+      hideAnswers: string;
+      tapToReveal: string;
+      questionNo: (order: number) => string;
+      correctAnswer: string;
+      explanation: string;
+      reviewed: string;
+      markReviewed: (order: number) => string;
+      reviewError: string;
+      noResultsTitle: string;
+      noResultsDesc: string;
+      clearSearch: string;
+      emptyTitle: string;
+      emptyDesc: string;
+      lockedTitle: string;
+      lockedDesc: string;
+      goToVideo: string;
+      loadError: string;
+      retry: string;
+      startTest: string;
+      backToTopic: string;
     };
   };
 }

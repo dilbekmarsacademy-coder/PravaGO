@@ -6,11 +6,11 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeftIcon, BookmarkIcon, RotateCcwIcon, TriangleAlertIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { checkAnswer, getTopicQuestions, type ApiQuestion, type CheckAnswerResult } from "@/lib/api/test";
+import { checkAnswer, getTopicQuestions, submitTestAttempt, type ApiQuestion, type CheckAnswerResult } from "@/lib/api/test";
 import { getSavedPracticeQuestions } from "@/lib/api/saved";
 import { LESSON_LOCKED_CODE } from "@/lib/api/lessons";
 import { ApiError } from "@/lib/api/session";
-import { topicPageHref } from "@/data/curriculum";
+import { topicDayNumber, topicPageHref } from "@/data/curriculum";
 import { Button, buttonClasses } from "@/components/shared/Button";
 import { Card } from "@/components/shared/Card";
 import { FinishModal } from "@/components/test/FinishModal";
@@ -125,7 +125,12 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong }
   const topicTitle = topic ? localize(topic.title, locale) : null;
   const header =
     sourceKind === "topic"
-      ? { testLabel: topic ? t.kabinet.topic.testNo(topic.number) : null, title: topicTitle, backHref: "/kabinet" }
+      ? {
+          // Mavzu raqami — faqat kun ichidagi tartib (rasmiy test raqami ko'rsatilmaydi).
+          testLabel: topic ? t.kabinet.topicPage.dayTopic(topicDayNumber(topic), topic.order) : null,
+          title: topicTitle,
+          backHref: "/kabinet",
+        }
       : { testLabel: t.saved.title, title: topicTitle ?? t.saved.page.practiceTitle, backHref: SAVED_PAGE_HREF };
 
   useEffect(() => {
@@ -172,6 +177,19 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong }
       }
     });
   }, [sourceKind, sourceSlug]);
+
+  // To'liq mavzu testi tugadi — natija serverga (foizni server javoblarni qayta
+  // tekshirib hisoblaydi). Kabinetdagi 98% qoidasi shu natijalarga tayanadi.
+  const attemptSent = useRef(false);
+  useEffect(() => {
+    if (!finished || !persist || sourceKind !== "topic" || !sourceSlug || !questions || attemptSent.current) return;
+    attemptSent.current = true;
+    const submitted = questions.flatMap((q, i) => {
+      const answer = answers[i];
+      return answer?.result && answer.selectedOptionId ? [{ questionId: q.id, optionId: answer.selectedOptionId }] : [];
+    });
+    submitTestAttempt(sourceSlug, submitted).catch(() => undefined);
+  }, [finished, persist, sourceKind, sourceSlug, questions, answers]);
 
   // Holatni sessionStorage'ga yozib boramiz; test tugagach tozalanadi.
   useEffect(() => {

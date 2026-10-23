@@ -9,7 +9,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRightIcon, CheckCircle2Icon, ClockIcon, ListChecksIcon, LockIcon } from "lucide-react";
+import { ArrowRightIcon, CheckCircle2Icon, ClockIcon, KeyRoundIcon, ListChecksIcon, LockIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/useLocale";
 import type { LessonStatus } from "@/lib/api/lessons";
@@ -23,10 +23,12 @@ interface LessonTestGateProps {
   unavailable?: boolean;
   /** Test sahifasi (test banki ulangan bo'lsa); yo'q bo'lsa — "tez orada" modali. */
   testHref?: string | null;
+  /** "Kalit so'zlar" bo'limi — test bilan bir vaqtda ochiladi. */
+  keywordsHref?: string | null;
   className?: string;
 }
 
-export function LessonTestGate({ status, unavailable = false, testHref, className }: LessonTestGateProps) {
+export function LessonTestGate({ status, unavailable = false, testHref, keywordsHref, className }: LessonTestGateProps) {
   const { t } = useLocale();
   const gate = t.lesson.gate;
   const [soonOpen, setSoonOpen] = useState(false);
@@ -45,7 +47,9 @@ export function LessonTestGate({ status, unavailable = false, testHref, classNam
     );
   }
 
-  const completed = Boolean(status?.completed);
+  // Videosi hali ulanmagan mavzuda test banki bo'lsa — video sharti yo'q (backend ham testni beradi).
+  const noVideoGate = unavailable && Boolean(testHref);
+  const completed = Boolean(status?.completed) || noVideoGate;
   const percent = status?.watchedPercent ?? 0;
   const buttonClass = buttonClasses({ variant: "primary", size: "lg", className: "w-full sm:w-auto" });
 
@@ -70,7 +74,7 @@ export function LessonTestGate({ status, unavailable = false, testHref, classNam
           <p className="font-display text-sm font-bold text-foreground sm:text-base" role="status" aria-live="polite">
             {completed ? gate.unlocked : gate.lockedTitle}
           </p>
-          <div className="mt-2 flex items-center gap-3">
+          <div className={cn("mt-2 flex items-center gap-3", noVideoGate && "hidden")}>
             <div
               role="progressbar"
               aria-valuemin={0}
@@ -110,8 +114,17 @@ export function LessonTestGate({ status, unavailable = false, testHref, classNam
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.25 }}
-          className="w-full sm:w-auto"
+          className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row"
         >
+          {keywordsHref && (
+            <Link
+              href={keywordsHref}
+              className={buttonClasses({ variant: "secondary", size: "lg", className: "w-full sm:w-auto" })}
+            >
+              <KeyRoundIcon className="size-4" />
+              {t.keywords.open}
+            </Link>
+          )}
           {testHref ? (
             <Link href={testHref} className={buttonClass}>
               {gate.startTest}

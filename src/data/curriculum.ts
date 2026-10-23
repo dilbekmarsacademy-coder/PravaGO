@@ -22,6 +22,7 @@
 //
 // `questionCount` hozircha shu yerdan olinadi; savollar banki to'liq import
 // qilingach, u DB'dan hisoblanadi va bu raqamlar faqat tekshiruv uchun qoladi.
+// 1-kun test banklari backend'da (`npm run import:day1`).
 
 import type { LocalizedText } from "@/lib/i18n/localized";
 import type { Day, Topic } from "@/lib/course-types";
@@ -43,13 +44,13 @@ export interface CurriculumDay {
 
 export const CURRICULUM: CurriculumDay[] = [
   { day: 1, topics: [
-    { id: "day1-topic1", lessonId: "day1-topic1", testNo: 14, questionCount: 38, title: { uz: "Svetofor ishoralari", cyrl: "Светофор ишоралари", ru: "Сигналы светофора" } },
-    { id: "day1-topic2", lessonId: "day1-topic2", testNo: 15, questionCount: 32, title: { uz: "Tartibga soluvchining ishoralari", cyrl: "Тартибга солувчининг ишоралари", ru: "Сигналы регулировщика" } },
-    { id: "day1-topic3", lessonId: "day1-topic3", testNo: 22, questionCount: 14, title: { uz: "Chorrahalarda harakatlanish", cyrl: "Чорраҳаларда ҳаракатланиш", ru: "Движение через перекрёстки" } },
-    { id: "day1-topic4", lessonId: "day1-topic4", testNo: 23, questionCount: 21, title: { uz: "Tartibga solingan chorrahalar", cyrl: "Тартибга солинган чорраҳалар", ru: "Регулируемые перекрёстки" } },
-    { id: "day1-topic5", lessonId: "day1-topic5", testNo: 25, questionCount: 49, title: { uz: "Tartibga solinmagan chorrahalar: teng ahamiyatli yo'llar", cyrl: "Тартибга солинмаган чорраҳалар: тенг аҳамиятли йўллар", ru: "Нерегулируемые перекрёстки: равнозначные дороги" } },
-    { id: "day1-topic6", lessonId: "day1-topic6", testNo: 26, questionCount: 31, title: { uz: "Tartibga solinmagan chorrahalar: asosiy yo'l yo'nalishi o'zgarishi", cyrl: "Тартибга солинмаган чорраҳалар: асосий йўл йўналиши ўзгариши", ru: "Нерегулируемые перекрёстки: изменение направления главной дороги" } },
-    { id: "day1-topic7", lessonId: "day1-topic7", testNo: 24, questionCount: 19, title: { uz: "Tartibga solinmagan chorrahalar: asosiy yo'l yo'nalishi o'zgarishi to'g'risi", cyrl: "Тартибга солинмаган чорраҳалар: асосий йўл йўналиши ўзгариши тўғриси", ru: "Нерегулируемые перекрёстки: изменение направления главной дороги (продолжение)" } },
+    { id: "day1-topic1", lessonId: "day1-topic1", testSlug: "day1-topic1", testNo: 14, questionCount: 38, title: { uz: "Svetofor ishoralari", cyrl: "Светофор ишоралари", ru: "Сигналы светофора" } },
+    { id: "day1-topic2", lessonId: "day1-topic2", testSlug: "day1-topic2", testNo: 15, questionCount: 32, title: { uz: "Tartibga soluvchining ishoralari", cyrl: "Тартибга солувчининг ишоралари", ru: "Сигналы регулировщика" } },
+    { id: "day1-topic3", lessonId: "day1-topic3", testSlug: "day1-topic3", testNo: 22, questionCount: 14, title: { uz: "Chorrahalarda harakatlanish", cyrl: "Чорраҳаларда ҳаракатланиш", ru: "Движение через перекрёстки" } },
+    { id: "day1-topic4", lessonId: "day1-topic4", testSlug: "day1-topic4", testNo: 23, questionCount: 21, title: { uz: "Tartibga solingan chorrahalar", cyrl: "Тартибга солинган чорраҳалар", ru: "Регулируемые перекрёстки" } },
+    { id: "day1-topic5", lessonId: "day1-topic5", testSlug: "day1-topic5", testNo: 25, questionCount: 49, title: { uz: "Tartibga solinmagan chorrahalar: teng ahamiyatli yo'llar", cyrl: "Тартибга солинмаган чорраҳалар: тенг аҳамиятли йўллар", ru: "Нерегулируемые перекрёстки: равнозначные дороги" } },
+    { id: "day1-topic6", lessonId: "day1-topic6", testSlug: "day1-topic6", testNo: 26, questionCount: 31, title: { uz: "Tartibga solinmagan chorrahalar: asosiy yo'l yo'nalishi o'zgarishi", cyrl: "Тартибга солинмаган чорраҳалар: асосий йўл йўналиши ўзгариши", ru: "Нерегулируемые перекрёстки: изменение направления главной дороги" } },
+    { id: "day1-topic7", lessonId: "day1-topic7", testSlug: "day1-topic7", testNo: 24, questionCount: 19, title: { uz: "Tartibga solinmagan chorrahalar: asosiy yo'l yo'nalishi o'zgarishi to'g'risi", cyrl: "Тартибга солинмаган чорраҳалар: асосий йўл йўналиши ўзгариши тўғриси", ru: "Нерегулируемые перекрёстки: изменение направления главной дороги (продолжение)" } },
   ]},
   { day: 2, topics: [
     { id: "day2-topic1", lessonId: "day2-topic1", testNo: 5, questionCount: 37, title: { uz: "Ogohlantiruvchi belgilar", cyrl: "Огоҳлантирувчи белгилар", ru: "Предупреждающие знаки" } },
@@ -119,6 +120,11 @@ export function topicPageHref(topic: Topic): string {
 
 export function testHref(testSlug: string): string {
   return `/test/${testSlug}`;
+}
+
+/** Mavzuning "Kalit so'zlar" bo'limi (test banki bo'lsa). */
+export function keywordsHref(topic: Topic): string {
+  return `${topicPageHref(topic)}/kalit-sozlar`;
 }
 
 function dayIdFor(day: number): string {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { CheckIcon, LockIcon, PlayCircleIcon, RotateCcwIcon, Trash2Icon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,9 @@ import type { SavedItem } from "@/lib/api/saved";
 import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { formatAgo, topicBySlug } from "@/lib/saved/format";
+import { topicDayNumber } from "@/data/curriculum";
+import { KeywordChip } from "@/components/keywords/KeywordChip";
+import { KeywordText } from "@/components/keywords/KeywordText";
 import { NoteEditor } from "./NoteEditor";
 
 export type SavedViewMode = "view" | "review";
@@ -37,6 +40,11 @@ export function SavedQuestionCard({ item, mode, now, onRemove, onNoteSaved }: Sa
   const locked = item.answerLocked || !item.correctOptionId;
   const reviewing = mode === "review" && !locked;
   const revealed = !locked && (mode === "view" || picked !== null);
+  // Kalit so'z belgilashi javob ochilgandan keyin (eski backend'da `keywords` bo'lmaydi).
+  const keywords = revealed ? item.keywords : undefined;
+  const location = topic
+    ? labels.location(topicDayNumber(topic), topic.order, item.question.order)
+    : labels.questionNo(item.question.order);
 
   function optionState(optionId: string): AnswerState {
     if (!reviewing || picked === null) return "idle";
@@ -56,7 +64,7 @@ export function SavedQuestionCard({ item, mode, now, onRemove, onNoteSaved }: Sa
           )}
           {item.sourceMode === "exam" && <Badge tone="warning">{labels.sourceExam}</Badge>}
           <span className="font-mono text-xs font-semibold tracking-wide text-muted-foreground uppercase tabular-nums">
-            {topic ? labels.location(topic.number, item.question.order) : labels.questionNo(item.question.order)}
+            {location}
           </span>
           <span className="text-muted-foreground" aria-hidden="true">
             ·
@@ -68,28 +76,36 @@ export function SavedQuestionCard({ item, mode, now, onRemove, onNoteSaved }: Sa
 
         {text ? (
           <h3 id={headingId} className="text-lg leading-snug font-semibold text-balance text-foreground">
-            {text}
+            <KeywordText text={item.question.text} highlight={keywords?.question?.highlight} tone="question" />
           </h3>
         ) : (
           <h3 id={headingId} className="sr-only">
-            {topic ? labels.location(topic.number, item.question.order) : labels.questionNo(item.question.order)}
+            {location}
           </h3>
         )}
 
-        <QuestionImage
-          src={item.question.imageUrl}
-          alt={text || t.testSession.imageAlt}
-          width={item.question.imageWidth}
-          height={item.question.imageHeight}
-          variant="card"
-        />
+        {item.question.imageUrl && (
+          <QuestionImage
+            src={item.question.imageUrl}
+            alt={text || t.testSession.imageAlt}
+            width={item.question.imageWidth}
+            height={item.question.imageHeight}
+            variant="card"
+          />
+        )}
 
         {reviewing && picked === null && <p className="text-sm text-muted-foreground">{labels.reviewHint}</p>}
 
         <ul className="flex flex-col gap-2.5">
           {item.question.options.map((option, index) => {
             const label = `F${index + 1}`;
-            const optionText = localize(option.text, locale);
+            const isCorrect = !locked && option.id === item.correctOptionId;
+            const optionText =
+              keywords && isCorrect ? (
+                <KeywordText text={option.text} highlight={keywords.answer?.highlight} tone="answer" />
+              ) : (
+                localize(option.text, locale)
+              );
             return (
               <li key={option.id}>
                 {reviewing ? (
@@ -104,7 +120,7 @@ export function SavedQuestionCard({ item, mode, now, onRemove, onNoteSaved }: Sa
                   <StaticOption
                     label={label}
                     text={optionText}
-                    correct={!locked && option.id === item.correctOptionId}
+                    correct={isCorrect}
                     correctLabel={labels.correctAnswer}
                   />
                 )}
@@ -132,12 +148,19 @@ export function SavedQuestionCard({ item, mode, now, onRemove, onNoteSaved }: Sa
           </div>
         ) : (
           revealed &&
-          item.keyword && (
+          (item.keywords !== undefined ? (
             <div className="rounded-r-xl border-l-4 border-brand bg-brand/5 px-4 py-3">
               <p className="font-mono text-[0.65rem] font-bold tracking-[0.18em] text-brand uppercase">{labels.keyword}</p>
-              <p className="mt-1 text-base leading-relaxed font-bold text-foreground">{localize(item.keyword, locale)}</p>
+              <KeywordChip keywords={item.keywords} className="mt-2" />
             </div>
-          )
+          ) : (
+            item.keyword && (
+              <div className="rounded-r-xl border-l-4 border-brand bg-brand/5 px-4 py-3">
+                <p className="font-mono text-[0.65rem] font-bold tracking-[0.18em] text-brand uppercase">{labels.keyword}</p>
+                <p className="mt-1 text-base leading-relaxed font-bold text-foreground">{localize(item.keyword, locale)}</p>
+              </div>
+            )
+          ))
         )}
 
         <NoteEditor questionId={item.questionId} note={item.note} onSaved={onNoteSaved} />
@@ -175,7 +198,7 @@ function StaticOption({
   correctLabel,
 }: {
   label: string;
-  text: string;
+  text: ReactNode;
   correct: boolean;
   correctLabel: string;
 }) {

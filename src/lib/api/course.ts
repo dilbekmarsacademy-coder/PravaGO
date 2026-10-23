@@ -7,6 +7,7 @@ import type { Day, ExamProgress, Topic, TopicProgress } from "@/lib/course-types
 import { COURSE_DAYS, COURSE_TOPICS } from "@/data/curriculum";
 import { MOCK_EXAM_PROGRESS, MOCK_TOPIC_PROGRESS } from "@/lib/mock/progress";
 import { listLessonStatuses, type LessonStatus } from "./lessons";
+import { listTestAttempts, type TestAttempt } from "./test";
 
 const NETWORK_DELAY_MS = 700;
 // Xato holatini (skeleton → "qayta urinish") tabiiy ravishda sinash imkonini
@@ -31,16 +32,32 @@ export async function getDashboardData(options?: { forceError?: boolean }): Prom
     throw new Error("Ma'lumotlarni yuklab bo'lmadi");
   }
 
-  // Video progressi haqiqiy backend'dan; u ishlamasa ham kabinet ochiladi
-  // (foizlar shunchaki ko'rsatilmaydi).
-  const lessons = await listLessonStatuses().catch(() => [] as LessonStatus[]);
+  // Video progressi va test natijalari haqiqiy backend'dan; ular ishlamasa ham
+  // kabinet ochiladi (foizlar shunchaki ko'rsatilmaydi).
+  const [lessons, attempts] = await Promise.all([
+    listLessonStatuses().catch(() => [] as LessonStatus[]),
+    listTestAttempts().catch(() => [] as TestAttempt[]),
+  ]);
 
   return {
     days: COURSE_DAYS,
     topics: COURSE_TOPICS,
-    topicProgress: withLessonProgress(MOCK_TOPIC_PROGRESS, COURSE_TOPICS, lessons),
+    topicProgress: withTestAttempts(withLessonProgress(MOCK_TOPIC_PROGRESS, COURSE_TOPICS, lessons), COURSE_TOPICS, attempts),
     examProgress: MOCK_EXAM_PROGRESS,
   };
+}
+
+/** Serverda saqlangan test natijalarini mavzu progressiga qo'shadi (`testSlug` bo'yicha). */
+export function withTestAttempts(progress: TopicProgress[], topics: Topic[], attempts: TestAttempt[]): TopicProgress[] {
+  const topicBySlug = new Map(topics.flatMap((topic) => (topic.testSlug ? [[topic.testSlug, topic] as const] : [])));
+  const byTopic = new Map(progress.map((item) => [item.topicId, item]));
+  for (const attempt of attempts) {
+    const topic = topicBySlug.get(attempt.topicSlug);
+    if (!topic) continue;
+    const base = byTopic.get(topic.id) ?? { topicId: topic.id, videoWatched: false, pdfOpened: false, attempts: [] };
+    byTopic.set(topic.id, { ...base, attempts: [...base.attempts, { percent: attempt.percent, date: attempt.createdAt }] });
+  }
+  return [...byTopic.values()];
 }
 
 /** Server bergan video holatini mavzu progressiga qo'shadi (`lessonId` bo'yicha). */

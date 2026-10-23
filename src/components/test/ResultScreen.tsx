@@ -141,14 +141,17 @@ export function ResultScreen({ reason, mode, questions, answers, elapsedSec, onR
               const correctOption = question.options.find((o) => o.id === answer?.result?.correctOptionId);
               return (
                 <li key={question.id} className="flex gap-4 py-4 first:pt-0 last:pb-0">
-                  <Image
-                    src={question.imageUrl}
-                    alt=""
-                    width={112}
-                    height={72}
-                    sizes="112px"
-                    className="h-[4.5rem] w-28 shrink-0 rounded-xl border border-border object-cover"
-                  />
+                  {question.imageUrl && (
+                    <Image
+                      src={question.imageUrl}
+                      alt=""
+                      width={112}
+                      height={72}
+                      sizes="112px"
+                      unoptimized
+                      className="h-[4.5rem] w-28 shrink-0 rounded-xl border border-border object-cover"
+                    />
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="font-mono text-xs font-semibold text-muted-foreground uppercase">
                       {t.testSession.questionNumber(index + 1)}
