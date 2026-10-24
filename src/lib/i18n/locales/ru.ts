@@ -424,6 +424,8 @@ export const ru: Dictionary = {
       watched: "Видео просмотрено",
       keyboardHint: "Space — пауза · ← — 10 секунд назад · F — полный экран",
       protected: "Видео защищено: скриншоты и запись экрана запрещены",
+      skipForward: "Вперёд на 10 секунд",
+      skipToEnd: "В конец видео (тест)",
       seekBack: "Назад на 10 секунд",
       ended: "Урок завершён",
       continue: "Продолжить",

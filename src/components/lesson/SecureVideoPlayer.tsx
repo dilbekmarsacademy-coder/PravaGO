@@ -20,14 +20,16 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type Poin
 import {
   CheckCircle2Icon,
   ClapperboardIcon,
+  FastForwardIcon,
   Loader2Icon,
   LockIcon,
-  ShieldAlertIcon,
   MaximizeIcon,
   MinimizeIcon,
   PauseIcon,
   PlayIcon,
   RotateCcwIcon,
+  ShieldAlertIcon,
+  SkipForwardIcon,
   TriangleAlertIcon,
   Undo2Icon,
   Volume2Icon,
@@ -78,6 +80,13 @@ const CONTROLS_HIDE_MS = 2500;
 /** Dasturiy ijro bloklangan bo'lsa (iOS), shundan keyin "yana bosing" rejimi. */
 const TAP_THROUGH_DELAY_MS = 1200;
 const SEEK_BACK_SEC = 10;
+// VAQTINCHA (sinov uchun): ko'rilmagan qismga oldinga o'tkazish. Faqat
+// NEXT_PUBLIC_LESSON_SKIP=true bo'lgan build'da (masalan, preview) yoqiladi;
+// server ham faqat LESSON_SKIP_ENABLED=true bo'lsa sakrashni "ko'rildi" deb qabul qiladi.
+const TEMP_ALLOW_FORWARD_SEEK = process.env.NEXT_PUBLIC_LESSON_SKIP === "true";
+const SEEK_FORWARD_SEC = 10;
+/** "Oxiriga" — tugashdan shuncha oldin (server oxirigacha yetildi deb hisoblaydi). */
+const SKIP_TO_END_MARGIN_SEC = 2;
 /** Bundan kam qolgan bo'lsa, davom ettirish o'rniga boshidan boshlanadi. */
 const RESUME_END_MARGIN_SEC = 5;
 const HINT_MS = 1800;
@@ -526,6 +535,13 @@ export function SecureVideoPlayer({
   function seekTo(target: number) {
     const player = playerRef.current;
     if (!player || phase !== "ready") return;
+    if (TEMP_ALLOW_FORWARD_SEEK && target > tallyRef.current.maxPosition) {
+      // Oldinga sakrash qaytarib yuborilmasligi uchun chegara ham suriladi va darhol serverga yuboriladi.
+      const end = durationRef.current || target;
+      tallyRef.current = { ...tallyRef.current, maxPosition: Math.min(target, end) };
+      setMaxPosition(tallyRef.current.maxPosition);
+      window.setTimeout(() => void report({ force: true }), 300);
+    }
     const allowed = clampSeek(target, tallyRef.current.maxPosition, durationRef.current);
     if (target > allowed + 0.5) flashHint(p.seekLocked);
     const state = player.getPlayerState();
@@ -851,6 +867,19 @@ export function SecureVideoPlayer({
                   <span className="absolute -right-1.5 -bottom-1.5 font-mono text-[9px] font-bold">10</span>
                 </span>
               </ControlButton>
+              {TEMP_ALLOW_FORWARD_SEEK && (
+                <>
+                  <ControlButton label={p.skipForward} onClick={() => seekTo(lastTimeRef.current + SEEK_FORWARD_SEC)}>
+                    <FastForwardIcon className="size-5" />
+                  </ControlButton>
+                  <ControlButton
+                    label={p.skipToEnd}
+                    onClick={() => seekTo(Math.max(0, durationRef.current - SKIP_TO_END_MARGIN_SEC))}
+                  >
+                    <SkipForwardIcon className="size-5" />
+                  </ControlButton>
+                </>
+              )}
               <ControlButton label={muted ? p.unmute : p.mute} onClick={toggleMute}>
                 {muted || volume === 0 ? <VolumeXIcon className="size-5" /> : <Volume2Icon className="size-5" />}
               </ControlButton>

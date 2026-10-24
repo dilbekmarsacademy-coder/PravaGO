@@ -21,6 +21,12 @@ export const MAX_PLAYBACK_RATE = 2;
 const MAX_REPORT_GAP_SEC = 60;
 /** Tarmoq kechikishi va taymer noaniqliklari uchun zaxira. */
 const REPORT_SLACK_SEC = 2;
+/**
+ * VAQTINCHA (sinov uchun): `LESSON_SKIP_ENABLED=true` bo'lgan deploy'da (faqat
+ * preview) real vaqt cheklovi o'chadi — oldinga o'tkazilgan video ham "ko'rildi"
+ * bo'ladi. Production'da bu o'zgaruvchi o'rnatilmaydi.
+ */
+const LESSON_SKIP_ENABLED = process.env.LESSON_SKIP_ENABLED === "true";
 
 type ProgressRow = Pick<LessonProgress, "maxPosition" | "watchedSeconds" | "lastPosition" | "completedAt">;
 
@@ -92,7 +98,9 @@ export class LessonsService {
     const elapsedSec = existing
       ? Math.max(0, (now.getTime() - existing.lastReportAt.getTime()) / 1000)
       : MAX_REPORT_GAP_SEC;
-    const budget = Math.min(elapsedSec, MAX_REPORT_GAP_SEC) * MAX_PLAYBACK_RATE + REPORT_SLACK_SEC;
+    const budget = LESSON_SKIP_ENABLED
+      ? Number.POSITIVE_INFINITY
+      : Math.min(elapsedSec, MAX_REPORT_GAP_SEC) * MAX_PLAYBACK_RATE + REPORT_SLACK_SEC;
 
     const watchedSeconds = Math.min(row.watchedSeconds + Math.min(report.watchedDelta, budget), lesson.durationSec);
     const maxPosition = Math.max(

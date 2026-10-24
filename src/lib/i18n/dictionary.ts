@@ -312,6 +312,9 @@ export interface Dictionary {
       keyboardHint: string;
       /** Skrinshot/ekran yozish urinishida video ustidagi qalqon matni. */
       protected: string;
+      /** VAQTINCHA: sinov uchun oldinga o'tkazish tugmalari (NEXT_PUBLIC_LESSON_SKIP). */
+      skipForward: string;
+      skipToEnd: string;
       /** "10 soniya orqaga" tugmasi. */
       seekBack: string;
       /** Tugash ekrani sarlavhasi. */

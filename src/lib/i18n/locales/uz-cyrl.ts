@@ -405,6 +405,8 @@ export const uzCyrl: Dictionary = {
       watched: "Видео кўрилди",
       keyboardHint: "Space — пауза · ← — 10 сония орқага · F — тўлиқ экран",
       protected: "Видео ҳимояланган: скриншот ва экранни ёзиб олиш тақиқланган",
+      skipForward: "10 сония олдинга",
+      skipToEnd: "Видео охирига (синов)",
       seekBack: "10 сония орқага",
       ended: "Дарс тугади",
       continue: "Давом этиш",

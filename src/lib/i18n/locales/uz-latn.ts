@@ -405,6 +405,8 @@ export const uzLatn: Dictionary = {
       watched: "Video koʻrildi",
       keyboardHint: "Space — pauza · ← — 10 soniya orqaga · F — toʻliq ekran",
       protected: "Video himoyalangan: skrinshot va ekranni yozib olish taqiqlangan",
+      skipForward: "10 soniya oldinga",
+      skipToEnd: "Video oxiriga (sinov)",
       seekBack: "10 soniya orqaga",
       ended: "Dars tugadi",
       continue: "Davom etish",
