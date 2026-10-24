@@ -16,6 +16,17 @@ const SINGLE: Record<string, string> = {
 
 const Y_DIGRAPHS: Record<string, string> = { o: "ё", u: "ю", a: "я", e: "е" };
 
+// Rasmdagi harf belgilari ("«В»", "А ва С") — alohida turgan katta harf.
+// Ular transliteratsiya qilinmaydi (В → V, С → S bo'lib qolmasin) — lotin
+// matnida ham aynan shu harf qoladi, rasmdagi bilan bir xil ko'rinadi.
+const CYR_LABELS = new Set([..."АБВГДЕС"]);
+const LAT_LABELS: Record<string, string> = { A: "А", B: "В", C: "С", E: "Е" };
+
+/** `text[i]` — oldida va ortida harf bo'lmagan yolg'iz harf (rasm belgisi). */
+function isStandalone(text: string, i: number): boolean {
+  return !isLetter(text[i - 1]) && !isApostrophe(text[i - 1]) && !isLetter(text[i + 1]) && !isApostrophe(text[i + 1]);
+}
+
 // `ts` → `ц` faqat ruscha o'zlashmalarda (o'zbekcha "ketsa", "o'tsa" kabi
 // so'zlarda `тс` qoladi). `-tsiya` qo'shimchasi va so'z boshidagi `ts`
 // avtomatik aniqlanadi, qolganlari shu ro'yxat orqali.
@@ -61,6 +72,12 @@ export function latinToCyrillic(text: string): string {
     const lower = ch.toLowerCase();
     const next = text[i + 1];
     const nextLower = next?.toLowerCase();
+
+    if (LAT_LABELS[ch] && isStandalone(text, i)) {
+      out += LAT_LABELS[ch];
+      i += 1;
+      continue;
+    }
 
     // oʻ / gʻ — apostrof bilan birga bitta harf.
     if ((lower === "o" || lower === "g") && isApostrophe(next)) {
@@ -136,6 +153,11 @@ export function cyrillicToLatin(text: string): string {
     const ch = text[i];
     const lower = ch.toLowerCase();
     const prev = text[i - 1]?.toLowerCase();
+
+    if (CYR_LABELS.has(ch) && isStandalone(text, i)) {
+      out += ch;
+      continue;
+    }
 
     let mapped: string | undefined;
     if (lower === "е") {

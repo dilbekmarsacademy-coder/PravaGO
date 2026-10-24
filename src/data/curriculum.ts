@@ -22,7 +22,7 @@
 //
 // `questionCount` hozircha shu yerdan olinadi; savollar banki to'liq import
 // qilingach, u DB'dan hisoblanadi va bu raqamlar faqat tekshiruv uchun qoladi.
-// 1-kun test banklari backend'da (`npm run import:day1`).
+// 1–2-kun test banklari backend'da (`npm run import:day1`, `import:day2`).
 
 import type { LocalizedText } from "@/lib/i18n/localized";
 import type { Day, Topic } from "@/lib/course-types";
@@ -53,13 +53,13 @@ export const CURRICULUM: CurriculumDay[] = [
     { id: "day1-topic7", lessonId: "day1-topic7", testSlug: "day1-topic7", testNo: 24, questionCount: 19, title: { uz: "Tartibga solinmagan chorrahalar: asosiy yo'l yo'nalishi o'zgarishi to'g'risi", cyrl: "Тартибга солинмаган чорраҳалар: асосий йўл йўналиши ўзгариши тўғриси", ru: "Нерегулируемые перекрёстки: изменение направления главной дороги (продолжение)" } },
   ]},
   { day: 2, topics: [
-    { id: "day2-topic1", lessonId: "day2-topic1", testNo: 5, questionCount: 37, title: { uz: "Ogohlantiruvchi belgilar", cyrl: "Огоҳлантирувчи белгилар", ru: "Предупреждающие знаки" } },
-    { id: "day2-topic2", lessonId: "day2-topic2", testNo: 6, questionCount: 19, title: { uz: "Imtiyoz belgilari", cyrl: "Имтиёз белгилари", ru: "Знаки приоритета" } },
-    { id: "day2-topic3", lessonId: "day2-topic3", testNo: 7, questionCount: 63, title: { uz: "Ta'qiqlovchi belgilar", cyrl: "Тақиқловчи белгилар", ru: "Запрещающие знаки" } },
-    { id: "day2-topic4", lessonId: "day2-topic4", testNo: 8, questionCount: 31, title: { uz: "Buyuruvchi belgilar", cyrl: "Буюрувчи белгилар", ru: "Предписывающие знаки" } },
-    { id: "day2-topic5", lessonId: "day2-topic5", testNo: 9, questionCount: 62, title: { uz: "Axborot-ko'rsatkich belgilar", cyrl: "Ахборот-кўрсаткич белгилар", ru: "Информационно-указательные знаки" } },
-    { id: "day2-topic6", lessonId: "day2-topic6", testNo: 10, questionCount: 1, title: { uz: "Servis belgilari", cyrl: "Сервис белгилари", ru: "Знаки сервиса" } },
-    { id: "day2-topic7", lessonId: "day2-topic7", testNo: 11, questionCount: 38, title: { uz: "Qo'shimcha axborot belgilari", cyrl: "Қўшимча ахборот белгилари", ru: "Знаки дополнительной информации" } },
+    { id: "day2-topic1", lessonId: "day2-topic1", testSlug: "day2-topic1", testNo: 5, questionCount: 37, title: { uz: "Ogohlantiruvchi belgilar", cyrl: "Огоҳлантирувчи белгилар", ru: "Предупреждающие знаки" } },
+    { id: "day2-topic2", lessonId: "day2-topic2", testSlug: "day2-topic2", testNo: 6, questionCount: 19, title: { uz: "Imtiyoz belgilari", cyrl: "Имтиёз белгилари", ru: "Знаки приоритета" } },
+    { id: "day2-topic3", lessonId: "day2-topic3", testSlug: "day2-topic3", testNo: 7, questionCount: 63, title: { uz: "Ta'qiqlovchi belgilar", cyrl: "Тақиқловчи белгилар", ru: "Запрещающие знаки" } },
+    { id: "day2-topic4", lessonId: "day2-topic4", testSlug: "day2-topic4", testNo: 8, questionCount: 31, title: { uz: "Buyuruvchi belgilar", cyrl: "Буюрувчи белгилар", ru: "Предписывающие знаки" } },
+    { id: "day2-topic5", lessonId: "day2-topic5", testSlug: "day2-topic5", testNo: 9, questionCount: 62, title: { uz: "Axborot-ko'rsatkich belgilar", cyrl: "Ахборот-кўрсаткич белгилар", ru: "Информационно-указательные знаки" } },
+    { id: "day2-topic6", lessonId: "day2-topic6", testSlug: "day2-topic6", testNo: 10, questionCount: 1, title: { uz: "Servis belgilari", cyrl: "Сервис белгилари", ru: "Знаки сервиса" } },
+    { id: "day2-topic7", lessonId: "day2-topic7", testSlug: "day2-topic7", testNo: 11, questionCount: 38, title: { uz: "Qo'shimcha axborot belgilari", cyrl: "Қўшимча ахборот белгилари", ru: "Знаки дополнительной информации" } },
   ]},
   { day: 3, topics: [
     { id: "day3-topic1", lessonId: "day3-topic1", testNo: 17, questionCount: 58, title: { uz: "Harakatlanishni boshlash, manyovr qilish", cyrl: "Ҳаракатланишни бошлаш, манёвр қилиш", ru: "Начало движения, маневрирование" } },

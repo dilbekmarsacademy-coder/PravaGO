@@ -423,7 +423,10 @@ export interface Dictionary {
 
   /** Kalit so'zlar: test natijasi, "Saqlanganlar" va mavzudagi "Kalit so'zlar" bo'limi. */
   keywords: {
+    /** Savolda kalit so'z umuman yo'q. */
     none: string;
+    /** Chipning bitta qismi (savol yoki javob kaliti) yo'q. */
+    partNone: string;
     questionKey: string;
     answerKey: string;
     open: string;
@@ -448,6 +451,8 @@ export interface Dictionary {
       clearSearch: string;
       emptyTitle: string;
       emptyDesc: string;
+      /** Mavzudagi birorta savolda kalit so'z yo'q. */
+      topicNone: string;
       lockedTitle: string;
       lockedDesc: string;
       goToVideo: string;

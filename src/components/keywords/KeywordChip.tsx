@@ -38,9 +38,9 @@ export function KeywordChip({ keywords, className }: KeywordChipProps) {
     <p
       className={cn("flex flex-wrap items-center gap-1.5 text-xs font-bold tracking-wide uppercase", className)}
     >
-      <Part text={question} tone="question" fallback={labels.none} title={labels.questionKey} />
+      <Part text={question} tone="question" fallback={labels.partNone} title={labels.questionKey} />
       <ArrowRightIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-      <Part text={answer} tone="answer" fallback={labels.none} title={labels.answerKey} />
+      <Part text={answer} tone="answer" fallback={labels.partNone} title={labels.answerKey} />
     </p>
   );
 }

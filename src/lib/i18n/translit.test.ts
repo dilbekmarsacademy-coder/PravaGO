@@ -156,3 +156,22 @@ describe("localize", () => {
     expect(localize(text, "uz-latn")).toBe("Quvib oʻtish");
   });
 });
+
+describe("standalone picture labels", () => {
+  it("keeps single capital letters as they are instead of transliterating them", () => {
+    expect(cyrillicToLatin("Фақат «В»")).toBe("Faqat «В»");
+    expect(cyrillicToLatin("А ва С")).toBe("А va С");
+    expect(cyrillicToLatin("А, Б, В")).toBe("А, Б, В");
+    expect(cyrillicToLatin("Фақат «Г» ва «Е»")).toBe("Faqat «Г» va «Е»");
+  });
+
+  it("still transliterates letters inside words", () => {
+    expect(cyrillicToLatin("Вазни")).toBe("Vazni");
+    expect(cyrillicToLatin("Ер")).toBe("Yer");
+  });
+
+  it("maps Latin labels back to the same-looking Cyrillic letters", () => {
+    expect(latinToCyrillic("Faqat «B»")).toBe("Фақат «В»");
+    expect(latinToCyrillic("A va C")).toBe("А ва С");
+  });
+});

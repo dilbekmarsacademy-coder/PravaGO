@@ -505,7 +505,8 @@ export const uzLatn: Dictionary = {
   },
 
   keywords: {
-    none: "Kalit soʻz mavjud emas",
+    none: "Bu savol uchun hozircha kalit soʻz mavjud emas",
+    partNone: "Kalit soʻz mavjud emas",
     questionKey: "Savol kaliti",
     answerKey: "Javob kaliti",
     open: "Kalit soʻzlar",
@@ -530,6 +531,7 @@ export const uzLatn: Dictionary = {
       clearSearch: "Qidiruvni tozalash",
       emptyTitle: "Bu mavzuda hali savollar yoʻq",
       emptyDesc: "Test savollari qoʻshilgach, kalit soʻzlar shu yerda koʻrinadi.",
+      topicNone: "Bu mavzu uchun hozircha kalit soʻzlar mavjud emas",
       lockedTitle: "Avval video darsni koʻring",
       lockedDesc: "Kalit soʻzlar boʻlimi video dars oxirigacha koʻrilgach ochiladi.",
       goToVideo: "Video darsga oʻtish",

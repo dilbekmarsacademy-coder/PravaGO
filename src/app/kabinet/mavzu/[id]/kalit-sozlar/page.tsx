@@ -113,6 +113,8 @@ export default function KeywordsPage({ params }: KeywordsPageProps) {
   }
 
   const percent = items.length ? Math.round((reviewedCount / items.length) * 100) : 0;
+  // Mavzuda savollar bor, lekin birortasida kalit so'z yo'q (masalan, 2-kun 6-mavzu).
+  const topicHasNoKeywords = items.length > 0 && items.every((item) => !item.keywords);
   const title = localize(topic.title, locale);
 
   return (
@@ -273,6 +275,16 @@ export default function KeywordsPage({ params }: KeywordsPageProps) {
                 </button>
               </div>
             </Card>
+
+            {topicHasNoKeywords && (
+              <p
+                role="status"
+                className="flex items-center gap-2.5 rounded-2xl border border-dashed border-border-strong bg-foreground/[0.03] px-4 py-3 text-sm font-medium text-muted-foreground"
+              >
+                <KeyRoundIcon className="size-4 shrink-0" aria-hidden="true" />
+                {labels.topicNone}
+              </p>
+            )}
 
             {visible.length === 0 ? (
               <Card className="flex flex-col items-center gap-4 p-8 text-center sm:p-10">
