@@ -75,16 +75,21 @@ ko'rinadi va keyingi mavzularni qulflamaydi.
 4. `npm run seed`.
 5. Frontend: `src/data/curriculum.ts` da mavzuga `testSlug: "day1-topic1"` qo'shing.
 
-**1-kun test banklari** (docx + kalit so'z HTML'laridan) — alohida import:
+**Kun test banklari** (docx + kalit so'z HTML'laridan) — alohida import:
 
 ```bash
-npm run import:day1 -- --dry-run   # faqat hisobot: ../content-source/day1/import-report.md
-npm run import:day1                # DATABASE_URL dagi bazaga (idempotent)
+npm run import:day2 -- --dry-run   # faqat hisobot: ../content-source/day2/import-report.md
+npm run import:day2                # DATABASE_URL dagi bazaga (idempotent)
+npm run import:day -- --day 2      # xuddi shu, kun raqami bilan
 ```
 
-Manba fayllar `<repo>/content-source/day1/{docx,keywords,ru}/` da (git'ga
-tushmaydi). To'g'ri javob — docx'dagi qalin variant, kalit so'zlar — HTML;
-mavzular va savollar raqam bo'yicha emas, nomi/matni bo'yicha bog'lanadi.
+Manba fayllar `<repo>/content-source/dayN/{docx,keywords,ru}/` da (git'ga
+tushmaydi). Kunning mavzulari va fayllari — `scripts/import/days.ts` (yangi kun
+— shu yerga yozuv). To'g'ri javob — docx'dagi qalin variant, kalit so'zlar —
+HTML; mavzular nomi bo'yicha, savollar matni (2-kundan boshlab `data-num` +
+matn) bo'yicha bog'lanadi. Kalit so'z HTML'i yo'q mavzu ham import qilinadi
+("Kalit so'z mavjud emas"); HTML keyin qo'shilsa, importni qayta ishga
+tushirish kifoya.
 Rasmlar WebP qilib `prisma/seed-data/images/` ga yoziladi (`npm run seed` ularni
 `public/images/` ga ko'chiradi). Production bazaga import qilishdan oldin
 `pg_dump` bilan zaxira oling.
