@@ -12,11 +12,13 @@ export const FINAL_EXAM_MAX_ATTEMPTS = 10;
  */
 export const FINAL_EXAM_FLOW_ENABLED = false;
 
-/**
- * Mavzu testi uchun vaqt chegarasi (soniya). Hozircha sinov uchun 1 daqiqa —
- * keyinroq ko'paytiriladi.
- */
-export const TOPIC_TEST_TIME_LIMIT_SEC = 60;
+/** Test uchun har bir savolga beriladigan vaqt (soniya). */
+export const TEST_TIME_PER_QUESTION_SEC = 60;
+
+/** Test uchun vaqt chegarasi (soniya) — savollar soniga qarab: har biriga 1 daqiqa. */
+export function testTimeLimitSec(questionCount: number): number {
+  return Math.max(1, questionCount) * TEST_TIME_PER_QUESTION_SEC;
+}
 
 /** Vaqt tugaganda natija ko'rsatilgach kabinetga avtomatik o'tishgacha soniyalar. */
 export const TIME_UP_REDIRECT_SEC = 5;

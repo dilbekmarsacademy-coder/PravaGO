@@ -19,7 +19,7 @@ import { QuestionNavigator, type QuestionStatus } from "@/components/test/Questi
 import { QuestionView, type TestMode } from "@/components/test/QuestionView";
 import { ResultScreen } from "@/components/test/ResultScreen";
 import { TestHeader } from "@/components/test/TestHeader";
-import { TOPIC_TEST_TIME_LIMIT_SEC } from "@/config/rules";
+import { testTimeLimitSec } from "@/config/rules";
 import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { SAVED_PAGE_HREF, toggleSavedWithFeedback } from "@/lib/saved/actions";
@@ -118,8 +118,10 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong }
     setSheetOpen(false);
   }, []);
   const handleTimeout = useCallback(() => finish("timeout"), [finish]);
-  const remainingSec = useCountdown(startedAt, TOPIC_TEST_TIME_LIMIT_SEC, !finished, handleTimeout);
-  const urgency = getTimeUrgency(remainingSec, TOPIC_TEST_TIME_LIMIT_SEC);
+  // Taymer savollar yuklangach (`startedAt`) boshlanadi — shu paytda soni ma'lum.
+  const timeLimitSec = testTimeLimitSec(questions?.length ?? 0);
+  const remainingSec = useCountdown(startedAt, timeLimitSec, !finished, handleTimeout);
+  const urgency = getTimeUrgency(remainingSec, timeLimitSec);
 
   const topic = sourceSlug ? topicBySlug(sourceSlug) : undefined;
   const topicTitle = topic ? localize(topic.title, locale) : null;
@@ -306,7 +308,7 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong }
 
   const elapsedSec =
     startedAt !== null && finishedAt !== null
-      ? Math.min(TOPIC_TEST_TIME_LIMIT_SEC, Math.round((finishedAt - startedAt) / 1000))
+      ? Math.min(timeLimitSec, Math.round((finishedAt - startedAt) / 1000))
       : 0;
 
   const isEmpty = questions !== null && questions.length === 0;
@@ -336,7 +338,7 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong }
         title={header.title}
         backHref={header.backHref}
         remainingSec={remainingSec}
-        limitSec={TOPIC_TEST_TIME_LIMIT_SEC}
+        limitSec={timeLimitSec}
         urgency={urgency}
         canFinish={questions !== null && !finished && !isEmpty}
         showTimer={!finished && !isEmpty}
