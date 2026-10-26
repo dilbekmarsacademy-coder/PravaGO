@@ -22,7 +22,9 @@
 //
 // `questionCount` hozircha shu yerdan olinadi; savollar banki to'liq import
 // qilingach, u DB'dan hisoblanadi va bu raqamlar faqat tekshiruv uchun qoladi.
-// 1–3-kun test banklari backend'da (`npm run import:day1`, `import:day2`, `import:day3`).
+// 1–4-kun test banklari backend'da (`npm run import:day1` … `import:day4`).
+// 4-kun 1- va 5-mavzu docx'larida to'g'ri javob belgilanmagan — savollar import
+// qilinmagan, shuning uchun ularda hozircha `testSlug` yo'q (faqat video).
 
 import type { LocalizedText } from "@/lib/i18n/localized";
 import type { Day, Topic } from "@/lib/course-types";
@@ -71,12 +73,12 @@ export const CURRICULUM: CurriculumDay[] = [
   ]},
   { day: 4, topics: [
     { id: "day4-topic1", lessonId: "day4-topic1", testNo: 13, questionCount: 5, title: { uz: "Tik chiziqlar", cyrl: "Тик чизиқлар", ru: "Вертикальная разметка" } },
-    { id: "day4-topic2", lessonId: "day4-topic2", testNo: 12, questionCount: 74, title: { uz: "Yotiq chiziqlar", cyrl: "Ётиқ чизиқлар", ru: "Горизонтальная разметка" } },
-    { id: "day4-topic3", lessonId: "day4-topic3", testNo: 19, questionCount: 36, title: { uz: "Harakatlanish tezligi", cyrl: "Ҳаракатланиш тезлиги", ru: "Скорость движения" } },
-    { id: "day4-topic4", lessonId: "day4-topic4", testNo: 21, questionCount: 73, title: { uz: "To'xtash va to'xtab turish", cyrl: "Тўхташ ва тўхтаб туриш", ru: "Остановка и стоянка" } },
+    { id: "day4-topic2", lessonId: "day4-topic2", testSlug: "day4-topic2", testNo: 12, questionCount: 74, title: { uz: "Yotiq chiziqlar", cyrl: "Ётиқ чизиқлар", ru: "Горизонтальная разметка" } },
+    { id: "day4-topic3", lessonId: "day4-topic3", testSlug: "day4-topic3", testNo: 19, questionCount: 36, title: { uz: "Harakatlanish tezligi", cyrl: "Ҳаракатланиш тезлиги", ru: "Скорость движения" } },
+    { id: "day4-topic4", lessonId: "day4-topic4", testSlug: "day4-topic4", testNo: 21, questionCount: 73, title: { uz: "To'xtash va to'xtab turish", cyrl: "Тўхташ ва тўхтаб туриш", ru: "Остановка и стоянка" } },
     { id: "day4-topic5", lessonId: "day4-topic5", testNo: 31, questionCount: 3, title: { uz: "Tik balandlik va nishablikda harakatlanish", cyrl: "Тик баландлик ва нишабликда ҳаракатланиш", ru: "Движение на крутых подъёмах и спусках" } },
-    { id: "day4-topic6", lessonId: "day4-topic6", testNo: 35, questionCount: 7, title: { uz: "Transport vositalarini boshqarishni o'rganish", cyrl: "Транспорт воситаларини бошқаришни ўрганиш", ru: "Учебная езда" } },
-    { id: "day4-topic7", lessonId: "day4-topic7", testNo: 39, questionCount: 14, title: { uz: "Mansabdor shaxslar va fuqarolarning yo'l harakati xavfsizligini ta'minlash", cyrl: "Мансабдор шахслар ва фуқароларнинг йўл ҳаракати хавфсизлигини таъминлаш", ru: "Обязанности должностных лиц и граждан по обеспечению безопасности дорожного движения" } },
+    { id: "day4-topic6", lessonId: "day4-topic6", testSlug: "day4-topic6", testNo: 35, questionCount: 7, title: { uz: "Transport vositalarini boshqarishni o'rganish", cyrl: "Транспорт воситаларини бошқаришни ўрганиш", ru: "Учебная езда" } },
+    { id: "day4-topic7", lessonId: "day4-topic7", testSlug: "day4-topic7", testNo: 39, questionCount: 14, title: { uz: "Mansabdor shaxslar va fuqarolarning yo'l harakati xavfsizligini ta'minlash", cyrl: "Мансабдор шахслар ва фуқароларнинг йўл ҳаракати хавфсизлигини таъминлаш", ru: "Обязанности должностных лиц и граждан по обеспечению безопасности дорожного движения" } },
   ]},
   { day: 5, topics: [
     { id: "day5-topic1", lessonId: "day5-topic1", testNo: 1, questionCount: 52, title: { uz: "Umumiy qoidalar", cyrl: "Умумий қоидалар", ru: "Общие положения" } },
