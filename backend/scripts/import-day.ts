@@ -361,6 +361,11 @@ async function processTopic(def: TopicDef, docxPath: string, htmlPath: string | 
       return;
     }
     if (q.imageRids.length > 1) result.warnings.push(`${q.number}-savol: ${q.imageRids.length} ta rasm — birinchisi olindi`);
+    // Rasm variantlar orasiga tushib qolgan va savolning o'z rasmi yo'q — shu savolniki.
+    if (!q.imageRids.length && q.strayImageRids.length) {
+      q.imageRids.push(...q.strayImageRids.splice(0));
+      result.warnings.push(`${q.number}-savol: rasm variantlar orasida turgan — savolga bog'landi`);
+    }
     if (q.strayImageRids.length) result.warnings.push(`${q.number}-savol: variantlardan keyin ${q.strayImageRids.length} ta rasm (hech qaysi savolga bog'lanmadi)`);
     if (!q.text) result.warnings.push(`${q.number}-savol: savol matni bo'sh (faqat rasm)`);
     valid.push({ q, order, correctIndex: correct.index, correct: q.options[correct.index].text });
@@ -875,7 +880,9 @@ function buildReport(results: TopicResult[], missingFiles: string[], legacy: Leg
   }
 
   const autoTopics = results.filter((r) => r.questions.some((q) => q.keywords.source === "auto"));
-  if (autoTopics.length) {
+  // Qo'lda tanlangan kalit so'z fayli bor, lekin mavzudan savol import qilinmagan.
+  const autoPending = results.filter((r) => !autoTopics.includes(r) && fs.existsSync(path.join(SOURCE_DIR, "auto", `${r.def.slug}.json`)));
+  if (autoTopics.length || autoPending.length) {
     out.push("## 7. Qo'lda tanlangan kalit so'zlar (`source: \"auto\"`)", "");
     for (const r of autoTopics) {
       const none = r.questions.filter((q) => !q.keywords.questionText && !q.keywords.answerText).map((q) => q.order);
@@ -885,6 +892,9 @@ function buildReport(results: TopicResult[], missingFiles: string[], legacy: Leg
       out.push(`  - faqat savol kaliti (javob kaliti yo'q): ${onlyQ.length ? onlyQ.map((n) => `${n}-savol`).join(", ") : "yo'q"}`);
       for (const w of r.autoWarnings) out.push(`  - ⚠️ ${w}`);
     }
+    for (const r of autoPending) {
+      out.push(`- ${r.def.order}-mavzu: ro'yxat — \`content-source/day${DAY}/auto-keywords-${r.def.slug}.md\`; ⚠️ mavzudan birorta savol import qilinmagan (2-bo'lim), kalit so'zlar hozircha qo'llanmadi`);
+    }
     out.push("");
   }
 
@@ -892,7 +902,7 @@ function buildReport(results: TopicResult[], missingFiles: string[], legacy: Leg
   const warn = results.flatMap((r) => [...r.numbering, ...r.warnings].map((w) => `- ${r.def.order}-mavzu: ${w}`));
   out.push(...(warn.length ? warn : ["Yo'q."]), "");
 
-  out.push(`## ${autoTopics.length ? 8 : 7}. Avtomatik tarjima (rus tili) — tekshirilishi kerak`, "");
+  out.push(`## ${autoTopics.length || autoPending.length ? 8 : 7}. Avtomatik tarjima (rus tili) — tekshirilishi kerak`, "");
   out.push("Barcha ruscha matnlar (savol, variantlar, kalit so'zlar) AI tarjimasi — bazada `ruNeedsReview = true`.", "");
   const ruMissing = results.flatMap((r) => (r.ruMissing.length ? [`- ${r.def.order}-mavzu: tarjimasi yo'q savollar — ${r.ruMissing.join(", ")}`] : []));
   const ruKw = results.flatMap((r) => r.ruKeywordReview.map((x) => `- ${r.def.order}-mavzu, ${x}`));

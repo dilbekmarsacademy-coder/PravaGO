@@ -218,4 +218,73 @@ const DAY3: DayConfig = {
   ],
 };
 
-export const DAYS: Record<number, DayConfig> = { 1: DAY1, 2: DAY2, 3: DAY3 };
+// 4-kun: 5-mavzu uchun HTML yo'q (kalit so'zlar qo'lda — content-source/day4/auto/).
+const DAY4: DayConfig = {
+  day: 4,
+  pairByNumber: false,
+  fixPartialMarks: true,
+  legacySlugs: {},
+  topics: [
+    {
+      order: 1,
+      slug: "day4-topic1",
+      title: { uz: "Tik chiziqlar", cyrl: "Тик чизиқлар", ru: "Вертикальная разметка" },
+      must: ["tik chiziqlar"],
+      files: { docx: "4-kun 1-mavzu Тик чизиқлар.docx", html: "13-mavzu-tik-chiziqlar-android-iphone.html" },
+    },
+    {
+      order: 2,
+      slug: "day4-topic2",
+      title: { uz: "Yotiq chiziqlar", cyrl: "Ётиқ чизиқлар", ru: "Горизонтальная разметка" },
+      must: ["yotiq chiziqlar"],
+      files: { docx: "4-kun 2-mavzu Ётиқ чизиқлар j.b.docx", html: "12-mavzu-yotiq-chiziqlar-universal-v2.html" },
+    },
+    {
+      order: 3,
+      slug: "day4-topic3",
+      title: { uz: "Harakatlanish tezligi", cyrl: "Ҳаракатланиш тезлиги", ru: "Скорость движения" },
+      must: ["harakatlanish tezligi"],
+      files: { docx: "4-kun 3-mavzu Ҳаракатланиш тезлиги j.b.docx", html: "19-mavzu-harakatlanish-tezligi-universal-v2.html" },
+    },
+    {
+      order: 4,
+      slug: "day4-topic4",
+      title: { uz: "To'xtash va to'xtab turish", cyrl: "Тўхташ ва тўхтаб туриш", ru: "Остановка и стоянка" },
+      must: ["toxtash va toxtab turish"],
+      files: { docx: "4-kun 4-mavzu Тўхташ ва тўхтаб туриш j.b.docx", html: "21-mavzu-toxtash-va-toxtab-turish-universal-v2.html" },
+    },
+    {
+      order: 5,
+      slug: "day4-topic5",
+      title: { uz: "Tik balandlik va nishablikda harakatlanish", cyrl: "Тик баландлик ва нишабликда ҳаракатланиш", ru: "Движение на крутых подъёмах и спусках" },
+      must: ["tik balandlik"],
+      files: { docx: "4_kun_5_mavzu_Тик_баландлик_ва_нишабликда_ҳаракатланиш.docx", html: null },
+    },
+    {
+      order: 6,
+      slug: "day4-topic6",
+      title: { uz: "Transport vositalarini boshqarishni o'rganish", cyrl: "Транспорт воситаларини бошқаришни ўрганиш", ru: "Учебная езда" },
+      must: ["boshqarishni organish"],
+      files: {
+        docx: "4_kun_6_mavzu_Транспорт_воситаларини_бошқаришни_ўрганиш.docx",
+        html: "35_mavzu_transport_vositalarini_boshqarishni_organish_universal.html",
+      },
+    },
+    {
+      order: 7,
+      slug: "day4-topic7",
+      title: {
+        uz: "Mansabdor shaxslar va fuqarolarning yo'l harakati xavfsizligini ta'minlash",
+        cyrl: "Мансабдор шахслар ва фуқароларнинг йўл ҳаракати хавфсизлигини таъминлаш",
+        ru: "Обязанности должностных лиц и граждан по обеспечению безопасности дорожного движения",
+      },
+      must: ["mansabdor shaxs"],
+      files: {
+        docx: "4_kun_7_mavzu_Мансабдор_шахсларнинг_ва_фуқароларнинг_йўл_ҳаракат.docx",
+        html: "39-mavzu-mansabdor-shaxslar-va-fuqarolar-universal-v2.html",
+      },
+    },
+  ],
+};
+
+export const DAYS: Record<number, DayConfig> = { 1: DAY1, 2: DAY2, 3: DAY3, 4: DAY4 };
