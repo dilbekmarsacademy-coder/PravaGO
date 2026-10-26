@@ -42,6 +42,21 @@ export interface DayConfig {
    * juftsiz savol va kartochkani hujjatdagi tartib bo'yicha bog'lash.
    */
   pairLeftovers?: boolean;
+  /**
+   * Docx'da matni ham, javobi ham aynan takrorlangan savol (egizagi juftlangan)
+   * juftsiz qolsa — HTML'dagi xuddi shu o'rindagi (`data-num`) kartochkaga
+   * bog'lash, HTML matni qayta yozilgan bo'lsa ham (o'xshashlik ≥ 0.5).
+   */
+  pairTwinsByPosition?: boolean;
+  /**
+   * Savolda `<mark class="k-q">` bo'lmasa — savol kaliti `.cue strong`dan olinib
+   * savol matnidan qidiriladi ("A HARFI" → «A»: bitta harf/raqam alohida token sifatida).
+   */
+  questionFromCue?: boolean;
+  /** Savol tartibi docx raqami emas, fayldagi o'rni (raqamlashda tushib qolgan savol bo'lsa: 13 → 15). */
+  sequentialOrder?: boolean;
+  /** Bir xil media fayl bir nechta savolda bo'lsa — bitta rasm fayli sifatida saqlanadi. */
+  shareImages?: boolean;
   /** Eski (oldingi import) banklar — dublikat yaratmasdan shu mavzuga ko'chiriladi. */
   legacySlugs: Record<string, string>;
 }
@@ -377,4 +392,101 @@ const DAY5: DayConfig = {
   ],
 };
 
-export const DAYS: Record<number, DayConfig> = { 1: DAY1, 2: DAY2, 3: DAY3, 4: DAY4, 5: DAY5 };
+const DAY6: DayConfig = {
+  day: 6,
+  pairByNumber: false,
+  fixPartialMarks: true,
+  answerFromChip: true,
+  pairLeftovers: true,
+  pairTwinsByPosition: true,
+  questionFromCue: true,
+  sequentialOrder: true,
+  shareImages: true,
+  legacySlugs: {},
+  topics: [
+    {
+      order: 1,
+      slug: "day6-topic1",
+      title: { uz: "Haydovchining umumiy vazifalari", cyrl: "Ҳайдовчининг умумий вазифалари", ru: "Общие обязанности водителей" },
+      must: ["haydovchining umumiy vazifalari"],
+      files: {
+        docx: "6-kun 1-mavzu Haydovchining umumiy vazifalari j.b.docx",
+        html: "2-mavzu-haydovchining-umumiy-vazifalari-universal-v2.html",
+      },
+    },
+    {
+      order: 2,
+      slug: "day6-topic2",
+      title: { uz: "Piyodalarning umumiy vazifalari", cyrl: "Пиёдаларнинг умумий вазифалари", ru: "Обязанности пешеходов" },
+      must: ["piyodalarning umumiy vazifalari"],
+      files: {
+        docx: "6-kun 2-mavzu Piyodalarning umumiy vazifalari j.b.docx",
+        html: "3-mavzu-piyodalarning-umumiy-vazifalari-universal-v2.html",
+      },
+    },
+    {
+      order: 3,
+      slug: "day6-topic3",
+      title: {
+        uz: "Maxsus transport vositalarining imtiyozlari",
+        cyrl: "Махсус транспорт воситаларининг имтиёзлари",
+        ru: "Приоритет специальных транспортных средств",
+      },
+      must: ["maxsus transport vositalarining imtiyozlari"],
+      files: {
+        docx: "6_kun_3_mavzu_Maxsus_transport_vositalarining_imtiyozlari_j_b.docx",
+        html: "4_mavzu_maxsus_transport_vositalarining_imtiyozlari_universal_v2.html",
+      },
+    },
+    {
+      order: 4,
+      slug: "day6-topic4",
+      title: { uz: "Ogohlantiruvchi va avariya ishoralari", cyrl: "Огоҳлантирувчи ва авария ишоралари", ru: "Предупредительные и аварийные сигналы" },
+      must: ["ogohlantiruvchi va avariya ishoralari"],
+      files: {
+        docx: "6-kun 4-mavzu Ogohlantiruvchi va avariya ishoralari j.b.docx",
+        html: "16-mavzu-ogohlantiruvchi-va-avariya-ishoralari-universal-v2.html",
+      },
+    },
+    {
+      order: 5,
+      slug: "day6-topic5",
+      title: {
+        uz: "Piyodalar o'tish joylari va yo'nalishli transport vositalarining bekatlari",
+        cyrl: "Пиёдалар ўтиш жойлари ва йўналишли транспорт воситаларининг бекатлари",
+        ru: "Пешеходные переходы и остановки маршрутных транспортных средств",
+      },
+      must: ["piyodalar otish joylari"],
+      files: {
+        docx: "6_kun_5_mavzu_Piyodalar_o‘tish_joylari_va_yo‘nalishli_transport.docx",
+        html: "27_mavzu_piyodalar_otish_joylari_va_yonalishli_transport_bekatlari.html",
+      },
+    },
+    {
+      order: 6,
+      slug: "day6-topic6",
+      title: {
+        uz: "Yo'nalishli transport vositalarining imtiyozlari",
+        cyrl: "Йўналишли транспорт воситаларининг имтиёзлари",
+        ru: "Приоритет маршрутных транспортных средств",
+      },
+      must: ["yonalishli transport vositalarining imtiyozlari"],
+      files: {
+        docx: "6_kun_6_mavzu_Yo‘nalishli_transport_vositalarining_imtiyozlari.docx",
+        html: "32_mavzu_yonalishli_transport_vositalarining_imtiyozlari_universal.html",
+      },
+    },
+    {
+      order: 7,
+      slug: "day6-topic7",
+      title: { uz: "Tashqi yoritish asboblaridan foydalanish", cyrl: "Ташқи ёритиш асбобларидан фойдаланиш", ru: "Пользование внешними световыми приборами" },
+      must: ["tashqi yoritish asboblaridan"],
+      files: {
+        docx: "6-kun 7-mavzu Tashqi yoritish asboblaridan foydalanish j.b.docx",
+        html: "33_mavzu_tashqi_yoritish_asboblaridan_foydalanish_universal_v2.html",
+      },
+    },
+  ],
+};
+
+export const DAYS: Record<number, DayConfig> = { 1: DAY1, 2: DAY2, 3: DAY3, 4: DAY4, 5: DAY5, 6: DAY6 };

@@ -15,6 +15,7 @@
 //    (kun sozlamasida yoqilgan bo'lsa — `data-num` bo'yicha, matn bilan tasdiqlab) bog'lanadi;
 //  - idempotent: mavzu slug'i + savol tartibi (va variant tartibi) bo'yicha upsert.
 
+import { createHash } from "crypto";
 import * as fs from "fs";
 import * as path from "path";
 import sharp from "sharp";
@@ -59,6 +60,8 @@ const DRY_RUN = process.argv.includes("--dry-run");
 const PAIR_THRESHOLD = 0.8;
 /** Savol matni bo'yicha shu farq ichidagi nomzodlar "bir xil matnli" hisoblanadi. */
 const AMBIGUITY_MARGIN = 0.05;
+/** Egiz savol HTML'dagi xuddi shu o'rindagi kartochkaga bog'lanishi uchun eng past savol o'xshashligi. */
+const TWIN_THRESHOLD = 0.5;
 const IMAGE_MAX_SIDE = 1280;
 const IMAGE_QUALITY = 80;
 
@@ -171,6 +174,10 @@ interface TopicResult {
   markFixes: string[];
   /** Matni bir xil, javob bo'yicha ajralmagan — hujjat tartibi bo'yicha bog'langan savollar. */
   leftoverPaired: { order: number; docxAnswer: string; htmlAnswer: string }[];
+  /** Docx'dagi egiz savol — HTML'dagi xuddi shu o'rindagi (qayta yozilgan) kartochkaga bog'langan. */
+  twinPaired: { order: number; twinOrder: number; qSim: number; html: string }[];
+  /** Savol kaliti `.cue`dan olingan savollar (savolda `k-q` yo'q). */
+  cueKeywords: string[];
   /** Javob kaliti HTML chip'idan olingan savollar (javobda `k-ans` yo'q). */
   chipKeywords: string[];
   /** Qo'lda tanlangan (`source: "auto"`) kalit so'zlar haqidagi ogohlantirishlar. */
@@ -256,7 +263,22 @@ function pairQuestions(questions: { q: ParsedQuestion; order: number; correct: s
       leftoverPairs.push(i);
     }
   }
-  return { byQuestion, unpaired: cards.filter((_, j) => !usedCards.has(j)), leftoverPairs };
+  // Docx'da aynan takrorlangan (matni ham, javobi ham) savol, egizagi juftlangan — HTML'dagi
+  // xuddi shu o'rindagi kartochkaga, matni qayta yozilgan bo'lsa ham.
+  const twinPairs: { i: number; twin: number }[] = [];
+  if (CONFIG.pairTwinsByPosition) {
+    for (let i = 0; i < questions.length; i++) {
+      if (byQuestion.has(i)) continue;
+      const twin = questions.findIndex((_, k) => k !== i && byQuestion.has(k) && sameNormalized(dq[k], dq[i]) && sameNormalized(da[k], da[i]));
+      if (twin < 0) continue;
+      const j = cards.findIndex((c, k) => !usedCards.has(k) && c.dataNum === questions[i].order && sims[i][k] >= TWIN_THRESHOLD);
+      if (j < 0) continue;
+      byQuestion.set(i, { j, qSim: sims[i][j], aSim: similarity(da[i], ha[j]), byNumber: false });
+      usedCards.add(j);
+      twinPairs.push({ i, twin });
+    }
+  }
+  return { byQuestion, unpaired: cards.filter((_, j) => !usedCards.has(j)), leftoverPairs, twinPairs };
 }
 
 const LETTER = /\p{L}/u;
@@ -284,6 +306,20 @@ function fixPartialMarks(card: HtmlCard, order: number, result: TopicResult): Ht
   if (q.note) result.markFixes.push(`${order}-savol, savol kaliti: ${q.note}`);
   if (a.note) result.markFixes.push(`${order}-savol, javob kaliti: ${a.note}`);
   return { ...card, questionMark: q.mark, answerMark: a.mark };
+}
+
+/**
+ * Savol kaliti `.cue`dan: avval kalitdagi yolg'iz harf/raqam ("A HARFI" → «A») alohida
+ * token sifatida, bo'lmasa butun kalit (qo'shimchali shakli ham).
+ */
+function cueRange(text: string, cue: string): Range | null {
+  for (const token of cue.split(/\s+/)) {
+    if (/^[\p{L}\p{N}]$/u.test(token)) {
+      const range = findRange(text, token);
+      if (range) return range;
+    }
+  }
+  return findRange(text, cue) ?? findWordsRange(text, cue)?.range ?? null;
 }
 
 /** Kirill matndagi `[start, end)` oralig'iga mos transliteratsiya qilingan lotin matn oralig'i. */
@@ -342,6 +378,8 @@ async function processTopic(def: TopicDef, docxPath: string, htmlPath: string | 
     numberMismatches: [],
     markFixes: [],
     leftoverPaired: [],
+    twinPaired: [],
+    cueKeywords: [],
     chipKeywords: [],
     autoWarnings: [],
     ruMissing: [],
@@ -381,7 +419,7 @@ async function processTopic(def: TopicDef, docxPath: string, htmlPath: string | 
   // Validatsiya: ≥2 variant va aynan 1 ta qalin javob.
   const valid: { q: ParsedQuestion; order: number; correctIndex: number; correct: string }[] = [];
   parsed.questions.forEach((q, i) => {
-    const order = numbersUnique ? q.number : i + 1;
+    const order = numbersUnique && !CONFIG.sequentialOrder ? q.number : i + 1;
     if (q.options.length < 2) {
       result.skipped.push({ number: q.number, reason: `variantlar soni ${q.options.length} (kamida 2 ta kerak)` });
       return;
@@ -408,14 +446,20 @@ async function processTopic(def: TopicDef, docxPath: string, htmlPath: string | 
     valid.push({ q, order, correctIndex: correct.index, correct: q.options[correct.index].text });
   });
 
-  const { byQuestion, unpaired, leftoverPairs } = html
+  const { byQuestion, unpaired, leftoverPairs, twinPairs } = html
     ? pairQuestions(valid, html.cards, CONFIG.pairByNumber)
-    : { byQuestion: new Map(), unpaired: [], leftoverPairs: [] as number[] };
+    : { byQuestion: new Map(), unpaired: [], leftoverPairs: [] as number[], twinPairs: [] as { i: number; twin: number }[] };
   result.unpairedHtml = unpaired;
   for (const i of leftoverPairs) {
     const card = html!.cards[byQuestion.get(i)!.j];
     result.leftoverPaired.push({ order: valid[i].order, docxAnswer: valid[i].correct, htmlAnswer: card.answer });
   }
+  for (const { i, twin } of twinPairs) {
+    const { j, qSim } = byQuestion.get(i)!;
+    result.twinPaired.push({ order: valid[i].order, twinOrder: valid[twin].order, qSim, html: html!.cards[j].question });
+  }
+  // shareImages: media fayl (mazmuni bo'yicha) → saqlangan rasm.
+  const savedImages = new Map<string, NonNullable<ImportQuestion["image"]>>();
   for (const [index, { q, order, correct }] of valid.entries()) {
     if (byQuestion.has(index) || !unpaired.length) continue;
     const best = unpaired
@@ -437,12 +481,17 @@ async function processTopic(def: TopicDef, docxPath: string, htmlPath: string | 
     const rid = q.imageRids[0];
     if (rid) {
       const img = await docx.readImage(rid);
+      const hash = img && CONFIG.shareImages ? createHash("sha1").update(img.data).digest("hex") : null;
       if (!img) result.warnings.push(`${q.number}-savol: rasm fayli topilmadi (${rid})`);
-      else {
+      else if (hash && savedImages.has(hash)) {
+        image = savedImages.get(hash)!;
+        result.imageCount++;
+      } else {
         const file = `d${DAY}t${def.order}-q${String(order).padStart(2, "0")}.webp`;
         try {
           const size = await convertImage(img.data, file);
           image = { file, ...size };
+          if (hash) savedImages.set(hash, image);
           result.imageCount++;
         } catch (err) {
           result.warnings.push(`${q.number}-savol: rasmni o'girib bo'lmadi (${img.ext}): ${(err as Error).message}`);
@@ -456,7 +505,9 @@ async function processTopic(def: TopicDef, docxPath: string, htmlPath: string | 
       if (mapped !== cyrillicToLatin(text)) throw new Error(`Transliteratsiya frontend bilan mos emas: ${text}`);
       return mapped;
     };
-    const textLatn = pair ? pair.card.question : (originalLatin.get(q) ?? translit(q.text));
+    // Egiz savol qayta yozilgan HTML kartochkaga bog'langan — lotin matni docx'dan.
+    const rewritten = !!pair && pair.qSim < PAIR_THRESHOLD;
+    const textLatn = pair && !rewritten ? pair.card.question : (originalLatin.get(q) ?? translit(q.text));
     if (pair && CONFIG.pairByNumber && pair.card.dataNum !== order) {
       result.numberMismatches.push({ order, dataNum: pair.card.dataNum, qSim: pair.qSim });
     }
@@ -490,7 +541,18 @@ async function processTopic(def: TopicDef, docxPath: string, htmlPath: string | 
     };
 
     if (pair) {
-      const c = CONFIG.fixPartialMarks ? fixPartialMarks(pair.card, order, result) : pair.card;
+      let c = CONFIG.fixPartialMarks ? fixPartialMarks(pair.card, order, result) : pair.card;
+      if (!c.questionMark && CONFIG.questionFromCue && c.questionKeyword) {
+        const range = cueRange(c.question, c.questionKeyword);
+        result.cueKeywords.push(
+          range ? `${order}-savol: "${c.questionKeyword}" → "${c.question.slice(...range)}"` : `${order}-savol: "${c.questionKeyword}" savol matnida topilmadi — belgilashsiz`,
+        );
+        if (range) c = { ...c, questionMark: { text: c.question.slice(...range), range } };
+      }
+      if (rewritten && c.questionMark) {
+        const found = findRange(textLatn, c.questionMark.text) ?? findWordsRange(textLatn, c.questionMark.text)?.range ?? null;
+        c = { ...c, question: textLatn, questionMark: found ? { text: textLatn.slice(...found), range: found } : null };
+      }
       keywords.source = "html";
       // Savol kaliti — savol matnidan olingan, doim bog'lanadi.
       if (c.questionMark || c.questionKeyword) {
@@ -940,6 +1002,13 @@ function buildReport(results: TopicResult[], missingFiles: string[], legacy: Leg
     );
     out.push(...(left.length ? left : ["Yo'q."]), "");
   }
+  if (CONFIG.pairTwinsByPosition) {
+    out.push("Docx'da aynan takrorlangan savollar — HTML'dagi xuddi shu o'rindagi (qayta yozilgan) kartochkaga bog'landi, lotin matni docx'dan:", "");
+    const twins = results.flatMap((r) =>
+      r.twinPaired.map((p) => `- ${r.def.order}-mavzu, ${p.order}-savol (${p.twinOrder}-savol bilan aynan bir xil; o'xshashlik ${p.qSim.toFixed(2)}): HTML — "${p.html}"`),
+    );
+    out.push(...(twins.length ? twins : ["Yo'q."]), "");
+  }
 
   out.push("Juftliksiz docx savollari uchun eng yaqin juftsiz HTML kartochka (o'xshashlik 0.8 dan past — juftlanmadi, kalit so'z \"mavjud emas\"; qo'lda tekshirish uchun):", "");
   const near = results.flatMap((r) =>
@@ -967,6 +1036,11 @@ function buildReport(results: TopicResult[], missingFiles: string[], legacy: Leg
     out.push("Javob kaliti chip'dan olingan savollar (HTML javobida belgilash yo'q):", "");
     const chips = results.flatMap((r) => r.chipKeywords.map((f) => `- ${r.def.order}-mavzu, ${f}`));
     out.push(...(chips.length ? chips : ["Yo'q."]), "");
+  }
+  if (CONFIG.questionFromCue) {
+    out.push("Savol kaliti \"Savol kaliti\" yozuvidan olingan savollar (HTML savolida belgilash yo'q):", "");
+    const cues = results.flatMap((r) => r.cueKeywords.map((f) => `- ${r.def.order}-mavzu, ${f}`));
+    out.push(...(cues.length ? cues : ["Yo'q."]), "");
   }
 
   const autoTopics = results.filter((r) => r.questions.some((q) => q.keywords.source === "auto"));

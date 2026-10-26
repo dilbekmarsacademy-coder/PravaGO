@@ -22,7 +22,7 @@
 //
 // `questionCount` hozircha shu yerdan olinadi; savollar banki to'liq import
 // qilingach, u DB'dan hisoblanadi va bu raqamlar faqat tekshiruv uchun qoladi.
-// 1–5-kun test banklari backend'da (`npm run import:day1` … `import:day5`).
+// 1–6-kun test banklari backend'da (`npm run import:day1` … `import:day6`).
 // 4-kun 1- va 5-mavzu docx'larida to'g'ri javob belgilanmagan — savollar import
 // qilinmagan, shuning uchun ularda hozircha `testSlug` yo'q (faqat video).
 
@@ -91,16 +91,16 @@ export const CURRICULUM: CurriculumDay[] = [
     { id: "day5-topic8", lessonId: "day5-topic8", testSlug: "day5-topic8", testNo: 36, questionCount: 20, title: { uz: "Odam tashish", cyrl: "Одам ташиш", ru: "Перевозка людей" } },
   ]},
   { day: 6, topics: [
-    { id: "day6-topic1", lessonId: "day6-topic1", testNo: 2, questionCount: 13, title: { uz: "Haydovchining umumiy vazifalari", cyrl: "Ҳайдовчининг умумий вазифалари", ru: "Общие обязанности водителей" } },
-    { id: "day6-topic2", lessonId: "day6-topic2", testNo: 3, questionCount: 19, title: { uz: "Piyodalarning umumiy vazifalari", cyrl: "Пиёдаларнинг умумий вазифалари", ru: "Обязанности пешеходов" } },
-    { id: "day6-topic3", lessonId: "day6-topic3", testNo: 4, questionCount: 11, title: { uz: "Maxsus transport vositalarining imtiyozlari", cyrl: "Махсус транспорт воситаларининг имтиёзлари", ru: "Приоритет специальных транспортных средств" } },
-    { id: "day6-topic4", lessonId: "day6-topic4", testNo: 16, questionCount: 25, title: { uz: "Ogohlantiruvchi va avariya ishoralari", cyrl: "Огоҳлантирувчи ва авария ишоралари", ru: "Предупредительные и аварийные сигналы" } },
-    { id: "day6-topic5", lessonId: "day6-topic5", testNo: 27, questionCount: 14, title: { uz: "Piyodalar o'tish joylari va yo'nalishli transport vositalarining bekatlari", cyrl: "Пиёдалар ўтиш жойлари ва йўналишли транспорт воситаларининг бекатлари", ru: "Пешеходные переходы и остановки маршрутных транспортных средств" } },
-    { id: "day6-topic6", lessonId: "day6-topic6", testNo: 32, questionCount: 22, title: { uz: "Yo'nalishli transport vositalarining imtiyozlari", cyrl: "Йўналишли транспорт воситаларининг имтиёзлари", ru: "Приоритет маршрутных транспортных средств" } },
-    { id: "day6-topic7", lessonId: "day6-topic7", testNo: 33, questionCount: 22, title: { uz: "Tashqi yoritish asboblaridan foydalanish", cyrl: "Ташқи ёритиш асбобларидан фойдаланиш", ru: "Пользование внешними световыми приборами" } },
+    { id: "day6-topic1", lessonId: "day6-topic1", testSlug: "day6-topic1", testNo: 2, questionCount: 13, title: { uz: "Haydovchining umumiy vazifalari", cyrl: "Ҳайдовчининг умумий вазифалари", ru: "Общие обязанности водителей" } },
+    { id: "day6-topic2", lessonId: "day6-topic2", testSlug: "day6-topic2", testNo: 3, questionCount: 19, title: { uz: "Piyodalarning umumiy vazifalari", cyrl: "Пиёдаларнинг умумий вазифалари", ru: "Обязанности пешеходов" } },
+    { id: "day6-topic3", lessonId: "day6-topic3", testSlug: "day6-topic3", testNo: 4, questionCount: 11, title: { uz: "Maxsus transport vositalarining imtiyozlari", cyrl: "Махсус транспорт воситаларининг имтиёзлари", ru: "Приоритет специальных транспортных средств" } },
+    { id: "day6-topic4", lessonId: "day6-topic4", testSlug: "day6-topic4", testNo: 16, questionCount: 25, title: { uz: "Ogohlantiruvchi va avariya ishoralari", cyrl: "Огоҳлантирувчи ва авария ишоралари", ru: "Предупредительные и аварийные сигналы" } },
+    { id: "day6-topic5", lessonId: "day6-topic5", testSlug: "day6-topic5", testNo: 27, questionCount: 14, title: { uz: "Piyodalar o'tish joylari va yo'nalishli transport vositalarining bekatlari", cyrl: "Пиёдалар ўтиш жойлари ва йўналишли транспорт воситаларининг бекатлари", ru: "Пешеходные переходы и остановки маршрутных транспортных средств" } },
+    { id: "day6-topic6", lessonId: "day6-topic6", testSlug: "day6-topic6", testNo: 32, questionCount: 22, title: { uz: "Yo'nalishli transport vositalarining imtiyozlari", cyrl: "Йўналишли транспорт воситаларининг имтиёзлари", ru: "Приоритет маршрутных транспортных средств" } },
+    { id: "day6-topic7", lessonId: "day6-topic7", testSlug: "day6-topic7", testNo: 33, questionCount: 21, title: { uz: "Tashqi yoritish asboblaridan foydalanish", cyrl: "Ташқи ёритиш асбобларидан фойдаланиш", ru: "Пользование внешними световыми приборами" } },
   ]},
   { day: 7, isFinalExam: true, topics: [
-    { testNo: null, questionCount: 1254, title: { uz: "Yakuniy test", cyrl: "Якуний тест", ru: "Итоговый тест" } },
+    { testNo: null, questionCount: 1253, title: { uz: "Yakuniy test", cyrl: "Якуний тест", ru: "Итоговый тест" } },
   ]},
 ];
 

@@ -19,12 +19,12 @@ describe("curriculum", () => {
 
   it("matches the expected question totals per day", () => {
     const perDay = regularDays.map((d) => sum(d.topics.map((t) => t.questionCount)));
-    expect(perDay).toEqual([204, 251, 239, 212, 222, 126]);
+    expect(perDay).toEqual([204, 251, 239, 212, 222, 125]);
   });
 
-  it("makes the final exam pool equal to all day 1-6 questions (1254)", () => {
+  it("makes the final exam pool equal to all day 1-6 questions (1253)", () => {
     const pool = sum(COURSE_TOPICS.map((t) => t.questionCount));
-    expect(pool).toBe(1254);
+    expect(pool).toBe(1253);
     const finalDay = CURRICULUM.find((d) => d.isFinalExam)!;
     expect(finalDay.topics[0].questionCount).toBe(pool);
   });
@@ -73,19 +73,20 @@ describe("curriculum", () => {
     }
   });
 
-  it("attaches video lessons to every day 1–6 topic (by topic ID) and test banks to days 1–5", () => {
+  it("attaches video lessons to every day 1–6 topic (by topic ID) and test banks to days 1–6", () => {
     expect(COURSE_TOPICS.filter((t) => t.lessonId).map((t) => t.lessonId)).toEqual(
       [[1, 7], [2, 7], [3, 6], [4, 7], [5, 8], [6, 7]].flatMap(([day, count]) =>
         Array.from({ length: count }, (_, i) => `day${day}-topic${i + 1}`),
       ),
     );
     expect(COURSE_TOPICS.filter((t) => t.lessonId).every((t) => t.lessonId === t.id)).toBe(true);
-    // Test banki slug'i — mavzu ID'si (backend: day1-topic1 … day5-topic8; 4-kun 1- va 5-mavzu hozircha testsiz).
+    // Test banki slug'i — mavzu ID'si (backend: day1-topic1 … day6-topic7; 4-kun 1- va 5-mavzu hozircha testsiz).
     expect(COURSE_TOPICS.filter((t) => t.testSlug).map((t) => t.testSlug)).toEqual(
       [
         ...[[1, 7], [2, 7], [3, 6]].flatMap(([day, count]) => Array.from({ length: count }, (_, i) => `day${day}-topic${i + 1}`)),
         ...[2, 3, 4, 6, 7].map((n) => `day4-topic${n}`),
         ...Array.from({ length: 8 }, (_, i) => `day5-topic${i + 1}`),
+        ...Array.from({ length: 7 }, (_, i) => `day6-topic${i + 1}`),
       ],
     );
   });
