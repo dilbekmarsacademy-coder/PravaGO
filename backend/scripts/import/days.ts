@@ -32,6 +32,16 @@ export interface DayConfig {
    * o'chiq — ular manbadagidek import qilingan.
    */
   fixPartialMarks?: boolean;
+  /**
+   * HTML javobida `<mark class="k-ans">` bo'lmasa, javob kalitini chip'dan
+   * olish ("3 TONNA + MOPED" — har bir bo'lak alohida belgilanadi).
+   */
+  answerFromChip?: boolean;
+  /**
+   * Matni bir xil (≥ 0.8) savollar javob bo'yicha ajralmay qolsa — qolgan
+   * juftsiz savol va kartochkani hujjatdagi tartib bo'yicha bog'lash.
+   */
+  pairLeftovers?: boolean;
   /** Eski (oldingi import) banklar — dublikat yaratmasdan shu mavzuga ko'chiriladi. */
   legacySlugs: Record<string, string>;
 }
@@ -287,4 +297,84 @@ const DAY4: DayConfig = {
   ],
 };
 
-export const DAYS: Record<number, DayConfig> = { 1: DAY1, 2: DAY2, 3: DAY3, 4: DAY4 };
+const DAY5: DayConfig = {
+  day: 5,
+  pairByNumber: false,
+  fixPartialMarks: true,
+  answerFromChip: true,
+  pairLeftovers: true,
+  legacySlugs: {},
+  topics: [
+    {
+      order: 1,
+      slug: "day5-topic1",
+      title: { uz: "Umumiy qoidalar", cyrl: "Умумий қоидалар", ru: "Общие положения" },
+      must: ["umumiy qoidalar"],
+      files: { docx: "5-kun 1-mavzu Умумий қоидалар j.b.docx", html: "1-mavzu-umumiy-qoidalar-universal-v2.html" },
+    },
+    {
+      order: 2,
+      slug: "day5-topic2",
+      title: {
+        uz: "Yo'lning qatnov qismida transport vositalarining joylashuvi",
+        cyrl: "Йўлнинг қатнов қисмида транспорт воситаларининг жойлашуви",
+        ru: "Расположение транспортных средств на проезжей части",
+      },
+      must: ["qatnov qismida transport vositalarining joylashuvi"],
+      files: {
+        docx: "5_kun_2_mavzu_Йўлнинг_қатнов_қисмида_транспорт_воситаларининг_жойлашуви.docx",
+        html: "18_mavzu_qatnov_qismida_transport_vositalarining_joylashuvi_universal.html",
+      },
+    },
+    {
+      order: 3,
+      slug: "day5-topic3",
+      title: { uz: "Quvib o'tish", cyrl: "Қувиб ўтиш", ru: "Обгон" },
+      must: ["quvib otish"],
+      files: { docx: "5-kun 3-mavzu Қувиб ўтиш j.b.docx", html: "20-mavzu-quvib-otish-universal-v2.html" },
+    },
+    {
+      order: 4,
+      slug: "day5-topic4",
+      title: { uz: "Temir yo'l kesishmalari orqali harakatlanish", cyrl: "Темир йўл кесишмалари орқали ҳаракатланиш", ru: "Движение через железнодорожные переезды" },
+      must: ["temir yol kesishmalari"],
+      files: {
+        docx: "5_kun_4_mavzu_Темир_йўл_кесишмалари_орқали_ҳаракатланиш_j_b.docx",
+        html: "28_mavzu_temir_yol_kesishmalari_orqali_harakatlanish_universal_v2.html",
+      },
+    },
+    {
+      order: 5,
+      slug: "day5-topic5",
+      title: { uz: "Avtomagistralda harakatlanish", cyrl: "Автомагистралда ҳаракатланиш", ru: "Движение по автомагистралям" },
+      must: ["avtomagistral"],
+      files: { docx: "5-kun 5-mavzu avtomagistralda harakatlanish j.b.docx", html: "29-mavzu-avtomagistralda-harakatlanish-universal-v2.html" },
+    },
+    {
+      order: 6,
+      slug: "day5-topic6",
+      title: { uz: "Turar joy dahalarida harakatlanish", cyrl: "Турар жой даҳаларида ҳаракатланиш", ru: "Движение в жилых зонах" },
+      must: ["turar joy dahalarida"],
+      files: { docx: "5-kun 6-mavzu Turar joy dahalarida harakatlanish j.b.docx", html: "30-mavzu-turar-joy-dahalarida-harakatlanish-universal-v2.html" },
+    },
+    {
+      order: 7,
+      slug: "day5-topic7",
+      title: { uz: "Mexanik transport vositalarini shatakka olish", cyrl: "Механик транспорт воситаларини шатакка олиш", ru: "Буксировка механических транспортных средств" },
+      must: ["shatakka olish"],
+      files: {
+        docx: "5_kun_7_mavzu_Mexanik_transport_vositalarini_shatakka_olish_j_b.docx",
+        html: "34_mavzu_mexanik_transport_vositalarini_shatakka_olish_universal.html",
+      },
+    },
+    {
+      order: 8,
+      slug: "day5-topic8",
+      title: { uz: "Odam tashish", cyrl: "Одам ташиш", ru: "Перевозка людей" },
+      must: ["odam tashish"],
+      files: { docx: "5-kun 8-mavzu Odam tashish j.b.docx", html: "36-mavzu-odam-tashish-universal-v2.html" },
+    },
+  ],
+};
+
+export const DAYS: Record<number, DayConfig> = { 1: DAY1, 2: DAY2, 3: DAY3, 4: DAY4, 5: DAY5 };

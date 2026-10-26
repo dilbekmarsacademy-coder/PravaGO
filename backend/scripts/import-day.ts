@@ -88,7 +88,26 @@ interface RuEntry {
   answerKeyword?: string;
 }
 
-type LangRanges = { uz?: Range; cyrl?: Range; ru?: Range };
+/** Bitta oraliq yoki (bir nechta bo'lakli kalit so'zda) o'sib boruvchi oraliqlar ro'yxati. */
+type RangeValue = Range | Range[];
+type LangRanges = { uz?: RangeValue; cyrl?: RangeValue; ru?: RangeValue };
+
+/** Bitta oraliq bo'lsa — o'zi (eski format bilan bir xil), bir nechta bo'lsa — tartiblangan ro'yxat. */
+function rangeValue(ranges: Range[]): RangeValue | undefined {
+  if (!ranges.length) return undefined;
+  const sorted = [...ranges].sort((a, b) => a[0] - b[0]);
+  return sorted.length === 1 ? sorted[0] : sorted;
+}
+
+/** "3 TONNA + MOPED" → ["3 TONNA", "MOPED"]. */
+function chipParts(keyword: string): string[] {
+  return keyword.split("+").map((p) => p.trim()).filter(Boolean);
+}
+
+/** Chip bo'lagi matnda yaxlit topilmasa — vergul/tire bo'yicha mayda bo'laklarga ("QIZIL — TO'G'RIGA"). */
+function subParts(part: string): string[] {
+  return part.split(/[,—–]/).map((p) => p.trim()).filter(Boolean);
+}
 
 interface KeywordData {
   source: "html" | "docx" | "auto" | "none";
@@ -150,6 +169,10 @@ interface TopicResult {
   numberMismatches: { order: number; dataNum: number | null; qSim: number }[];
   /** So'z o'rtasidan kesilgan va to'g'rilangan (yoki olib tashlangan) HTML belgilashlari. */
   markFixes: string[];
+  /** Matni bir xil, javob bo'yicha ajralmagan — hujjat tartibi bo'yicha bog'langan savollar. */
+  leftoverPaired: { order: number; docxAnswer: string; htmlAnswer: string }[];
+  /** Javob kaliti HTML chip'idan olingan savollar (javobda `k-ans` yo'q). */
+  chipKeywords: string[];
   /** Qo'lda tanlangan (`source: "auto"`) kalit so'zlar haqidagi ogohlantirishlar. */
   autoWarnings: string[];
   ruMissing: number[];
@@ -191,6 +214,7 @@ function pairQuestions(questions: { q: ParsedQuestion; order: number; correct: s
 
   const byQuestion = new Map<number, { j: number; qSim: number; aSim: number; byNumber: boolean }>();
   const usedCards = new Set<number>();
+  const leftoverPairs: number[] = [];
   if (byNumber) {
     questions.forEach(({ order }, i) => {
       const j = cards.findIndex((c) => c.dataNum === order);
@@ -221,7 +245,18 @@ function pairQuestions(questions: { q: ParsedQuestion; order: number; correct: s
     byQuestion.set(c.i, { j: c.j, qSim: c.qSim, aSim: c.aSim, byNumber: false });
     usedCards.add(c.j);
   }
-  return { byQuestion, unpaired: cards.filter((_, j) => !usedCards.has(j)) };
+  // Bir xil matnli savollardan javob bo'yicha ajralmay qolganlari — hujjatdagi tartib bo'yicha.
+  if (CONFIG.pairLeftovers) {
+    for (let i = 0; i < questions.length; i++) {
+      if (byQuestion.has(i)) continue;
+      const j = cards.findIndex((_, k) => !usedCards.has(k) && sims[i][k] >= PAIR_THRESHOLD);
+      if (j < 0) continue;
+      byQuestion.set(i, { j, qSim: sims[i][j], aSim: similarity(da[i], ha[j]), byNumber: false });
+      usedCards.add(j);
+      leftoverPairs.push(i);
+    }
+  }
+  return { byQuestion, unpaired: cards.filter((_, j) => !usedCards.has(j)), leftoverPairs };
 }
 
 const LETTER = /\p{L}/u;
@@ -306,6 +341,8 @@ async function processTopic(def: TopicDef, docxPath: string, htmlPath: string | 
     approximate: [],
     numberMismatches: [],
     markFixes: [],
+    leftoverPaired: [],
+    chipKeywords: [],
     autoWarnings: [],
     ruMissing: [],
     ruKeywordReview: [],
@@ -371,8 +408,14 @@ async function processTopic(def: TopicDef, docxPath: string, htmlPath: string | 
     valid.push({ q, order, correctIndex: correct.index, correct: q.options[correct.index].text });
   });
 
-  const { byQuestion, unpaired } = html ? pairQuestions(valid, html.cards, CONFIG.pairByNumber) : { byQuestion: new Map(), unpaired: [] };
+  const { byQuestion, unpaired, leftoverPairs } = html
+    ? pairQuestions(valid, html.cards, CONFIG.pairByNumber)
+    : { byQuestion: new Map(), unpaired: [], leftoverPairs: [] as number[] };
   result.unpairedHtml = unpaired;
+  for (const i of leftoverPairs) {
+    const card = html!.cards[byQuestion.get(i)!.j];
+    result.leftoverPaired.push({ order: valid[i].order, docxAnswer: valid[i].correct, htmlAnswer: card.answer });
+  }
   for (const [index, { q, order, correct }] of valid.entries()) {
     if (byQuestion.has(index) || !unpaired.length) continue;
     const best = unpaired
@@ -507,6 +550,37 @@ async function processTopic(def: TopicDef, docxPath: string, htmlPath: string | 
         } else {
           result.answerKeyMissing.push({ order, kAns: c.answerMark.text, docx: correctOption.text });
         }
+      } else if (CONFIG.answerFromChip && c.answerKeyword) {
+        // Javobda belgilash yo'q — kalit so'z chip'dan, har bir "+" bo'lagi alohida.
+        const parts = chipParts(c.answerKeyword);
+        const uz: Range[] = [];
+        const cyrl: Range[] = [];
+        const missing: string[] = [];
+        const place = (p: string) => {
+          const latn = findWordsRange(correctOption.textLatn, p);
+          const cy = findLatinInCyrillic(correctOption.text, p);
+          if (!latn || !cy) return false;
+          uz.push(latn.range);
+          cyrl.push(cy.range);
+          return true;
+        };
+        for (const p of parts) {
+          if (place(p)) continue;
+          const subs = subParts(p);
+          if (subs.length > 1) for (const s of subs) if (!place(s)) missing.push(s);
+          if (subs.length <= 1) missing.push(p);
+        }
+        const multi = uz.length > 1;
+        if (uz.length) {
+          keywords.answerText = upperUz(multi ? c.answerKeyword : correctOption.textLatn.slice(...uz[0]));
+          // Bir nechta bo'lakda chip ajratuvchilari (+ , —) saqlanadi.
+          keywords.answerTextCyrl = multi ? upperUz(latinToCyrillic(c.answerKeyword)) : upperUz(correctOption.text.slice(...cyrl[0]));
+          keywords.highlights.answer.uz = rangeValue(uz);
+          keywords.highlights.answer.cyrl = rangeValue(cyrl);
+        }
+        result.chipKeywords.push(
+          `${order}-savol: chip "${c.answerKeyword}" → ${uz.length} ta bo'lak belgilandi${missing.length ? ` (topilmadi: ${missing.join(", ")})` : ""}`,
+        );
       }
       if (pair.qSim < 0.9) {
         result.lowSimilarityPairs.push({ order, qSim: pair.qSim, docx: q.text, html: c.question });
@@ -577,10 +651,13 @@ async function processTopic(def: TopicDef, docxPath: string, htmlPath: string | 
       }
       if (keywords.answerText) {
         const ruAnswer = correctOption.textRu ?? "";
-        const range = ruEntry.answerKeyword ? (findWordsRange(ruAnswer, ruEntry.answerKeyword)?.range ?? null) : null;
-        if (range) {
-          keywords.highlights.answer.ru = range;
-          keywords.answerTextRu = upperRu(ruAnswer.slice(...range));
+        // Bir nechta bo'lakli kalit so'z: "3 тонны + мопед" — har biri alohida topilishi shart.
+        const ruParts = ruEntry.answerKeyword ? chipParts(ruEntry.answerKeyword) : [];
+        const found = ruParts.map((p) => findWordsRange(ruAnswer, p)?.range ?? null);
+        const ranges = found.every(Boolean) ? (found as Range[]) : [];
+        if (ranges.length) {
+          keywords.highlights.answer.ru = rangeValue(ranges);
+          keywords.answerTextRu = [...ranges].sort((a, b) => a[0] - b[0]).map((r) => upperRu(ruAnswer.slice(...r))).join(" + ");
         } else {
           keywords.needsReview = true;
           result.ruKeywordReview.push(`${order}-savol: javob kaliti rus matnida topilmadi (${ruEntry.answerKeyword ?? "berilmagan"})`);
@@ -856,6 +933,14 @@ function buildReport(results: TopicResult[], missingFiles: string[], legacy: Leg
   );
   out.push(...(low.length ? low : ["Yo'q."]), "");
 
+  if (CONFIG.pairLeftovers) {
+    out.push("Matni bir xil, javob bo'yicha ajralmagan savollar — hujjatdagi tartib bo'yicha bog'landi:", "");
+    const left = results.flatMap((r) =>
+      r.leftoverPaired.map((p) => `- ${r.def.order}-mavzu, ${p.order}-savol: docx javobi "${p.docxAnswer}", HTML javobi "${p.htmlAnswer}"`),
+    );
+    out.push(...(left.length ? left : ["Yo'q."]), "");
+  }
+
   out.push("Juftliksiz docx savollari uchun eng yaqin juftsiz HTML kartochka (o'xshashlik 0.8 dan past — juftlanmadi, kalit so'z \"mavjud emas\"; qo'lda tekshirish uchun):", "");
   const near = results.flatMap((r) =>
     r.nearMisses.map((p) => `- ${r.def.order}-mavzu, ${p.order}-savol (savol ${p.qSim.toFixed(2)}, javob ${p.aSim.toFixed(2)}): docx — "${p.docx}"; HTML — "${p.html}"`),
@@ -877,6 +962,11 @@ function buildReport(results: TopicResult[], missingFiles: string[], legacy: Leg
     out.push("## 6. Belgilashi to'g'rilangan kalit so'zlar (HTML'da so'z o'rtasidan kesilgan)", "");
     const fixes = results.flatMap((r) => r.markFixes.map((f) => `- ${r.def.order}-mavzu, ${f}`));
     out.push(...(fixes.length ? fixes : ["Yo'q."]), "");
+  }
+  if (CONFIG.answerFromChip) {
+    out.push("Javob kaliti chip'dan olingan savollar (HTML javobida belgilash yo'q):", "");
+    const chips = results.flatMap((r) => r.chipKeywords.map((f) => `- ${r.def.order}-mavzu, ${f}`));
+    out.push(...(chips.length ? chips : ["Yo'q."]), "");
   }
 
   const autoTopics = results.filter((r) => r.questions.some((q) => q.keywords.source === "auto"));
