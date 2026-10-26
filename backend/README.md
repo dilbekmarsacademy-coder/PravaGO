@@ -89,7 +89,9 @@ tushmaydi). Kunning mavzulari va fayllari — `scripts/import/days.ts` (yangi ku
 HTML; mavzular nomi bo'yicha, savollar matni (2-kundan boshlab `data-num` +
 matn) bo'yicha bog'lanadi. Kalit so'z HTML'i yo'q mavzu ham import qilinadi
 ("Kalit so'z mavjud emas"); HTML keyin qo'shilsa, importni qayta ishga
-tushirish kifoya.
+tushirish kifoya. HTML'i yo'q mavzu uchun kalit so'zlarni qo'lda berish mumkin:
+`content-source/dayN/auto/<slug>.json` (docx matnidan aynan olingan bo'laklar,
+bazada `source: "auto"`, ro'yxati `auto-keywords-<slug>.md` ga yoziladi).
 Rasmlar WebP qilib `prisma/seed-data/images/` ga yoziladi (`npm run seed` ularni
 `public/images/` ga ko'chiradi). Production bazaga import qilishdan oldin
 `pg_dump` bilan zaxira oling.

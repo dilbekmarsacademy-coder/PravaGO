@@ -12,6 +12,7 @@
     "import:day": "ts-node scripts/import-day.ts",
     "import:day1": "ts-node scripts/import-day.ts --day 1",
     "import:day2": "ts-node scripts/import-day.ts --day 2",
+    "import:day3": "ts-node scripts/import-day.ts --day 3",
     "content:clear": "ts-node prisma/clear-content.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",

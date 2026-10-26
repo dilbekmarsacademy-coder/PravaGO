@@ -150,6 +150,13 @@ export function similarity(a: string, b: string): number {
 
 export type Range = [number, number];
 
+/** Oraliq oxiridagi "oʻ"/"gʻ" belgisi (apostrof) ham so'zga kirsin: "yorug|ʻ" → "yorugʻ". */
+function withTrailingApostrophe(text: string, range: Range): Range {
+  let end = range[1];
+  while (end < text.length && APOSTROPHES.test(text[end]) && /\p{L}/u.test(text[end - 1] ?? "")) end++;
+  return [range[0], end];
+}
+
 /**
  * `needle` ni `haystack` ichidan normallashgan ko'rinishda (so'z chegarasida)
  * qidiradi va asl `haystack` dagi `[start, end)` oralig'ini qaytaradi.
@@ -165,7 +172,7 @@ export function findRange(haystack: string, needle: string): Range | null {
     const before = h.text[idx - 1];
     const after = h.text[idx + n.length];
     if ((before === undefined || before === " ") && (after === undefined || after === " ")) {
-      return [h.map[idx], h.map[idx + n.length - 1] + 1];
+      return withTrailingApostrophe(haystack, [h.map[idx], h.map[idx + n.length - 1] + 1]);
     }
     from = idx + 1;
   }
@@ -188,6 +195,17 @@ export function labelsMatch(a: string, b: string): boolean {
   const x = LABEL_IDENTITY[a];
   const y = LABEL_IDENTITY[b];
   return !!x && !!y && x.some((id) => y.includes(id));
+}
+
+/**
+ * Juftlash uchun: normallashgan matndagi yolg'iz harflarni (rasm belgilari)
+ * bitta ko'rinishga keltiradi — "a va b" (HTML) va "а ва в" (docx) solishtirilsin.
+ */
+export function foldLabels(normalized: string): string {
+  return normalized
+    .split(" ")
+    .map((w) => (w.length === 1 && LABEL_IDENTITY[w] ? LABEL_IDENTITY[w][0] : w))
+    .join(" ");
 }
 
 /** Normallashgan matnlar so'zma-so'z bir xil (rasm belgilari teng deb hisoblanadi). */
@@ -234,7 +252,7 @@ export function findWordsRange(haystack: string, needle: string): FoundRange | n
     if (keyWords.every((key, k) => wordsMatch(words[i + k].text, key))) {
       const first = words[i];
       const last = words[i + keyWords.length - 1];
-      return { range: [h.map[first.start], h.map[last.end - 1] + 1], approximate: true };
+      return { range: withTrailingApostrophe(haystack, [h.map[first.start], h.map[last.end - 1] + 1]), approximate: true };
     }
   }
   return null;

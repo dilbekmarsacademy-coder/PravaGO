@@ -28,7 +28,9 @@ import {
   comparable,
   cyrillicToLatinMapped,
   findLatinInCyrillic,
+  findRange,
   findWordsRange,
+  foldLabels,
   normalize,
   sameNormalized,
   similarity,
@@ -89,7 +91,7 @@ interface RuEntry {
 type LangRanges = { uz?: Range; cyrl?: Range; ru?: Range };
 
 interface KeywordData {
-  source: "html" | "docx" | "none";
+  source: "html" | "docx" | "auto" | "none";
   questionText: string | null;
   questionTextCyrl: string | null;
   questionTextRu: string | null;
@@ -146,6 +148,10 @@ interface TopicResult {
   approximate: string[];
   /** `data-num` bo'yicha bog'lanmagan (matn bo'yicha boshqa kartochkaga bog'langan) savollar. */
   numberMismatches: { order: number; dataNum: number | null; qSim: number }[];
+  /** So'z o'rtasidan kesilgan va to'g'rilangan (yoki olib tashlangan) HTML belgilashlari. */
+  markFixes: string[];
+  /** Qo'lda tanlangan (`source: "auto"`) kalit so'zlar haqidagi ogohlantirishlar. */
+  autoWarnings: string[];
   ruMissing: number[];
   ruKeywordReview: string[];
   imageCount: number;
@@ -177,9 +183,10 @@ async function convertImage(data: Buffer, file: string): Promise<{ width: number
  */
 function pairQuestions(questions: { q: ParsedQuestion; order: number; correct: string }[], cards: HtmlCard[], byNumber: boolean) {
   const dq = questions.map(({ q }) => comparable(q.text));
-  const da = questions.map(({ correct }) => comparable(correct));
+  // Javoblarda rasm harflari ("«А»" / "A") bir xil ko'rinishga keltiriladi.
+  const da = questions.map(({ correct }) => foldLabels(comparable(correct)));
   const hq = cards.map((c) => normalize(c.question));
-  const ha = cards.map((c) => normalize(c.answer));
+  const ha = cards.map((c) => foldLabels(normalize(c.answer)));
   const sims = dq.map((d) => hq.map((h) => (d && h ? similarity(d, h) : 0)));
 
   const byQuestion = new Map<number, { j: number; qSim: number; aSim: number; byNumber: boolean }>();
@@ -217,6 +224,55 @@ function pairQuestions(questions: { q: ParsedQuestion; order: number; correct: s
   return { byQuestion, unpaired: cards.filter((_, j) => !usedCards.has(j)) };
 }
 
+const LETTER = /\p{L}/u;
+
+/**
+ * So'z o'rtasidan boshlangan/tugagan belgilash ("av<mark>tom</mark>obil") —
+ * kalit so'zni matndan butun so'z sifatida qayta qidiradi; topilmasa belgilash
+ * olib tashlanadi (kalit so'z matni chipda qoladi).
+ */
+function wholeWordMark(text: string, mark: HtmlCard["questionMark"], keyword: string) {
+  if (!mark) return { mark, note: null };
+  const [s, e] = mark.range;
+  if (!LETTER.test(text[s - 1] ?? "") && !LETTER.test(text[e] ?? "")) return { mark, note: null };
+  // Avval aniq butun so'z, keyin qo'shimchali shakli ("tibbiyot qutichasi" → "tibbiyot qutichasini").
+  const range = keyword ? (findRange(text, keyword) ?? findWordsRange(text, keyword)?.range ?? null) : null;
+  const shown = `${text.slice(Math.max(0, s - 12), s)}[${mark.text}]${text.slice(e, e + 12)}`;
+  return range
+    ? { mark: { text: text.slice(...range), range }, note: `"…${shown}…" → "${text.slice(...range)}"` }
+    : { mark: null, note: `"…${shown}…" → belgilashsiz ("${keyword}" matnda butun so'z sifatida topilmadi)` };
+}
+
+function fixPartialMarks(card: HtmlCard, order: number, result: TopicResult): HtmlCard {
+  const q = wholeWordMark(card.question, card.questionMark, card.questionKeyword);
+  const a = wholeWordMark(card.answer, card.answerMark, card.answerKeyword);
+  if (q.note) result.markFixes.push(`${order}-savol, savol kaliti: ${q.note}`);
+  if (a.note) result.markFixes.push(`${order}-savol, javob kaliti: ${a.note}`);
+  return { ...card, questionMark: q.mark, answerMark: a.mark };
+}
+
+/** Kirill matndagi `[start, end)` oralig'iga mos transliteratsiya qilingan lotin matn oralig'i. */
+function latinRangeOf(cyrillic: string, range: Range): Range {
+  const { map } = cyrillicToLatinMapped(cyrillic);
+  const start = map.findIndex((i) => i >= range[0]);
+  let end = start;
+  map.forEach((i, k) => {
+    if (i < range[1]) end = k + 1;
+  });
+  return [start, end];
+}
+
+/** Qo'lda tanlangan kalit so'zlar: savol tartibi → docx (kirill) matnidan aynan olingan bo'laklar. */
+interface AutoEntry {
+  question?: string | null;
+  answer?: string | null;
+}
+
+function loadAuto(slug: string): Record<string, AutoEntry> {
+  const file = path.join(SOURCE_DIR, "auto", `${slug}.json`);
+  return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : {};
+}
+
 function loadRu(slug: string): Record<string, RuEntry> {
   const file = path.join(RU_DIR, `${slug}.json`);
   return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : {};
@@ -227,6 +283,7 @@ async function processTopic(def: TopicDef, docxPath: string, htmlPath: string | 
   const parsed = parseQuestions(docx.paragraphs);
   const html = htmlPath ? parseKeywordsHtml(fs.readFileSync(htmlPath, "utf8")) : null;
   const ru = loadRu(def.slug);
+  const auto = loadAuto(def.slug);
 
   const result: TopicResult = {
     def,
@@ -248,6 +305,8 @@ async function processTopic(def: TopicDef, docxPath: string, htmlPath: string | 
     nearMisses: [],
     approximate: [],
     numberMismatches: [],
+    markFixes: [],
+    autoWarnings: [],
     ruMissing: [],
     ruKeywordReview: [],
     imageCount: 0,
@@ -383,7 +442,7 @@ async function processTopic(def: TopicDef, docxPath: string, htmlPath: string | 
     };
 
     if (pair) {
-      const { card: c } = pair;
+      const c = CONFIG.fixPartialMarks ? fixPartialMarks(pair.card, order, result) : pair.card;
       keywords.source = "html";
       // Savol kaliti — savol matnidan olingan, doim bog'lanadi.
       if (c.questionMark || c.questionKeyword) {
@@ -461,6 +520,42 @@ async function processTopic(def: TopicDef, docxPath: string, htmlPath: string | 
       }
     }
 
+    // Qo'lda tanlangan kalit so'zlar (HTML'i yo'q mavzu) — docx matnidan aynan olingan bo'laklar.
+    const autoEntry = auto[String(order)];
+    if (!pair && keywords.source === "none" && autoEntry && (autoEntry.question || autoEntry.answer)) {
+      keywords.source = "auto";
+      const place = (text: string, part: string): Range => {
+        const start = text.indexOf(part);
+        if (start < 0) throw new Error(`${def.slug} ${order}-savol: auto kalit so'z "${part}" matnda yo'q: "${text}"`);
+        const range: Range = [start, start + part.length];
+        if (LETTER.test(text[start - 1] ?? "") || LETTER.test(text[range[1]] ?? "")) {
+          throw new Error(`${def.slug} ${order}-savol: auto kalit so'z "${part}" so'z o'rtasidan kesilgan`);
+        }
+        return range;
+      };
+      if (autoEntry.question) {
+        const cyrl = place(q.text, autoEntry.question);
+        const latn = latinRangeOf(q.text, cyrl);
+        keywords.highlights.question.cyrl = cyrl;
+        keywords.highlights.question.uz = latn;
+        keywords.questionTextCyrl = upperUz(q.text.slice(...cyrl));
+        keywords.questionText = upperUz(textLatn.slice(...latn));
+      }
+      if (autoEntry.answer) {
+        const cyrl = place(correctOption.text, autoEntry.answer);
+        const latn = latinRangeOf(correctOption.text, cyrl);
+        keywords.highlights.answer.cyrl = cyrl;
+        keywords.highlights.answer.uz = latn;
+        keywords.answerTextCyrl = upperUz(correctOption.text.slice(...cyrl));
+        keywords.answerText = upperUz(correctOption.textLatn.slice(...latn));
+        const key = comparable(autoEntry.answer);
+        const repeated = options.filter((o) => !o.isCorrect && ` ${comparable(o.text)} `.includes(` ${key} `));
+        if (repeated.length) {
+          result.autoWarnings.push(`${order}-savol: javob kaliti "${autoEntry.answer}" boshqa variant(lar)da ham bor — F${repeated.map((o) => o.order).join(", F")}`);
+        }
+      }
+    }
+
     // Rus tili
     if (ruEntry) {
       if (keywords.questionText && !keywords.highlights.question.uz && ruEntry.questionChip) {
@@ -510,6 +605,27 @@ async function processTopic(def: TopicDef, docxPath: string, htmlPath: string | 
   }
 
   return result;
+}
+
+/** Qo'lda tanlangan kalit so'zlar ro'yxati — tekshirish uchun (content-source/dayN/auto-keywords-<slug>.md). */
+function writeAutoList(result: TopicResult) {
+  if (!result.questions.some((q) => q.keywords.source === "auto")) return;
+  const out = [
+    `# ${DAY}-kun ${result.def.order}-mavzu — qo'lda tanlangan kalit so'zlar`,
+    "",
+    `${result.def.title.uz}. Manba: \`content-source/day${DAY}/auto/${result.def.slug}.json\` (docx matnidan aynan olingan bo'laklar), bazada \`source: "auto"\`.`,
+    "",
+    "| # | Savol | To'g'ri javob | Savol kaliti → Javob kaliti |",
+    "|---|---|---|---|",
+  ];
+  const cell = (s: string) => s.replace(/\|/g, "\\|");
+  for (const q of result.questions) {
+    const k = q.keywords;
+    const correct = q.options.find((o) => o.isCorrect)?.textLatn ?? "";
+    const chip = k.questionText || k.answerText ? `${k.questionText ?? "—"} → ${k.answerText ?? "—"}` : "Kalit so'z mavjud emas";
+    out.push(`| ${q.order} | ${cell(q.textLatn)} | ${cell(correct)} | ${cell(chip)} |`);
+  }
+  fs.writeFileSync(path.join(SOURCE_DIR, `auto-keywords-${result.def.slug}.md`), out.join("\n") + "\n");
 }
 
 /** Tarjima uchun chiqarilgan ma'lumot (content-source/dayN/extracted). */
@@ -682,10 +798,16 @@ function buildReport(results: TopicResult[], missingFiles: string[], legacy: Leg
   out.push("| # | Mavzu | Docx'dagi savollar | Import qilindi | Rasmlar | Kalit so'z bog'landi | Kalit so'z mavjud emas | HTML kartochkalar |");
   out.push("|---|---|---|---|---|---|---|---|");
   for (const r of results) {
-    const linked = r.questions.filter((q) => q.keywords.questionText || q.keywords.answerText).length;
+    const linkedQs = r.questions.filter((q) => q.keywords.questionText || q.keywords.answerText);
+    const linked = linkedQs.length;
+    const bySource = (["html", "docx", "auto"] as const)
+      .map((src) => [src, linkedQs.filter((q) => q.keywords.source === src).length] as const)
+      .filter(([, n]) => n > 0)
+      .map(([src, n]) => `${src} ${n}`)
+      .join(", ");
     const paired = r.questions.filter((q) => q.pair).length;
     out.push(
-      `| ${r.def.order} | ${r.def.title.uz} | ${r.parsedCount}${r.declaredCount !== null ? ` (e'lon: ${r.declaredCount})` : ""} | ${r.questions.length} | ${r.imageCount} | ${linked} | ${r.questions.length - linked} | ${paired + r.unpairedHtml.length} (juftlangan: ${paired}) |`,
+      `| ${r.def.order} | ${r.def.title.uz} | ${r.parsedCount}${r.declaredCount !== null ? ` (e'lon: ${r.declaredCount})` : ""} | ${r.questions.length} | ${r.imageCount} | ${linked}${bySource ? ` (${bySource})` : ""} | ${r.questions.length - linked} | ${paired + r.unpairedHtml.length} (juftlangan: ${paired}) |`,
     );
   }
   out.push("");
@@ -746,11 +868,31 @@ function buildReport(results: TopicResult[], missingFiles: string[], legacy: Leg
     out.push(...(nums.length ? nums : ["Yo'q — barcha juftliklar data-num bo'yicha."]), "");
   }
 
+  if (CONFIG.fixPartialMarks) {
+    out.push("## 6. Belgilashi to'g'rilangan kalit so'zlar (HTML'da so'z o'rtasidan kesilgan)", "");
+    const fixes = results.flatMap((r) => r.markFixes.map((f) => `- ${r.def.order}-mavzu, ${f}`));
+    out.push(...(fixes.length ? fixes : ["Yo'q."]), "");
+  }
+
+  const autoTopics = results.filter((r) => r.questions.some((q) => q.keywords.source === "auto"));
+  if (autoTopics.length) {
+    out.push("## 7. Qo'lda tanlangan kalit so'zlar (`source: \"auto\"`)", "");
+    for (const r of autoTopics) {
+      const none = r.questions.filter((q) => !q.keywords.questionText && !q.keywords.answerText).map((q) => q.order);
+      const onlyQ = r.questions.filter((q) => q.keywords.source === "auto" && !q.keywords.answerText).map((q) => q.order);
+      out.push(`- ${r.def.order}-mavzu: ro'yxat — \`content-source/day${DAY}/auto-keywords-${r.def.slug}.md\``);
+      out.push(`  - "Kalit so'z mavjud emas": ${none.length ? none.map((n) => `${n}-savol`).join(", ") : "yo'q"}`);
+      out.push(`  - faqat savol kaliti (javob kaliti yo'q): ${onlyQ.length ? onlyQ.map((n) => `${n}-savol`).join(", ") : "yo'q"}`);
+      for (const w of r.autoWarnings) out.push(`  - ⚠️ ${w}`);
+    }
+    out.push("");
+  }
+
   out.push("## Raqamlash va boshqa ogohlantirishlar", "");
   const warn = results.flatMap((r) => [...r.numbering, ...r.warnings].map((w) => `- ${r.def.order}-mavzu: ${w}`));
   out.push(...(warn.length ? warn : ["Yo'q."]), "");
 
-  out.push("## 7. Avtomatik tarjima (rus tili) — tekshirilishi kerak", "");
+  out.push(`## ${autoTopics.length ? 8 : 7}. Avtomatik tarjima (rus tili) — tekshirilishi kerak`, "");
   out.push("Barcha ruscha matnlar (savol, variantlar, kalit so'zlar) AI tarjimasi — bazada `ruNeedsReview = true`.", "");
   const ruMissing = results.flatMap((r) => (r.ruMissing.length ? [`- ${r.def.order}-mavzu: tarjimasi yo'q savollar — ${r.ruMissing.join(", ")}`] : []));
   const ruKw = results.flatMap((r) => r.ruKeywordReview.map((x) => `- ${r.def.order}-mavzu, ${x}`));
@@ -782,8 +924,10 @@ async function main() {
   for (const file of files(docxDir, ".docx")) {
     const full = path.join(docxDir, file);
     const title = parseQuestions((await readDocx(fs.readFileSync(full))).paragraphs).title;
-    const matched = matchTopic(title);
-    if (matched.length !== 1) throw new Error(`Docx sarlavhasi bitta mavzuga mos kelmadi: "${title}" (${file})`);
+    // Sarlavhada mavzu nomi bo'lmasa ("3-кун 1-мавзу") — fayl nomidan.
+    let matched = matchTopic(title);
+    if (matched.length === 0) matched = matchTopic(path.basename(file, ".docx"));
+    if (matched.length !== 1) throw new Error(`Docx sarlavhasi (yoki fayl nomi) bitta mavzuga mos kelmadi: "${title}" (${file})`);
     if (docxByTopic.has(matched[0].slug)) throw new Error(`Bitta mavzu uchun ikkita docx: ${file}`);
     docxByTopic.set(matched[0].slug, full);
   }
@@ -822,6 +966,7 @@ async function main() {
     if (!htmlPath) missingFiles.push(`${def.order}-mavzu (${def.title.uz}): kalit so'z HTML topilmadi — kalit so'zlar "mavjud emas"`);
     const result = await processTopic(def, docxPath, htmlPath);
     writeExtract(result);
+    writeAutoList(result);
     results.push(result);
     console.log(`${def.slug}: ${result.questions.length}/${result.parsedCount} savol, ${result.imageCount} rasm, ${result.skipped.length} tasi o'tkazildi`);
   }

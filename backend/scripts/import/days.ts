@@ -26,6 +26,12 @@ export interface DayConfig {
    * edi — u yerda faqat matn bo'yicha bog'lanadi.
    */
   pairByNumber: boolean;
+  /**
+   * HTML'dagi so'z o'rtasidan boshlangan/tugagan belgilashni ("av<mark>tom</mark>obil")
+   * kalit so'zni butun so'z sifatida qayta qidirib to'g'rilash. 1–2-kunlarda
+   * o'chiq — ular manbadagidek import qilingan.
+   */
+  fixPartialMarks?: boolean;
   /** Eski (oldingi import) banklar — dublikat yaratmasdan shu mavzuga ko'chiriladi. */
   legacySlugs: Record<string, string>;
 }
@@ -155,4 +161,61 @@ const DAY2: DayConfig = {
   ],
 };
 
-export const DAYS: Record<number, DayConfig> = { 1: DAY1, 2: DAY2 };
+// 3-kun: 1- va 2-mavzu docx'larida sarlavha faqat "3-кун N-мавзу" — mavzu fayl
+// nomidan aniqlanadi. 1-mavzu uchun HTML yo'q: kalit so'zlar qo'lda tanlangan
+// (content-source/day3/auto/day3-topic1.json, `source: "auto"`).
+const DAY3: DayConfig = {
+  day: 3,
+  pairByNumber: false,
+  fixPartialMarks: true,
+  legacySlugs: {},
+  topics: [
+    {
+      order: 1,
+      slug: "day3-topic1",
+      title: { uz: "Harakatlanishni boshlash, manyovr qilish", cyrl: "Ҳаракатланишни бошлаш, манёвр қилиш", ru: "Начало движения, маневрирование" },
+      must: ["harakatlanishni boshlash"],
+      files: { docx: "3-kun 1- mavzu Harakatlanishni boshlash, Manyovr qilish.docx", html: null },
+    },
+    {
+      order: 2,
+      slug: "day3-topic2",
+      title: { uz: "Yuk tashish", cyrl: "Юк ташиш", ru: "Перевозка грузов" },
+      must: ["yuk tashish"],
+      files: { docx: "3-kun 2-mavzu Yuk tashish j.b.docx", html: "37-mavzu-yuk-tashish-universal-v2.html" },
+    },
+    {
+      order: 3,
+      slug: "day3-topic3",
+      title: { uz: "Velosiped, moped va aravalar harakatlanishi", cyrl: "Велосипед, мопед ва аравалар ҳаракатланиши", ru: "Движение велосипедов, мопедов и гужевых повозок" },
+      must: ["velosiped moped va aravalar"],
+      files: {
+        docx: "3_kun_3_mavzu_Велосипед,_мопед_ва_аравалар_ҳаракатланиши.docx",
+        html: "38_mavzu_velosiped_moped_va_aravalar_harakatlanishi_universal_v2.html",
+      },
+    },
+    {
+      order: 4,
+      slug: "day3-topic4",
+      title: { uz: "Transport vositalaridan foydalanish", cyrl: "Транспорт воситаларидан фойдаланиш", ru: "Эксплуатация транспортных средств" },
+      must: ["transport vositalaridan foydalanish"],
+      files: { docx: "3-kun 4-mavzu — Transport vositalaridan foydalanish.docx", html: "40-mavzu-transport-vositalaridan-foydalanish-universal-v2.html" },
+    },
+    {
+      order: 5,
+      slug: "day3-topic5",
+      title: { uz: "Harakat xavfsizligi asoslari", cyrl: "Ҳаракат хавфсизлиги асослари", ru: "Основы безопасности движения" },
+      must: ["harakat xavfsizligi asoslari"],
+      files: { docx: "3_kun_5_mavzu_Ҳаракат_хавфсизлиги_асослари.docx", html: "41-mavzu-harakat-xavfsizligi-asoslari-universal-v2.html" },
+    },
+    {
+      order: 6,
+      slug: "day3-topic6",
+      title: { uz: "Birinchi tibbiy yordam", cyrl: "Биринчи тиббий ёрдам", ru: "Первая медицинская помощь" },
+      must: ["birinchi tibbiy yordam"],
+      files: { docx: "3-kun 6-mavzu Биринчи тиббий ёрдам.docx", html: "42-mavzu-birinchi-tibbiy-yordam-universal-v2.html" },
+    },
+  ],
+};
+
+export const DAYS: Record<number, DayConfig> = { 1: DAY1, 2: DAY2, 3: DAY3 };
