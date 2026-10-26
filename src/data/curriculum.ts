@@ -22,7 +22,7 @@
 //
 // `questionCount` hozircha shu yerdan olinadi; savollar banki to'liq import
 // qilingach, u DB'dan hisoblanadi va bu raqamlar faqat tekshiruv uchun qoladi.
-// 1–4-kun test banklari backend'da (`npm run import:day1` … `import:day4`).
+// 1–5-kun test banklari backend'da (`npm run import:day1` … `import:day5`).
 // 4-kun 1- va 5-mavzu docx'larida to'g'ri javob belgilanmagan — savollar import
 // qilinmagan, shuning uchun ularda hozircha `testSlug` yo'q (faqat video).
 
@@ -81,14 +81,14 @@ export const CURRICULUM: CurriculumDay[] = [
     { id: "day4-topic7", lessonId: "day4-topic7", testSlug: "day4-topic7", testNo: 39, questionCount: 14, title: { uz: "Mansabdor shaxslar va fuqarolarning yo'l harakati xavfsizligini ta'minlash", cyrl: "Мансабдор шахслар ва фуқароларнинг йўл ҳаракати хавфсизлигини таъминлаш", ru: "Обязанности должностных лиц и граждан по обеспечению безопасности дорожного движения" } },
   ]},
   { day: 5, topics: [
-    { id: "day5-topic1", lessonId: "day5-topic1", testNo: 1, questionCount: 52, title: { uz: "Umumiy qoidalar", cyrl: "Умумий қоидалар", ru: "Общие положения" } },
-    { id: "day5-topic2", lessonId: "day5-topic2", testNo: 18, questionCount: 45, title: { uz: "Yo'lning qatnov qismida transport vositalarining joylashuvi", cyrl: "Йўлнинг қатнов қисмида транспорт воситаларининг жойлашуви", ru: "Расположение транспортных средств на проезжей части" } },
-    { id: "day5-topic3", lessonId: "day5-topic3", testNo: 20, questionCount: 35, title: { uz: "Quvib o'tish", cyrl: "Қувиб ўтиш", ru: "Обгон" } },
-    { id: "day5-topic4", lessonId: "day5-topic4", testNo: 28, questionCount: 18, title: { uz: "Temir yo'l kesishmalari orqali harakatlanish", cyrl: "Темир йўл кесишмалари орқали ҳаракатланиш", ru: "Движение через железнодорожные переезды" } },
-    { id: "day5-topic5", lessonId: "day5-topic5", testNo: 29, questionCount: 15, title: { uz: "Avtomagistrallarda harakatlanish", cyrl: "Автомагистралларда ҳаракатланиш", ru: "Движение по автомагистралям" } },
-    { id: "day5-topic6", lessonId: "day5-topic6", testNo: 30, questionCount: 9, title: { uz: "Turar joy dahalarida harakatlanish", cyrl: "Турар жой даҳаларида ҳаракатланиш", ru: "Движение в жилых зонах" } },
-    { id: "day5-topic7", lessonId: "day5-topic7", testNo: 34, questionCount: 28, title: { uz: "Mexanik transport vositalarini shatakka olish", cyrl: "Механик транспорт воситаларини шатакка олиш", ru: "Буксировка механических транспортных средств" } },
-    { id: "day5-topic8", lessonId: "day5-topic8", testNo: 36, questionCount: 20, title: { uz: "Odam tashish", cyrl: "Одам ташиш", ru: "Перевозка людей" } },
+    { id: "day5-topic1", lessonId: "day5-topic1", testSlug: "day5-topic1", testNo: 1, questionCount: 52, title: { uz: "Umumiy qoidalar", cyrl: "Умумий қоидалар", ru: "Общие положения" } },
+    { id: "day5-topic2", lessonId: "day5-topic2", testSlug: "day5-topic2", testNo: 18, questionCount: 45, title: { uz: "Yo'lning qatnov qismida transport vositalarining joylashuvi", cyrl: "Йўлнинг қатнов қисмида транспорт воситаларининг жойлашуви", ru: "Расположение транспортных средств на проезжей части" } },
+    { id: "day5-topic3", lessonId: "day5-topic3", testSlug: "day5-topic3", testNo: 20, questionCount: 35, title: { uz: "Quvib o'tish", cyrl: "Қувиб ўтиш", ru: "Обгон" } },
+    { id: "day5-topic4", lessonId: "day5-topic4", testSlug: "day5-topic4", testNo: 28, questionCount: 18, title: { uz: "Temir yo'l kesishmalari orqali harakatlanish", cyrl: "Темир йўл кесишмалари орқали ҳаракатланиш", ru: "Движение через железнодорожные переезды" } },
+    { id: "day5-topic5", lessonId: "day5-topic5", testSlug: "day5-topic5", testNo: 29, questionCount: 15, title: { uz: "Avtomagistralda harakatlanish", cyrl: "Автомагистралда ҳаракатланиш", ru: "Движение по автомагистралям" } },
+    { id: "day5-topic6", lessonId: "day5-topic6", testSlug: "day5-topic6", testNo: 30, questionCount: 9, title: { uz: "Turar joy dahalarida harakatlanish", cyrl: "Турар жой даҳаларида ҳаракатланиш", ru: "Движение в жилых зонах" } },
+    { id: "day5-topic7", lessonId: "day5-topic7", testSlug: "day5-topic7", testNo: 34, questionCount: 28, title: { uz: "Mexanik transport vositalarini shatakka olish", cyrl: "Механик транспорт воситаларини шатакка олиш", ru: "Буксировка механических транспортных средств" } },
+    { id: "day5-topic8", lessonId: "day5-topic8", testSlug: "day5-topic8", testNo: 36, questionCount: 20, title: { uz: "Odam tashish", cyrl: "Одам ташиш", ru: "Перевозка людей" } },
   ]},
   { day: 6, topics: [
     { id: "day6-topic1", lessonId: "day6-topic1", testNo: 2, questionCount: 13, title: { uz: "Haydovchining umumiy vazifalari", cyrl: "Ҳайдовчининг умумий вазифалари", ru: "Общие обязанности водителей" } },

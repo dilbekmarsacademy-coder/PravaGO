@@ -25,15 +25,19 @@ interface KeywordTextProps {
 /** Tanlangan tildagi matn, kalit so'z bo'lagi `<mark>` bilan belgilangan. */
 export function KeywordText({ text, highlight, tone, className }: KeywordTextProps) {
   const { locale } = useLocale();
-  const { text: value, parts } = localizeHighlighted(text, highlight, locale);
-  if (!parts) return <span className={className}>{value}</span>;
+  const { text: value, segments } = localizeHighlighted(text, highlight, locale);
+  if (!segments) return <span className={className}>{value}</span>;
   return (
     <span className={className}>
-      {parts.before}
-      <mark className={cn("rounded-md px-1 py-px font-semibold [box-decoration-break:clone]", KEYWORD_MARK_CLASS[tone])}>
-        {parts.mark}
-      </mark>
-      {parts.after}
+      {segments.map((segment, i) =>
+        segment.marked ? (
+          <mark key={i} className={cn("rounded-md px-1 py-px font-semibold [box-decoration-break:clone]", KEYWORD_MARK_CLASS[tone])}>
+            {segment.text}
+          </mark>
+        ) : (
+          segment.text
+        ),
+      )}
     </span>
   );
 }

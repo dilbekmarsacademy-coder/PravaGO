@@ -73,18 +73,19 @@ describe("curriculum", () => {
     }
   });
 
-  it("attaches video lessons to every day 1–6 topic (by topic ID) and test banks to days 1–4", () => {
+  it("attaches video lessons to every day 1–6 topic (by topic ID) and test banks to days 1–5", () => {
     expect(COURSE_TOPICS.filter((t) => t.lessonId).map((t) => t.lessonId)).toEqual(
       [[1, 7], [2, 7], [3, 6], [4, 7], [5, 8], [6, 7]].flatMap(([day, count]) =>
         Array.from({ length: count }, (_, i) => `day${day}-topic${i + 1}`),
       ),
     );
     expect(COURSE_TOPICS.filter((t) => t.lessonId).every((t) => t.lessonId === t.id)).toBe(true);
-    // Test banki slug'i — mavzu ID'si (backend: day1-topic1 … day4-topic7; 4-kun 1- va 5-mavzu hozircha testsiz).
+    // Test banki slug'i — mavzu ID'si (backend: day1-topic1 … day5-topic8; 4-kun 1- va 5-mavzu hozircha testsiz).
     expect(COURSE_TOPICS.filter((t) => t.testSlug).map((t) => t.testSlug)).toEqual(
       [
         ...[[1, 7], [2, 7], [3, 6]].flatMap(([day, count]) => Array.from({ length: count }, (_, i) => `day${day}-topic${i + 1}`)),
         ...[2, 3, 4, 6, 7].map((n) => `day4-topic${n}`),
+        ...Array.from({ length: 8 }, (_, i) => `day5-topic${i + 1}`),
       ],
     );
   });

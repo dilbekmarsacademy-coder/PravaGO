@@ -25,11 +25,16 @@ export interface ApiQuestion {
   options: ApiOption[];
 }
 
-/** Matndagi belgilash `[start, end)` — har bir til matniga nisbatan. */
+/**
+ * Matndagi belgilash `[start, end)` — har bir til matniga nisbatan. Kalit so'z
+ * bir nechta bo'lakdan iborat bo'lsa — oraliqlar ro'yxati.
+ */
+export type HighlightValue = [number, number] | [number, number][];
+
 export interface HighlightRanges {
-  uz?: [number, number];
-  cyrl?: [number, number];
-  ru?: [number, number];
+  uz?: HighlightValue;
+  cyrl?: HighlightValue;
+  ru?: HighlightValue;
 }
 
 export interface KeywordPart {

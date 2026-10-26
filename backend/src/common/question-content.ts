@@ -20,11 +20,16 @@ export function optionText(o: Pick<Option, "text" | "textRu" | "textLatn">): Loc
 
 export type HighlightRange = [number, number];
 
-/** Matndagi belgilash `[start, end)` — har bir til matniga nisbatan. */
+/**
+ * Matndagi belgilash `[start, end)` — har bir til matniga nisbatan. Kalit so'z
+ * bir nechta bo'lakdan iborat bo'lsa ("3 TONNA + MOPED") — oraliqlar ro'yxati.
+ */
+export type HighlightValue = HighlightRange | HighlightRange[];
+
 export interface HighlightDto {
-  uz?: HighlightRange;
-  cyrl?: HighlightRange;
-  ru?: HighlightRange;
+  uz?: HighlightValue;
+  cyrl?: HighlightValue;
+  ru?: HighlightValue;
 }
 
 export interface KeywordPartDto {
@@ -49,12 +54,21 @@ function isRange(value: unknown): value is HighlightRange {
   );
 }
 
+/** Bitta oraliq yoki o'sib boruvchi, bir-birini kesmaydigan oraliqlar ro'yxati. */
+function toHighlightValue(value: unknown): HighlightValue | undefined {
+  if (isRange(value)) return value;
+  if (!Array.isArray(value) || value.length === 0 || !value.every(isRange)) return undefined;
+  const ranges = value as HighlightRange[];
+  const ordered = ranges.every((r, i) => i === 0 || ranges[i - 1][1] <= r[0]);
+  return ordered ? ranges : undefined;
+}
+
 function toHighlight(value: unknown): HighlightDto {
   const out: HighlightDto = {};
   if (!value || typeof value !== "object") return out;
   for (const lang of ["uz", "cyrl", "ru"] as const) {
-    const range = (value as Record<string, unknown>)[lang];
-    if (isRange(range)) out[lang] = range;
+    const range = toHighlightValue((value as Record<string, unknown>)[lang]);
+    if (range) out[lang] = range;
   }
   return out;
 }
