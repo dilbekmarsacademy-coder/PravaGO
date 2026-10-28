@@ -24,6 +24,7 @@ import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { SAVED_PAGE_HREF, toggleSavedWithFeedback } from "@/lib/saved/actions";
 import { topicBySlug } from "@/lib/saved/format";
+import { track } from "@/lib/analytics";
 import type { LocalizedText } from "@/lib/i18n/localized";
 import { loadSavedIds, setSaved, useSavedState } from "@/lib/saved/store";
 import { clearSession, loadSession, saveSession, takeLegacyBookmarks } from "@/lib/test/storage";
@@ -154,6 +155,7 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
           setStartedAt(saved.startedAt);
         } else {
           setStartedAt(Date.now());
+          if (sourceKind === "topic" && sourceSlug) track("test_start", { topicSlug: sourceSlug });
         }
       })
       .catch((err: unknown) => {
@@ -193,7 +195,9 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
       const answer = answers[i];
       return answer?.result && answer.selectedOptionId ? [{ questionId: q.id, optionId: answer.selectedOptionId }] : [];
     });
-    submitTestAttempt(sourceSlug, submitted).catch(() => undefined);
+    submitTestAttempt(sourceSlug, submitted)
+      .then((attempt) => track("test_finish", { topicSlug: sourceSlug, value: attempt.percent }))
+      .catch(() => undefined);
   }, [finished, persist, sourceKind, sourceSlug, questions, answers]);
 
   // Holatni sessionStorage'ga yozib boramiz; test tugagach tozalanadi.

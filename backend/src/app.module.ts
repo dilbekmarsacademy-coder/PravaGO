@@ -16,6 +16,7 @@ import { AccountModule } from "./account/account.module";
 import { AiModule } from "./ai/ai.module";
 import { ImagesModule } from "./images/images.module";
 import { CollectionsModule } from "./collections/collections.module";
+import { EventsModule } from "./events/events.module";
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { CollectionsModule } from "./collections/collections.module";
     AiModule,
     ImagesModule,
     CollectionsModule,
+    EventsModule,
   ],
   providers: [
     {

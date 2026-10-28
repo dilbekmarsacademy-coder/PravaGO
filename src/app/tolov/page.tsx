@@ -7,6 +7,7 @@ import { ClockIcon, GaugeIcon, Loader2Icon, SendIcon, ShieldCheckIcon, TriangleA
 import { Button } from "@/components/ui/button";
 import { formatSom } from "@/config/prices";
 import { requestPayment, type Me } from "@/lib/api/account";
+import { track } from "@/lib/analytics";
 import { getRegistration, syncAccount, useRegistration } from "@/lib/registration-store";
 import PaymentSummary from "@/components/payment/PaymentSummary";
 import PaymentResult from "@/components/payment/PaymentResult";
@@ -61,6 +62,7 @@ export default function TolovPage() {
     setSendError(null);
     try {
       await requestPayment(note.trim() || undefined);
+      track("payment_request");
       await refresh();
     } catch {
       setSendError("So’rovni yuborib bo’lmadi. Qayta urinib ko’ring.");

@@ -3,6 +3,7 @@ import { Onest, JetBrains_Mono } from "next/font/google";
 import Script from "next/script";
 import type { ReactNode } from "react";
 import { Toaster } from "@/components/shared/Toast";
+import AnalyticsTracker from "@/components/shared/AnalyticsTracker";
 import "./globals.css";
 
 const THEME_INIT_SCRIPT = `(function () {
@@ -71,6 +72,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         </Script>
         {children}
         <Toaster />
+        <AnalyticsTracker />
       </body>
     </html>
   );

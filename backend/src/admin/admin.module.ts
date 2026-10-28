@@ -10,12 +10,15 @@ import { AdminUsersService } from "./users/admin-users.service";
 import { AdminContentController } from "./content/content.controller";
 import { ContentService } from "./content/content.service";
 import { QuestionEditorService } from "./content/question-editor.service";
+import { AdminStatsController, CronController } from "./stats/stats.controller";
+import { StatsService } from "./stats/stats.service";
+import { AiAnalysisService } from "./stats/ai-analysis.service";
 
 @Global()
 @Module({
   imports: [PaymentsModule],
-  controllers: [AdminAuthController, AdminAuditController, AdminUsersController, AdminPaymentsController, AdminContentController],
-  providers: [AdminAuthService, AuditService, AdminGuard, AdminProxyGuard, AdminUsersService, ContentService, QuestionEditorService],
+  controllers: [AdminAuthController, AdminAuditController, AdminUsersController, AdminPaymentsController, AdminContentController, AdminStatsController, CronController],
+  providers: [AdminAuthService, AuditService, AdminGuard, AdminProxyGuard, AdminUsersService, ContentService, QuestionEditorService, StatsService, AiAnalysisService],
   exports: [AuditService, AdminGuard, AdminProxyGuard, QuestionEditorService],
 })
 export class AdminModule implements NestModule {

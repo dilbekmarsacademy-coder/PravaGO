@@ -55,6 +55,7 @@ import {
   type WatchTally,
 } from "@/lib/lesson/watch";
 import { useRegistration } from "@/lib/registration-store";
+import { track } from "@/lib/analytics";
 import { PlayerState, embedSrc, loadEmbedApi, type EmbedPlayer } from "./embedApi";
 import { useCaptureGuard } from "./captureGuard";
 
@@ -246,6 +247,7 @@ export function SecureVideoPlayer({
     if (status.completed && !completedRef.current) {
       completedRef.current = true;
       callbacksRef.current.onCompleted?.(status);
+      track("video_watched", { topicSlug: status.topicSlug });
     }
   }, []);
 

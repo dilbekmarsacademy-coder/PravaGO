@@ -8,6 +8,7 @@ import { useLocale } from "@/lib/i18n/useLocale";
 import { saveRegistration } from "@/lib/registration-store";
 import { registerAccount } from "@/lib/api/account";
 import { ApiError } from "@/lib/api/session";
+import { track } from "@/lib/analytics";
 import OfferStep from "./OfferStep";
 import StatusStep from "./StatusStep";
 import FormStep from "./FormStep";
@@ -138,6 +139,7 @@ export default function RegisterModal({
                     : t.registerModal.form.errors.serverError;
                 }
                 saveRegistration(record, { synced: true });
+                track("register");
                 setStep("success");
                 return null;
               }}
