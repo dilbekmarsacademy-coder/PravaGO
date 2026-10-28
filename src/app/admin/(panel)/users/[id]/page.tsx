@@ -2,11 +2,14 @@
 
 import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeftIcon, MonitorIcon, SmartphoneIcon, TabletIcon } from "lucide-react";
 import { adminFetch } from "@/lib/admin/api";
 import { formatDate, formatDateTime, formatPhone, formatRelative, formatSom } from "@/lib/admin/format";
 import { EXAM_STATUS_LABEL, fullName, type AdminPayment, type UserPaymentStatus, type UserProgress } from "@/lib/admin/types";
 import { Badge } from "@/components/shared/Badge";
+import { showToast } from "@/components/shared/Toast";
+import DeleteButton from "@/components/admin/DeleteButton";
 import AddPaymentForm from "@/components/admin/AddPaymentForm";
 import PaymentActions from "@/components/admin/PaymentActions";
 import { PaymentBadge, ProgressBar, UserPaymentBadge } from "@/components/admin/StatusBadges";
@@ -52,6 +55,7 @@ const DEVICE_ICON = { mobile: SmartphoneIcon, tablet: TabletIcon, desktop: Monit
 
 export default function AdminUserPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
   const [data, setData] = useState<UserDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,6 +76,12 @@ export default function AdminUserPage({ params }: { params: Promise<{ id: string
   if (error) return <ErrorBlock message={error} onRetry={load} />;
   if (!data) return <LoadingBlock />;
 
+  async function remove() {
+    await adminFetch(`users/${id}`, { method: "DELETE" });
+    showToast({ message: "Foydalanuvchi o'chirildi", tone: "success" });
+    router.push("/admin/users");
+  }
+
   const days = [...new Set(data.topics.map((t) => t.day))];
 
   return (
@@ -79,7 +89,13 @@ export default function AdminUserPage({ params }: { params: Promise<{ id: string
       <Link href="/admin/users" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand">
         <ArrowLeftIcon className="size-4" /> Foydalanuvchilar
       </Link>
-      <PageHeader title={fullName(data)} subtitle={<span className="font-mono">{formatPhone(data.phone)}</span>} actions={<UserPaymentBadge status={data.paymentStatus} />} />
+      <PageHeader title={fullName(data)} subtitle={<span className="font-mono">{formatPhone(data.phone)}</span>} actions={
+          <>
+            <UserPaymentBadge status={data.paymentStatus} />
+            <DeleteButton label="Foydalanuvchini o'chirish" confirmLabel="Ha, butunlay o'chirish" onDelete={remove} testId="user-delete" />
+          </>
+        }
+      />
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Umumiy progress" value={`${data.progress.percent}%`} hint={`${data.progress.passedTopics} / ${data.progress.totalTopics} mavzu`} tone="brand" />

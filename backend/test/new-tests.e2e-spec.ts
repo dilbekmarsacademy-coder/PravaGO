@@ -125,8 +125,33 @@ describe("yangi testlar", () => {
     const similar = await http().post("/admin/questions/similar").set(admin).send({ text: "Qaysi belgi o'rnatilgan" }).expect(200);
     expect(similar.body.length).toBeGreaterThan(0);
     const { items } = (await http().get(`/admin/collections/${collectionId}/questions`).set(admin).expect(200)).body as { items: { id: string }[] };
+    const { token } = await app.get(AuthService).createAnonymousSession();
+    const user = { Authorization: `Bearer ${token}` };
+    await http().post("/saved").set(user).send({ questionId: items[0].id, sourceMode: "practice" }).expect(201);
     await http().delete(`/admin/questions/${items[0].id}`).set(admin).expect(204);
+    await http().delete(`/admin/questions/${items[0].id}`).set(admin).expect(404);
+    expect((await http().get("/saved/count").set(user).expect(200)).body).toMatchObject({ total: 0 });
     expect((await http().get(`/admin/collections/${collectionId}/questions`).set(admin).expect(200)).body.items).toHaveLength(0);
+  });
+
+  it("to'plamni o'chirish — foydalanuvchining ro'yxati va saqlanganlaridan ham yo'qoladi", async () => {
+    const col = await http().post("/admin/collections").set(admin).send({ title: { uz: "E2E o'chiriladigan" } }).expect(201);
+    const q = await http().post(`/admin/collections/${col.body.id}/questions`).set(admin).send(question()).expect(201);
+    await http().patch(`/admin/collections/${col.body.id}`).set(admin).send({ published: true }).expect(200);
+
+    const { token } = await app.get(AuthService).createAnonymousSession();
+    const user = { Authorization: `Bearer ${token}` };
+    expect((await http().get("/collections").set(user).expect(200)).body.map((c: { slug: string }) => c.slug)).toContain(col.body.slug);
+    await http().post("/saved").set(user).send({ questionId: q.body.id, sourceMode: "practice" }).expect(201);
+    expect((await http().get("/saved/count").set(user).expect(200)).body).toMatchObject({ total: 1 });
+
+    await http().delete(`/admin/collections/${col.body.id}`).set(admin).expect(204);
+    expect((await http().get("/admin/collections").set(admin).expect(200)).body.map((c: { id: string }) => c.id)).not.toContain(col.body.id);
+    expect((await http().get("/collections").set(user).expect(200)).body.map((c: { slug: string }) => c.slug)).not.toContain(col.body.slug);
+    await http().get(`/topics/${col.body.slug}/questions`).set(user).expect(404);
+    expect((await http().get("/saved/count").set(user).expect(200)).body).toMatchObject({ total: 0 });
+    expect((await http().get("/saved").set(user).expect(200)).body.items).toHaveLength(0);
+    await http().delete(`/admin/collections/${col.body.id}`).set(admin).expect(404);
   });
 
   it("AI sozlanmagan bo'lsa — status false, tarjima 503", async () => {

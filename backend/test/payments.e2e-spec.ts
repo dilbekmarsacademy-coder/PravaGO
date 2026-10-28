@@ -156,4 +156,27 @@ describe("to'lov va kirish huquqi", () => {
     expect(csv.text).toContain("+998900000004");
     await http().get("/admin/users/export.csv").expect(403);
   });
+
+  it("admin foydalanuvchini o'chiradi — sessiyasi, to'lovlari ham ketadi", async () => {
+    const auth = await newUser();
+    await http().post("/me/register").set(auth).send({ ...profile, phone: "900000005" }).expect(200);
+    const user = await prisma.user.findUniqueOrThrow({ where: { phone: "+998900000005" } });
+    await http().post("/admin/payments").set(admin).send({ userId: user.id, status: "CONFIRMED" }).expect(201);
+
+    await http().delete(`/admin/users/${user.id}`).expect(403);
+    await http().delete(`/admin/users/${user.id}`).set(admin).expect(204);
+    expect(await prisma.user.findUnique({ where: { id: user.id } })).toBeNull();
+    expect(await prisma.payment.count({ where: { userId: user.id } })).toBe(0);
+    await http().get(`/admin/users/${user.id}`).set(admin).expect(404);
+    await http().delete(`/admin/users/${user.id}`).set(admin).expect(404);
+    expect((await http().get("/admin/users?q=900000005").set(admin).expect(200)).body.total).toBe(0);
+
+    // Eski token endi ishlamaydi — qurilma yangi anonim sessiya ochadi.
+    await http().get("/me").set(auth).expect(401);
+    // Telefon bo'shadi — qayta ro'yxatdan o'tish mumkin.
+    await http().post("/me/register").set(await newUser()).send({ ...profile, phone: "900000005" }).expect(200);
+
+    const audit = await prisma.auditLog.findFirstOrThrow({ where: { entityId: user.id, action: "user.deleted" } });
+    expect(audit.before).toMatchObject({ phone: "+998900000005" });
+  });
 });
