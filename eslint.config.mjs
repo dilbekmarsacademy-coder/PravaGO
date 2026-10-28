@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Backend o'zining ESLint sozlamasi bilan (backend/package.json → lint).
+    "backend/**",
   ]),
 ]);
 
