@@ -213,6 +213,8 @@ export const uzLatn: Dictionary = {
         ageInvalid: "Yoshni raqamda kiriting",
         ageRange: "Yosh 16 dan 90 gacha bo'lishi kerak",
         phoneIncomplete: "Telefon raqam to'liq emas (+998 XX XXX XX XX)",
+        phoneTaken: "Bu raqam bilan avval ro'yxatdan o'tilgan. Yangi qurilmani ulash uchun administratorga murojaat qiling.",
+        serverError: "Ma'lumotni yuborib bo'lmadi. Internetni tekshirib, qayta urinib ko'ring.",
       },
     },
     otp: {
@@ -296,6 +298,13 @@ export const uzLatn: Dictionary = {
       open: "Ochiq",
       locked: "Qulflangan",
       lockedHint: "1–6-kunlarning barcha mavzularini tugating",
+    },
+    newTests: {
+      title: "Yangi testlar",
+      desc: "Imtihonga yangi qo'shilgan savollar to'plamlari",
+      questions: (n) => `${n} ta savol`,
+      best: (p) => `Eng yaxshi natija: ${p}%`,
+      notStarted: "Hali yechilmagan",
     },
     randomTest: {
       title: "Tasodifiy test",

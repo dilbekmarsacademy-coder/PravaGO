@@ -74,9 +74,9 @@ export class SavedService {
 
     const question = await this.prisma.question.findUnique({
       where: { id: dto.questionId },
-      select: { id: true, topicId: true },
+      select: { id: true, topicId: true, deletedAt: true },
     });
-    if (!question) throw new NotFoundException(`Savol topilmadi: ${dto.questionId}`);
+    if (!question || question.deletedAt) throw new NotFoundException(`Savol topilmadi: ${dto.questionId}`);
     // Pullik kontent/tarif tizimi paydo bo'lganda ruxsat tekshiruvi shu yerga qo'shiladi
     // (hozir barcha savollar ochiq — GET /topics/:slug/questions ham auth talab qilmaydi).
 
@@ -173,8 +173,9 @@ export class SavedService {
 
     const where: Prisma.SavedQuestionWhereInput = {
       userId,
+      question: { deletedAt: null },
       ...(query.topicSlug ? { topic: { slug: query.topicSlug } } : {}),
-      ...(query.q ? { question: this.searchFilter(query.q, query.lang) } : {}),
+      ...(query.q ? { question: { deletedAt: null, ...this.searchFilter(query.q, query.lang) } } : {}),
       ...(cursor
         ? {
             OR: [
@@ -239,6 +240,7 @@ export class SavedService {
     const rows = await this.prisma.savedQuestion.findMany({
       where: {
         userId,
+        question: { deletedAt: null },
         ...(topicSlug ? { topic: { slug: topicSlug } } : {}),
         // Yakunlanmagan imtihon savollari mashqqa kirmaydi (javob hali yopiq).
         NOT: { sourceMode: "exam", attempt: { is: { finishedAt: null } } },

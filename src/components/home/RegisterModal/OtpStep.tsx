@@ -13,19 +13,25 @@ const DEV_MOCK_OTP_CODE = "dilbek12345";
 interface OtpStepProps {
   stepLabel: string;
   phone: string;
-  onVerified: () => void;
+  /** Kod to'g'ri bo'lganda chaqiriladi; xato matni qaytarsa — shu ko'rsatiladi. */
+  onVerified: () => Promise<string | null>;
 }
 
 export default function OtpStep({ stepLabel, phone, onVerified }: OtpStepProps) {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const { t } = useLocale();
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (busy) return;
     if (code === DEV_MOCK_OTP_CODE) {
       setError(null);
-      onVerified();
+      setBusy(true);
+      const failure = await onVerified();
+      setBusy(false);
+      if (failure) setError(failure);
     } else {
       setError(t.registerModal.otp.errorInvalid);
     }
@@ -66,6 +72,7 @@ export default function OtpStep({ stepLabel, phone, onVerified }: OtpStepProps) 
 
         <Button
           type="submit"
+          disabled={busy}
           className="glow-orange-hover h-auto self-start rounded-full border-0 bg-gradient-to-r from-neon-orange to-neon-orange-2 px-6 py-2.5 text-sm font-bold text-background"
         >
           {t.registerModal.otp.cta}

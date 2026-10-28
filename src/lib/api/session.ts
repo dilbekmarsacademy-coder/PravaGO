@@ -83,6 +83,10 @@ export async function authFetch<T>(path: string, init?: RequestInit): Promise<T>
     } catch {
       // tana JSON emas
     }
+    // To'lov tasdiqlanmagan (yoki bekor qilingan) — kurs kontenti yopiq.
+    if (res.status === 403 && code === "PAYMENT_REQUIRED" && typeof window !== "undefined" && window.location.pathname !== "/tolov") {
+      window.location.assign("/tolov");
+    }
     throw new ApiError(res.status, code);
   }
   return (res.status === 204 ? undefined : await res.json()) as T;

@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import type { LessonProgress } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { AccessService } from "../access/access.service";
 import type { LessonStatusDto, ReportProgressDto } from "./dto/lesson.dto";
 import { LESSONS, findLesson, findLessonIdForTopic, lessonTopicSlug, type LessonConfig } from "./lessons.config";
 
@@ -49,7 +50,10 @@ function toStatus(lessonId: string, lesson: LessonConfig, row: ProgressRow): Les
 
 @Injectable()
 export class LessonsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly access: AccessService,
+  ) {}
 
   private getLesson(lessonId: string): LessonConfig {
     const lesson = findLesson(lessonId);
@@ -132,13 +136,19 @@ export class LessonsService {
 
   /**
    * Mavzu kontentiga (test, javob tekshiruvi, "Kalit so'zlar") kirish huquqi.
-   * Hamma joyda shu bitta tekshiruv ishlatiladi: sessiya (AuthGuard) + video
-   * sharti. Darsi yo'q mavzular uchun video sharti yo'q.
-   *
-   * TODO(payment): to'lov holati hozircha faqat klientda (registration-store).
-   * Backend'da to'lov/tarif ma'lumoti paydo bo'lganda tekshiruv shu yerga qo'shiladi.
+   * Hamma joyda shu bitta tekshiruv ishlatiladi: sessiya (AuthGuard) + to'lov
+   * (AccessService) + video sharti. Darsi yo'q mavzular uchun video sharti yo'q.
+   * "Yangi testlar" to'plami faqat nashr qilingan bo'lsa ochiladi.
    */
   async assertTopicUnlocked(topicSlug: string, userId: string | undefined): Promise<void> {
+    await this.access.assertCourseAccess(userId);
+    if (topicSlug.startsWith("new-")) {
+      const topic = await this.prisma.topic.findUnique({ where: { slug: topicSlug }, select: { published: true, deletedAt: true } });
+      if (!topic || !topic.published || topic.deletedAt) {
+        throw new NotFoundException({ statusCode: 404, code: "TOPIC_NOT_FOUND", message: "Test topilmadi" });
+      }
+      return;
+    }
     const lessonId = findLessonIdForTopic(topicSlug);
     if (!lessonId) return;
     const completed =

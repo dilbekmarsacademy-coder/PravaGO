@@ -1,4 +1,4 @@
-import { Controller, Post } from "@nestjs/common";
+import { Controller, Headers, Post } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { AuthService } from "./auth.service";
 
@@ -10,7 +10,7 @@ export class AuthController {
   // jadvalini sun'iy to'ldirishning oldini olish uchun.
   @Post("session")
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  createSession(): Promise<{ token: string; expiresAt: Date }> {
-    return this.auth.createAnonymousSession();
+  createSession(@Headers("user-agent") userAgent?: string): Promise<{ token: string; expiresAt: Date }> {
+    return this.auth.createAnonymousSession(userAgent);
   }
 }

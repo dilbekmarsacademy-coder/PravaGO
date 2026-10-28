@@ -1,4 +1,5 @@
-import { Module } from "@nestjs/common";
+import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
+import { NoStoreMiddleware } from "./common/no-store.middleware";
 import { APP_GUARD } from "@nestjs/core";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { PrismaModule } from "./prisma/prisma.module";
@@ -9,6 +10,13 @@ import { UserThrottlerGuard } from "./auth/user-throttler.guard";
 import { SavedModule } from "./saved/saved.module";
 import { LessonsModule } from "./lessons/lessons.module";
 import { KeywordsModule } from "./keywords/keywords.module";
+import { AdminModule } from "./admin/admin.module";
+import { AccessModule } from "./access/access.module";
+import { AccountModule } from "./account/account.module";
+import { AiModule } from "./ai/ai.module";
+import { ImagesModule } from "./images/images.module";
+import { CollectionsModule } from "./collections/collections.module";
+import { EventsModule } from "./events/events.module";
 
 @Module({
   imports: [
@@ -21,12 +29,19 @@ import { KeywordsModule } from "./keywords/keywords.module";
       },
     ]),
     PrismaModule,
+    AccessModule,
     TopicsModule,
     QuestionsModule,
     AuthModule,
     SavedModule,
     LessonsModule,
     KeywordsModule,
+    AdminModule,
+    AccountModule,
+    AiModule,
+    ImagesModule,
+    CollectionsModule,
+    EventsModule,
   ],
   providers: [
     {
@@ -36,4 +51,8 @@ import { KeywordsModule } from "./keywords/keywords.module";
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(NoStoreMiddleware).forRoutes("*");
+  }
+}

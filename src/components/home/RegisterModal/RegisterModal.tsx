@@ -6,6 +6,9 @@ import { XIcon } from "lucide-react";
 import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { saveRegistration } from "@/lib/registration-store";
+import { registerAccount } from "@/lib/api/account";
+import { ApiError } from "@/lib/api/session";
+import { track } from "@/lib/analytics";
 import OfferStep from "./OfferStep";
 import StatusStep from "./StatusStep";
 import FormStep from "./FormStep";
@@ -34,7 +37,7 @@ export default function RegisterModal({
 }: RegisterModalProps) {
   const [step, setStep] = useState<ModalStep>("offer");
   const [formData, setFormData] = useState<RegisterFormData>(INITIAL_FORM_DATA);
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const router = useRouter();
 
   // "Siz qaysi holatdasiz?" kartalari orqali holat allaqachon tanlangan bo'lsa
@@ -116,17 +119,29 @@ export default function RegisterModal({
             <OtpStep
               stepLabel={stepLabel}
               phone={formData.phone}
-              onVerified={() => {
-                if (formData.examStatus) {
-                  saveRegistration({
-                    firstName: formData.firstName,
-                    lastName: formData.lastName,
-                    age: formData.age,
-                    phone: formData.phone,
-                    examStatus: formData.examStatus,
-                  });
+              onVerified={async () => {
+                if (!formData.examStatus) return t.registerModal.form.errors.serverError;
+                const record = {
+                  firstName: formData.firstName,
+                  lastName: formData.lastName,
+                  age: formData.age,
+                  phone: formData.phone,
+                  examStatus: formData.examStatus,
+                  preferredLanguage: locale,
+                };
+                // Ma'lumot backend'ga yoziladi va shu qurilma sessiyasiga bog'lanadi
+                // (mavjud progress shu foydalanuvchida qoladi).
+                try {
+                  await registerAccount(record);
+                } catch (err) {
+                  return err instanceof ApiError && err.code === "PHONE_TAKEN"
+                    ? t.registerModal.form.errors.phoneTaken
+                    : t.registerModal.form.errors.serverError;
                 }
+                saveRegistration(record, { synced: true });
+                track("register");
                 setStep("success");
+                return null;
               }}
             />
           )}

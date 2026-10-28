@@ -5,3 +5,4 @@ public/images/
 *.tsbuildinfo
 .vercel
 .env*
+!.env.example

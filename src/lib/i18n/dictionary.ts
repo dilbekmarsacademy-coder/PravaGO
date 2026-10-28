@@ -139,6 +139,8 @@ export interface Dictionary {
         ageInvalid: string;
         ageRange: string;
         phoneIncomplete: string;
+        phoneTaken: string;
+        serverError: string;
       };
     };
     otp: {
@@ -207,6 +209,13 @@ export interface Dictionary {
       open: string;
       locked: string;
       lockedHint: string;
+    };
+    newTests: {
+      title: string;
+      desc: string;
+      questions: (n: number) => string;
+      best: (percent: number) => string;
+      notStarted: string;
     };
     randomTest: {
       title: string;

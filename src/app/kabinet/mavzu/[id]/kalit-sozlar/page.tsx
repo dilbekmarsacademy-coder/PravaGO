@@ -27,6 +27,7 @@ import type { Locale } from "@/lib/i18n/dictionary";
 import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { getRegistration } from "@/lib/registration-store";
+import { track } from "@/lib/analytics";
 
 interface KeywordsPageProps {
   params: Promise<{ id: string }>;
@@ -74,6 +75,10 @@ export default function KeywordsPage({ params }: KeywordsPageProps) {
     if (!record) router.replace("/");
     else if (record.status !== "active") router.replace("/tolov");
   }, [router]);
+
+  useEffect(() => {
+    track("keywords_view", { topicSlug: testSlug });
+  }, [testSlug]);
 
   useEffect(() => {
     let cancelled = false;
