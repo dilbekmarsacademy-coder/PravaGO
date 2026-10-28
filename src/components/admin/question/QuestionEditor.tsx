@@ -443,7 +443,7 @@ export default function QuestionEditor({ initial, mode, onSave, onTranslate, aiC
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
       <div className="flex min-w-0 flex-col gap-4">
         <div className="sticky top-14 z-10 -mx-1 rounded-2xl bg-background/85 px-1 py-2 backdrop-blur-xl lg:top-0">{toolbar}</div>
         {sections.map((s, i) => (
@@ -454,7 +454,7 @@ export default function QuestionEditor({ initial, mode, onSave, onTranslate, aiC
         ))}
         {footer}
       </div>
-      <div className="xl:sticky xl:top-6 xl:self-start">
+      <div className="min-w-0 xl:sticky xl:top-6 xl:self-start">
         <Panel title="Jonli preview">
           <QuestionPreview draft={draft} imageSrc={imagePreview} />
         </Panel>

@@ -11,11 +11,11 @@ export function BarChart({ data, label, height = 160 }: { data: { key: string; l
   if (data.length === 0) return <p className="py-8 text-center text-sm text-muted-foreground">Ma&apos;lumot yo&apos;q</p>;
   return (
     <div className="flex flex-col gap-2">
-      <div className="relative flex items-end gap-[2px] border-b border-border" style={{ height }} role="img" aria-label={label}>
+      <div className="relative flex items-end justify-center gap-[2px] border-b border-border" style={{ height }} role="img" aria-label={label}>
         {data.map((d, i) => (
           <div
             key={d.key}
-            className="group relative flex h-full flex-1 items-end"
+            className="group relative flex h-full max-w-12 flex-1 items-end"
             onMouseEnter={() => setHover(i)}
             onMouseLeave={() => setHover(null)}
             onTouchStart={() => setHover(i)}

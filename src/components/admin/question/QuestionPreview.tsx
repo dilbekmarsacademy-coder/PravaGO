@@ -39,7 +39,7 @@ export default function QuestionPreview({ draft, imageSrc }: { draft: QuestionDr
         />
       </div>
       <div className="overflow-x-auto rounded-2xl border border-border bg-background p-3">
-        <div className={cn("mx-auto flex flex-col gap-4 transition-[width]", device === "mobile" ? "w-[358px]" : "w-full max-w-3xl")} data-testid="question-preview">
+        <div className={cn("mx-auto flex flex-col gap-4 transition-[width]", device === "mobile" ? "w-full max-w-[358px]" : "w-full max-w-3xl")} data-testid="question-preview">
           {image && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={image} alt="" className="max-h-72 w-full rounded-xl object-contain" />
