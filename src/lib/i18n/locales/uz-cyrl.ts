@@ -299,6 +299,13 @@ export const uzCyrl: Dictionary = {
       locked: "Қулфланган",
       lockedHint: "1–6-кунларнинг барча мавзуларини тугатинг",
     },
+    newTests: {
+      title: "Янги тестлар",
+      desc: "Имтиҳонга янги қўшилган саволлар тўпламлари",
+      questions: (n) => `${n} та савол`,
+      best: (p) => `Энг яхши натижа: ${p}%`,
+      notStarted: "Ҳали ечилмаган",
+    },
     randomTest: {
       title: "Тасодифий тест",
       questionsUnit: "савол",

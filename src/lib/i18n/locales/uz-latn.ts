@@ -299,6 +299,13 @@ export const uzLatn: Dictionary = {
       locked: "Qulflangan",
       lockedHint: "1–6-kunlarning barcha mavzularini tugating",
     },
+    newTests: {
+      title: "Yangi testlar",
+      desc: "Imtihonga yangi qo'shilgan savollar to'plamlari",
+      questions: (n) => `${n} ta savol`,
+      best: (p) => `Eng yaxshi natija: ${p}%`,
+      notStarted: "Hali yechilmagan",
+    },
     randomTest: {
       title: "Tasodifiy test",
       questionsUnit: "savol",

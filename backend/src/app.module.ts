@@ -1,4 +1,5 @@
-import { Module } from "@nestjs/common";
+import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
+import { NoStoreMiddleware } from "./common/no-store.middleware";
 import { APP_GUARD } from "@nestjs/core";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { PrismaModule } from "./prisma/prisma.module";
@@ -12,6 +13,9 @@ import { KeywordsModule } from "./keywords/keywords.module";
 import { AdminModule } from "./admin/admin.module";
 import { AccessModule } from "./access/access.module";
 import { AccountModule } from "./account/account.module";
+import { AiModule } from "./ai/ai.module";
+import { ImagesModule } from "./images/images.module";
+import { CollectionsModule } from "./collections/collections.module";
 
 @Module({
   imports: [
@@ -33,6 +37,9 @@ import { AccountModule } from "./account/account.module";
     KeywordsModule,
     AdminModule,
     AccountModule,
+    AiModule,
+    ImagesModule,
+    CollectionsModule,
   ],
   providers: [
     {
@@ -42,4 +49,8 @@ import { AccountModule } from "./account/account.module";
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(NoStoreMiddleware).forRoutes("*");
+  }
+}

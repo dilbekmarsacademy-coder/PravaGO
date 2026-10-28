@@ -15,6 +15,7 @@ import ContinueCard from "@/components/kabinet/ContinueCard";
 import OverallProgress from "@/components/kabinet/OverallProgress";
 import CourseMap from "@/components/kabinet/CourseMap";
 import RandomTestBlock from "@/components/kabinet/RandomTestBlock";
+import NewTestsBlock from "@/components/kabinet/NewTestsBlock";
 import SavedCard from "@/components/kabinet/SavedCard";
 import DeviceInfo from "@/components/kabinet/DeviceInfo";
 import { Card } from "@/components/shared/Card";
@@ -184,6 +185,8 @@ function DashboardContent({
         examAttemptsUsed={data.examProgress.attempts.length}
         examMaxAttempts={data.examProgress.maxAttempts}
       />
+
+      <NewTestsBlock />
 
       <RandomTestBlock />
 

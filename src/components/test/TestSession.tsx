@@ -24,6 +24,7 @@ import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { SAVED_PAGE_HREF, toggleSavedWithFeedback } from "@/lib/saved/actions";
 import { topicBySlug } from "@/lib/saved/format";
+import type { LocalizedText } from "@/lib/i18n/localized";
 import { loadSavedIds, setSaved, useSavedState } from "@/lib/saved/store";
 import { clearSession, loadSession, saveSession, takeLegacyBookmarks } from "@/lib/test/storage";
 import { getTimeUrgency } from "@/lib/test/timer";
@@ -41,6 +42,8 @@ interface TestSessionProps {
   onlyQuestionIds: string[] | null;
   onRestart: () => void;
   onRetryWrong: (questionIds: string[]) => void;
+  /** Kurs dasturida yo'q test (masalan "Yangi testlar" to'plami) sarlavhasi. */
+  fallbackTitle?: LocalizedText;
 }
 
 interface QuestionAnswer {
@@ -86,7 +89,7 @@ function useCountdown(startedAt: number | null, limitSec: number, running: boole
   return Math.max(0, limitSec - Math.floor((now - startedAt) / 1000));
 }
 
-export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong }: TestSessionProps) {
+export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, fallbackTitle }: TestSessionProps) {
   const router = useRouter();
   const { locale, t } = useLocale();
   const [questions, setQuestions] = useState<SessionQuestion[] | null>(null);
@@ -124,7 +127,7 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong }
   const urgency = getTimeUrgency(remainingSec, timeLimitSec);
 
   const topic = sourceSlug ? topicBySlug(sourceSlug) : undefined;
-  const topicTitle = topic ? localize(topic.title, locale) : null;
+  const topicTitle = topic ? localize(topic.title, locale) : fallbackTitle ? localize(fallbackTitle, locale) : null;
   const header =
     sourceKind === "topic"
       ? {

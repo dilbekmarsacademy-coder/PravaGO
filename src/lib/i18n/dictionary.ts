@@ -210,6 +210,13 @@ export interface Dictionary {
       locked: string;
       lockedHint: string;
     };
+    newTests: {
+      title: string;
+      desc: string;
+      questions: (n: number) => string;
+      best: (percent: number) => string;
+      notStarted: string;
+    };
     randomTest: {
       title: string;
       questionsUnit: string;

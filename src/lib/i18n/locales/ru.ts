@@ -317,6 +317,13 @@ export const ru: Dictionary = {
       locked: "Закрыт",
       lockedHint: "Пройдите все темы 1–6-го дней",
     },
+    newTests: {
+      title: "Новые тесты",
+      desc: "Наборы вопросов, недавно добавленных в экзамен",
+      questions: (n) => `${n} вопросов`,
+      best: (p) => `Лучший результат: ${p}%`,
+      notStarted: "Ещё не решали",
+    },
     randomTest: {
       title: "Случайный тест",
       questionsUnit: "вопросов",
