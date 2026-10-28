@@ -8,19 +8,17 @@ import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { Card } from "@/components/shared/Card";
 
-/** Kabinetdagi "Yangi testlar" — nashr qilingan to'plam bo'lmasa blok ko'rinmaydi. */
+/** Kabinetdagi "Yangi testlar" — admin panelda nashr qilingan to'plamlar (bo'lmasa — "tez orada"). */
 export default function NewTestsBlock() {
   const { t, locale } = useLocale();
   const labels = t.kabinet.newTests;
-  const [items, setItems] = useState<CollectionSummary[]>([]);
+  const [items, setItems] = useState<CollectionSummary[] | null>(null);
 
   useEffect(() => {
     listCollections()
       .then(setItems)
       .catch(() => setItems([]));
   }, []);
-
-  if (items.length === 0) return null;
 
   return (
     <Card className="p-6 sm:p-7" data-testid="new-tests-block">
@@ -29,28 +27,45 @@ export default function NewTestsBlock() {
           <SparklesIcon className="size-4" />
         </span>
         <div>
-          <h2 className="font-display text-base font-bold text-foreground">{labels.title}</h2>
+          <h2 className="font-display text-base font-bold text-foreground">
+            {labels.title}
+          </h2>
           <p className="text-xs text-muted-foreground">{labels.desc}</p>
         </div>
       </div>
-      <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-        {items.map((c) => (
-          <li key={c.slug}>
-            <Link
-              href={`/test/${c.slug}`}
-              className="flex items-center justify-between gap-3 rounded-xl border border-border bg-foreground/[0.02] px-4 py-3 transition-colors hover:border-brand/40 hover:bg-foreground/[0.05]"
-            >
-              <span className="min-w-0">
-                <span className="block font-semibold text-foreground">{localize(c.title, locale)}</span>
-                <span className="block text-xs text-muted-foreground">
-                  {labels.questions(c.questionCount)} · {c.bestPercent === null ? labels.notStarted : labels.best(c.bestPercent)}
+      {items === null ? (
+        <div className="mt-4 h-16 animate-pulse rounded-xl bg-foreground/[0.04]" />
+      ) : items.length === 0 ? (
+        <p className="mt-4 rounded-xl border border-dashed border-border px-4 py-5 text-center text-sm text-muted-foreground">
+          {labels.empty}
+        </p>
+      ) : (
+        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+          {items.map((c) => (
+            <li key={c.slug}>
+              <Link
+                href={`/test/${c.slug}`}
+                className="flex items-center justify-between gap-3 rounded-xl border border-border bg-foreground/[0.02] px-4 py-3 transition-colors hover:border-brand/40 hover:bg-foreground/[0.05]"
+              >
+                <span className="min-w-0">
+                  <span className="block font-semibold text-foreground">
+                    {localize(c.title, locale)}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    {labels.questions(c.questionCount)} ·{" "}
+                    {c.bestPercent === null
+                      ? labels.notStarted
+                      : labels.best(c.bestPercent)}
+                  </span>
                 </span>
-              </span>
-              {c.passed && <CheckCircle2Icon className="size-5 shrink-0 text-success" />}
-            </Link>
-          </li>
-        ))}
-      </ul>
+                {c.passed && (
+                  <CheckCircle2Icon className="size-5 shrink-0 text-success" />
+                )}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </Card>
   );
 }
