@@ -7,6 +7,8 @@ import { adminDownloadUrl, adminFetch } from "@/lib/admin/api";
 import { formatDate, formatPhone, formatRelative } from "@/lib/admin/format";
 import { fullName, type AdminUserRow, type Paged } from "@/lib/admin/types";
 import { buttonClasses } from "@/components/shared/Button";
+import { showToast } from "@/components/shared/Toast";
+import DeleteButton from "@/components/admin/DeleteButton";
 import { ProgressBar, UserPaymentBadge } from "@/components/admin/StatusBadges";
 import { EmptyState, ErrorBlock, LoadingBlock, PageHeader, Pagination, Panel, Select, Table, Td, TextInput, Th } from "@/components/admin/ui";
 
@@ -54,6 +56,12 @@ export default function AdminUsersPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [load]);
+
+  async function remove(u: AdminUserRow) {
+    await adminFetch(`users/${u.id}`, { method: "DELETE" });
+    showToast({ message: `${fullName(u)} o'chirildi`, tone: "success" });
+    load();
+  }
 
   function toggleSort(key: SortKey) {
     if (sort === key) setDir(dir === "asc" ? "desc" : "asc");
@@ -132,6 +140,9 @@ export default function AdminUsersPage() {
                     Progress
                   </Th>
                   <Th>O&apos;tilgan kunlar</Th>
+                  <Th>
+                    <span className="sr-only">Amallar</span>
+                  </Th>
                 </tr>
               </thead>
               <tbody>
@@ -154,6 +165,9 @@ export default function AdminUsersPage() {
                       <ProgressBar percent={u.progress.percent} />
                     </Td>
                     <Td className="font-mono text-xs">{u.progress.passedDays.length ? u.progress.passedDays.join(", ") : "—"}</Td>
+                    <Td className="text-right whitespace-nowrap">
+                      <DeleteButton iconOnly label="Foydalanuvchini o'chirish" confirmLabel="Ha, butunlay o'chirish" onDelete={() => remove(u)} testId="user-delete" />
+                    </Td>
                   </tr>
                 ))}
               </tbody>

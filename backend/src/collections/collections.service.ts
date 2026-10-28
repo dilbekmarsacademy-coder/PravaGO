@@ -92,8 +92,14 @@ export class CollectionsService {
 
   async remove(admin: AdminUser, ip: string, id: string) {
     const before = await this.find(id);
-    await this.prisma.topic.update({ where: { id }, data: { deletedAt: new Date(), published: false } });
-    await this.audit.log(admin, ip, { action: "collection.deleted", entityType: "collection", entityId: id, before });
+    // Savollari ham o'chiriladi — foydalanuvchining "Saqlanganlar"idan ham yo'qoladi.
+    const now = new Date();
+    const [, questions] = await this.prisma.$transaction([
+      this.prisma.topic.update({ where: { id }, data: { deletedAt: now, published: false } }),
+      this.prisma.question.updateMany({ where: { topicId: id, deletedAt: null }, data: { deletedAt: now } }),
+      this.prisma.savedQuestion.deleteMany({ where: { topicId: id } }),
+    ]);
+    await this.audit.log(admin, ip, { action: "collection.deleted", entityType: "collection", entityId: id, before, after: { deletedQuestions: questions.count } });
   }
 
   async questions(id: string) {
@@ -125,11 +131,15 @@ export class CollectionsService {
     return after;
   }
 
-  /** Yumshoq o'chirish — faqat "Yangi testlar" savollari. */
+  /** Yumshoq o'chirish — faqat "Yangi testlar" savollari. Foydalanuvchilarning saqlanganlaridan ham olinadi. */
   async deleteQuestion(admin: AdminUser, ip: string, questionId: string) {
     const q = await this.editor.load(questionId);
+    if (q.deletedAt) throw new NotFoundException("Savol topilmadi");
     if (q.topic.kind !== COLLECTION) throw new BadRequestException("Faqat \"Yangi testlar\" savollarini o'chirish mumkin");
-    await this.prisma.question.update({ where: { id: questionId }, data: { deletedAt: new Date() } });
+    await this.prisma.$transaction([
+      this.prisma.question.update({ where: { id: questionId }, data: { deletedAt: new Date() } }),
+      this.prisma.savedQuestion.deleteMany({ where: { questionId } }),
+    ]);
     await this.audit.log(admin, ip, { action: "question.deleted", entityType: "question", entityId: questionId, before: toEditable(q) });
   }
 

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Header, HttpCode, Param, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Header, HttpCode, Param, Post, Query, UseGuards } from "@nestjs/common";
 import { AdminGuard, CurrentAdmin, RequestIp, RequirePermission } from "../admin.guard";
 import type { AdminUser } from "../admin-request";
 import { AuditService } from "../audit.service";
@@ -33,6 +33,13 @@ export class AdminUsersController {
   @Get(":id")
   detail(@Param() params: UserIdParamDto) {
     return this.users.detail(params.id);
+  }
+
+  /** Foydalanuvchini butunlay o'chirish: sessiyalari, progressi, saqlanganlari va to'lovlari bilan. */
+  @Delete(":id")
+  @HttpCode(204)
+  async remove(@Param() params: UserIdParamDto, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string): Promise<void> {
+    await this.users.remove(admin, ip, params.id);
   }
 }
 

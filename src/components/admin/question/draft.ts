@@ -24,6 +24,7 @@ export interface QuestionDraft {
 /** Backend'dagi EditableQuestionDto. */
 export interface EditableQuestion {
   id: string;
+  topicId: string;
   topicSlug: string;
   topicKind: string;
   order: number;

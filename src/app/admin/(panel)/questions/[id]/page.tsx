@@ -3,11 +3,12 @@
 import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftIcon, CheckCheckIcon, Trash2Icon } from "lucide-react";
+import { ArrowLeftIcon, CheckCheckIcon } from "lucide-react";
 import { adminFetch } from "@/lib/admin/api";
 import { getAiConfigured, translateDraft } from "@/lib/admin/content";
 import { Button } from "@/components/shared/Button";
 import { showToast } from "@/components/shared/Toast";
+import DeleteButton from "@/components/admin/DeleteButton";
 import QuestionEditor from "@/components/admin/question/QuestionEditor";
 import { draftFromQuestion, type EditableQuestion } from "@/components/admin/question/draft";
 import { ErrorBlock, LoadingBlock, PageHeader } from "@/components/admin/ui";
@@ -38,7 +39,7 @@ export default function AdminQuestionPage({ params }: { params: Promise<{ id: st
   if (!question) return <LoadingBlock />;
 
   const isCollection = question.topicKind === "collection";
-  const back = isCollection ? `/admin/new-tests` : `/admin/content/${question.topicSlug}`;
+  const back = isCollection ? `/admin/new-tests/${question.topicId}` : `/admin/content/${question.topicSlug}`;
   const needsReview = question.ruNeedsReview || question.keywords.needsReview;
 
   async function markReviewed() {
@@ -57,7 +58,7 @@ export default function AdminQuestionPage({ params }: { params: Promise<{ id: st
   return (
     <>
       <Link href={back} className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand">
-        <ArrowLeftIcon className="size-4" /> {isCollection ? "Yangi testlar" : question.topicSlug}
+        <ArrowLeftIcon className="size-4" /> {isCollection ? "To'plam" : question.topicSlug}
       </Link>
       <PageHeader title={`Savol #${question.order}`} subtitle={<span className="font-mono">{question.topicSlug}</span>} />
       <QuestionEditor
@@ -80,9 +81,7 @@ export default function AdminQuestionPage({ params }: { params: Promise<{ id: st
               </Button>
             )}
             {isCollection && (
-              <Button variant="danger" onClick={remove}>
-                <Trash2Icon className="size-4" /> O&apos;chirish
-              </Button>
+              <DeleteButton label="Savolni o'chirish" onDelete={remove} testId="question-delete" />
             )}
           </>
         }

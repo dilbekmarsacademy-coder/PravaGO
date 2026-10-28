@@ -15,6 +15,7 @@ type Ranges = Partial<Record<Lang, [number, number][]>>;
 /** Admin tahrirlaydigan to'liq savol (to'g'ri javob va kalit so'zlar bilan) — faqat admin API'da. */
 export interface EditableQuestionDto {
   id: string;
+  topicId: string;
   topicSlug: string;
   topicKind: string;
   order: number;
@@ -75,6 +76,7 @@ export function toEditable(q: FullQuestion): EditableQuestionDto {
   const correctIndex = q.options.findIndex((o) => o.isCorrect);
   return {
     id: q.id,
+    topicId: q.topicId,
     topicSlug: q.topic.slug,
     topicKind: q.topic.kind,
     order: q.order,

@@ -3,11 +3,12 @@
 import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { ArrowLeftIcon, PlusIcon } from "lucide-react";
 import { adminFetch } from "@/lib/admin/api";
 import { buttonClasses, Button } from "@/components/shared/Button";
 import { Badge } from "@/components/shared/Badge";
 import { showToast } from "@/components/shared/Toast";
+import DeleteButton from "@/components/admin/DeleteButton";
 import QuestionList from "@/components/admin/QuestionList";
 import type { EditableQuestion } from "@/components/admin/question/draft";
 import { ErrorBlock, Field, LoadingBlock, PageHeader, Panel, TextInput } from "@/components/admin/ui";
@@ -23,7 +24,6 @@ export default function AdminCollectionPage({ params }: { params: Promise<{ id: 
   const [data, setData] = useState<Data | null>(null);
   const [title, setTitle] = useState({ uz: "", cyrl: "", ru: "" });
   const [error, setError] = useState<string | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -52,8 +52,14 @@ export default function AdminCollectionPage({ params }: { params: Promise<{ id: 
 
   async function remove() {
     await adminFetch(`collections/${id}`, { method: "DELETE" });
-    showToast({ message: "To'plam o'chirildi", tone: "success" });
+    showToast({ message: "To'plam o'chirildi — kabinetdan ham olindi", tone: "success" });
     router.push("/admin/new-tests");
+  }
+
+  async function removeQuestion(qid: string) {
+    await adminFetch(`questions/${qid}`, { method: "DELETE" });
+    showToast({ message: "Savol o'chirildi", tone: "success" });
+    load();
   }
 
   if (error) return <ErrorBlock message={error} onRetry={load} />;
@@ -96,20 +102,7 @@ export default function AdminCollectionPage({ params }: { params: Promise<{ id: 
           <Button size="sm" variant="secondary" onClick={() => patch({ title }, "Nom saqlandi")} disabled={!title.uz.trim()}>
             Nomni saqlash
           </Button>
-          {confirmDelete ? (
-            <>
-              <Button size="sm" variant="danger" onClick={remove}>
-                Ha, to&apos;plamni o&apos;chirish
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(false)}>
-                Ortga
-              </Button>
-            </>
-          ) : (
-            <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(true)}>
-              <Trash2Icon className="size-4" /> To&apos;plamni o&apos;chirish
-            </Button>
-          )}
+          <DeleteButton label="To'plamni o'chirish" confirmLabel="Ha, to'plamni o'chirish" onDelete={remove} testId="collection-delete" />
         </div>
       </Panel>
       <Panel title={`Savollar (${data.items.length})`}>
@@ -125,6 +118,7 @@ export default function AdminCollectionPage({ params }: { params: Promise<{ id: 
             hasCorrect: q.correctIndex !== null,
           }))}
           hrefFor={(qid) => `/admin/questions/${qid}`}
+          actions={(qid) => <DeleteButton iconOnly label="Savolni o'chirish" onDelete={() => removeQuestion(qid)} testId="question-delete" />}
         />
       </Panel>
     </>

@@ -9,6 +9,7 @@ import { latinToCyrillic } from "@/lib/i18n/translit";
 import { Badge } from "@/components/shared/Badge";
 import { Button } from "@/components/shared/Button";
 import { showToast } from "@/components/shared/Toast";
+import DeleteButton from "@/components/admin/DeleteButton";
 import { EmptyState, ErrorBlock, Field, LoadingBlock, PageHeader, Panel, TextInput } from "@/components/admin/ui";
 
 export default function AdminNewTestsPage() {
@@ -62,6 +63,12 @@ export default function AdminNewTestsPage() {
     } catch (err) {
       showToast({ message: err instanceof Error ? err.message : "Xatolik", tone: "danger" });
     }
+  }
+
+  async function remove(c: Collection) {
+    await adminFetch(`collections/${c.id}`, { method: "DELETE" });
+    showToast({ message: `"${c.title.uz}" o'chirildi — kabinetdan ham olindi`, tone: "success" });
+    load();
   }
 
   return (
@@ -119,6 +126,7 @@ export default function AdminNewTestsPage() {
                 <Button size="sm" variant={c.published ? "secondary" : "primary"} onClick={() => togglePublish(c)}>
                   {c.published ? "Qoralamaga" : "Nashr qilish"}
                 </Button>
+                <DeleteButton iconOnly label="To'plamni o'chirish" confirmLabel="Ha, to'plamni o'chirish" onDelete={() => remove(c)} testId="collection-delete" />
               </li>
             ))}
           </ul>

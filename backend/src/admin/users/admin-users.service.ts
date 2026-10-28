@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
+import type { AdminUser } from "../admin-request";
+import { AuditService } from "../audit.service";
 import { deviceLabel, deviceType } from "../../common/device";
 import { PASS_PERCENT } from "../../common/rules";
 import { LESSONS } from "../../lessons/lessons.config";
@@ -26,7 +28,10 @@ export interface AdminUserRow {
 
 @Injectable()
 export class AdminUsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   private where(query: Pick<UsersQueryDto, "q" | "payment" | "activity">): Prisma.UserWhereInput {
     const since = new Date(Date.now() - ACTIVE_WINDOW_MS);
@@ -193,5 +198,23 @@ export class AdminUsersService {
         return q ? [{ questionId: q.id, order: q.order, topicSlug: q.topic.slug, topicTitle: q.topic.title, text: q.textLatn ?? q.text, wrongCount: w._count._all }] : [];
       }),
     };
+  }
+
+  /**
+   * Butunlay o'chirish. Sessiyalar ham o'chadi — qurilmadagi eski token 401 oladi
+   * va sayt yangi anonim sessiya ochadi. Audit'ga asosiy ma'lumot va to'lovlar yoziladi.
+   */
+  async remove(admin: AdminUser, ip: string, id: string): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { id },
+        include: { payments: { select: { id: true, amount: true, status: true, method: true, note: true, createdAt: true, confirmedAt: true } } },
+      });
+      if (!user) throw new NotFoundException("Foydalanuvchi topilmadi");
+      // Analitikada userId FK emas — ichki ID'ni ham uzib qo'yamiz.
+      await tx.analyticsEvent.updateMany({ where: { userId: id }, data: { userId: null } });
+      await tx.user.delete({ where: { id } });
+      await this.audit.log(admin, ip, { action: "user.deleted", entityType: "user", entityId: id, before: user }, tx);
+    });
   }
 }
