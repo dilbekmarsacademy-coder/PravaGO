@@ -11,7 +11,6 @@ import { applyLocale, useLocale } from "@/lib/i18n/useLocale";
 import { buildCourseState } from "@/lib/progress/unlock";
 import type { ExamStatus } from "@/components/home/types";
 import DashboardHeader from "@/components/kabinet/DashboardHeader";
-import ContinueCard from "@/components/kabinet/ContinueCard";
 import OverallProgress from "@/components/kabinet/OverallProgress";
 import CourseMap from "@/components/kabinet/CourseMap";
 import RandomTestBlock from "@/components/kabinet/RandomTestBlock";
@@ -171,9 +170,9 @@ function DashboardContent({
             {t.kabinet.ready.desc}
           </p>
         </Card>
-      ) : (
-        courseState.continueTarget && <ContinueCard target={courseState.continueTarget} />
-      )}
+      ) : null}
+
+      <NewTestsBlock />
 
       <OverallProgress days={courseState.days} />
 
@@ -185,8 +184,6 @@ function DashboardContent({
         examAttemptsUsed={data.examProgress.attempts.length}
         examMaxAttempts={data.examProgress.maxAttempts}
       />
-
-      <NewTestsBlock />
 
       <RandomTestBlock />
 

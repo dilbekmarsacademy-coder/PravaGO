@@ -216,6 +216,7 @@ export interface Dictionary {
       questions: (n: number) => string;
       best: (percent: number) => string;
       notStarted: string;
+      empty: string;
     };
     randomTest: {
       title: string;

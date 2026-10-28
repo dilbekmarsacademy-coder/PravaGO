@@ -305,6 +305,7 @@ export const uzCyrl: Dictionary = {
       questions: (n) => `${n} та савол`,
       best: (p) => `Энг яхши натижа: ${p}%`,
       notStarted: "Ҳали ечилмаган",
+      empty: "Янги тестлар тез орада шу ерда пайдо бўлади.",
     },
     randomTest: {
       title: "Тасодифий тест",

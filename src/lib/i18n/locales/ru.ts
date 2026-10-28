@@ -323,6 +323,7 @@ export const ru: Dictionary = {
       questions: (n) => `${n} вопросов`,
       best: (p) => `Лучший результат: ${p}%`,
       notStarted: "Ещё не решали",
+      empty: "Скоро здесь появятся новые тесты.",
     },
     randomTest: {
       title: "Случайный тест",
