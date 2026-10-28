@@ -9,6 +9,7 @@ import { UserThrottlerGuard } from "./auth/user-throttler.guard";
 import { SavedModule } from "./saved/saved.module";
 import { LessonsModule } from "./lessons/lessons.module";
 import { KeywordsModule } from "./keywords/keywords.module";
+import { AdminModule } from "./admin/admin.module";
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { KeywordsModule } from "./keywords/keywords.module";
     SavedModule,
     LessonsModule,
     KeywordsModule,
+    AdminModule,
   ],
   providers: [
     {
