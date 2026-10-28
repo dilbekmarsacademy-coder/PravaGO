@@ -35,8 +35,14 @@ async function bootstrap() {
   // process.cwd() (not __dirname) so this resolves the same whether run
   // via `nest start` (src/) or `node dist/main.js` (dist/src/) — both are
   // always launched from the backend/ project root.
+  // Savol rasmlari Vercel CDN'da keshlanadi (s-maxage) — har bir rasm uchun
+  // funksiya (AQSh) ishga tushmaydi. Yangi deploy CDN keshini o'zi yangilaydi,
+  // brauzer esa 1 kun saqlaydi.
   app.useStaticAssets(join(process.cwd(), "public"), {
     prefix: "/",
+    setHeaders: (res) => {
+      res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=31536000, stale-while-revalidate=86400");
+    },
   });
 
   const port = process.env.PORT ? Number(process.env.PORT) : 3001;
