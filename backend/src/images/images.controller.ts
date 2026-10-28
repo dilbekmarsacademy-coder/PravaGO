@@ -112,7 +112,7 @@ export class MediaController {
     const asset = match ? await this.images.publicAsset(match[1]) : null;
     if (!asset) throw new NotFoundException();
     res.setHeader("Content-Type", asset.mime);
-    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    res.setHeader("Cache-Control", "public, max-age=31536000, s-maxage=31536000, immutable");
     res.send(asset.data);
   }
 }
