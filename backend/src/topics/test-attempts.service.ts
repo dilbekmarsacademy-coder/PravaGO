@@ -14,7 +14,7 @@ export class TestAttemptsService {
   async create(userId: string, slug: string, answers: AttemptAnswerDto[]): Promise<TestAttemptDto> {
     const topic = await this.prisma.topic.findUnique({
       where: { slug },
-      select: { id: true, questions: { select: { id: true, options: { where: { isCorrect: true }, select: { id: true } } } } },
+      select: { id: true, questions: { where: { deletedAt: null }, select: { id: true, options: { where: { isCorrect: true }, select: { id: true } } } } },
     });
     if (!topic) throw new NotFoundException(`Mavzu topilmadi: ${slug}`);
 

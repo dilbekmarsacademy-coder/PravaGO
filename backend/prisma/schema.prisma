@@ -16,6 +16,13 @@ model Topic {
   /// Kurs kuni (1–6) va kun ichidagi tartib — frontend'dagi src/data/curriculum.ts bilan bir xil.
   day            Int?
   dayOrder       Int?
+  /// "course" — kurs mavzusi (dayN-topicM); "collection" — admin qo'shgan "Yangi testlar" to'plami.
+  kind           String             @default("course") @db.VarChar(20)
+  /// Faqat "collection" uchun: nashr qilinganmi (qoralama foydalanuvchiga ko'rinmaydi).
+  published      Boolean            @default(true)
+  /// "Yangi testlar" ro'yxatidagi tartib.
+  sortOrder      Int                @default(0)
+  deletedAt      DateTime?          @db.Timestamptz(3)
   questions      Question[]
   savedQuestions SavedQuestion[]
   testAttempts   TopicTestAttempt[]
@@ -37,7 +44,11 @@ model Question {
   /// Rasmning asl o'lchamlari — frontend joyni oldindan ajratadi (layout shift bo'lmaydi).
   imageWidth      Int?
   imageHeight     Int?
+  /// Admin yuklagan (tozalangan, tasdiqlangan) rasm — imageUrl `/media/<id>.webp`.
+  imageAssetId    String?
   order           Int
+  /// Yumshoq o'chirish — o'chirilgan savol hech qayerda chiqmaydi.
+  deletedAt       DateTime?        @db.Timestamptz(3)
   /// Izoh (manbada bo'lsa): kirill / lotin / rus.
   explanation     String?
   explanationLatn String?
@@ -52,6 +63,7 @@ model Question {
   keywords        QuestionKeyword?
   savedBy         SavedQuestion[]
   keywordReviews  KeywordReview[]
+  answerLogs      AnswerLog[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -113,27 +125,59 @@ model KeywordReview {
   @@index([questionId])
 }
 
-/// Foydalanuvchi. Hozircha anonim (qurilma sessiyasi orqali yaratiladi) —
-/// real login (telefon + OTP) qo'shilganda profil maydonlari shu yerga qo'shiladi.
+/// Foydalanuvchi. Avval anonim (qurilma sessiyasi orqali yaratiladi);
+/// ro'yxatdan o'tganda (POST /me/register) profil maydonlari to'ldiriladi.
+/// Bitta foydalanuvchi — bir nechta qurilma sessiyasi (Session).
+/// Ustun nomlari telefon OTP (Eskiz) branch'i bilan bir xil.
 model User {
-  id             String             @id @default(uuid())
-  sessions       Session[]
-  examAttempts   ExamAttempt[]
-  savedQuestions SavedQuestion[]
-  lessonProgress LessonProgress[]
-  keywordReviews KeywordReview[]
-  testAttempts   TopicTestAttempt[]
-  createdAt      DateTime           @default(now()) @db.Timestamptz(3)
+  id                String             @id @default(uuid())
+  /// +998XXXXXXXXX (normallashtirilgan). Faqat admin API'da qaytariladi.
+  phone             String?            @unique
+  firstName         String?
+  lastName          String?
+  age               Int?
+  /// "first-time" | "failed-before" | "license-revoked"
+  examStatus        String?
+  /// Telefon SMS-kod bilan tasdiqlangan vaqt (OTP branch'i to'ldiradi).
+  phoneVerifiedAt   DateTime?          @db.Timestamptz(3)
+  /// "uz-latn" | "uz-cyrl" | "ru"
+  preferredLanguage String?            @db.VarChar(10)
+  registeredAt      DateTime?          @db.Timestamptz(3)
+  lastActiveAt      DateTime?          @db.Timestamptz(3)
+  /// To'lovlar jadvalidan hisoblanadi (PaymentsService.syncUserPaymentStatus).
+  paymentStatus     UserPaymentStatus  @default(NONE)
+  accessGrantedAt   DateTime?          @db.Timestamptz(3)
+  sessions          Session[]
+  examAttempts      ExamAttempt[]
+  savedQuestions    SavedQuestion[]
+  lessonProgress    LessonProgress[]
+  keywordReviews    KeywordReview[]
+  testAttempts      TopicTestAttempt[]
+  payments          Payment[]
+  answerLogs        AnswerLog[]
+  createdAt         DateTime           @default(now()) @db.Timestamptz(3)
+
+  @@index([registeredAt])
+  @@index([lastActiveAt])
+}
+
+enum UserPaymentStatus {
+  NONE
+  PENDING
+  PAID
 }
 
 /// Bearer token sessiyasi. Tokenning o'zi hech qayerda saqlanmaydi — faqat sha256 xeshi.
 model Session {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash String   @unique
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
-  expiresAt DateTime @db.Timestamptz(3)
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
+  /// Qurilma (admin panelda "Qurilmalar") — User-Agent qisqartirilgan holda.
+  userAgent  String?   @db.VarChar(300)
+  lastSeenAt DateTime? @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  expiresAt  DateTime  @db.Timestamptz(3)
 
   @@index([userId])
 }
@@ -224,31 +268,33 @@ enum AdminRole {
 
 /// Admin panel foydalanuvchisi (sayt egasi va dasturchi). Parol — argon2id xeshi.
 model Admin {
-  id                String              @id @default(uuid())
+  id                String         @id @default(uuid())
   name              String
-  login             String              @unique
+  login             String         @unique
   role              AdminRole
   passwordHash      String
-  active            Boolean             @default(true)
-  lastLoginAt       DateTime?           @db.Timestamptz(3)
-  passwordChangedAt DateTime?           @db.Timestamptz(3)
+  active            Boolean        @default(true)
+  lastLoginAt       DateTime?      @db.Timestamptz(3)
+  passwordChangedAt DateTime?      @db.Timestamptz(3)
   sessions          AdminSession[]
   auditLogs         AuditLog[]
-  createdAt         DateTime            @default(now()) @db.Timestamptz(3)
-  updatedAt         DateTime            @updatedAt @db.Timestamptz(3)
+  confirmedPayments Payment[]      @relation("PaymentConfirmedBy")
+  createdPayments   Payment[]      @relation("PaymentCreatedBy")
+  createdAt         DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime       @updatedAt @db.Timestamptz(3)
 }
 
 /// Admin sessiyasi (12 soat). Token faqat cookie'da — bazada sha256 xeshi.
 model AdminSession {
-  id         String    @id @default(uuid())
-  adminId    String
-  admin      Admin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
-  tokenHash  String    @unique
-  ip         String?
-  userAgent  String?   @db.VarChar(300)
-  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
-  expiresAt  DateTime  @db.Timestamptz(3)
-  revokedAt  DateTime? @db.Timestamptz(3)
+  id        String    @id @default(uuid())
+  adminId   String
+  admin     Admin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  ip        String?
+  userAgent String?   @db.VarChar(300)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  expiresAt DateTime  @db.Timestamptz(3)
+  revokedAt DateTime? @db.Timestamptz(3)
 
   @@index([adminId])
 }
@@ -283,4 +329,94 @@ model AuditLog {
 
   @@index([createdAt(sort: Desc)])
   @@index([entityType, entityId])
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+/// To'lov. Payme/Click ulanmaguncha — foydalanuvchi so'rov yuboradi
+/// ("kutilmoqda"), admin qo'lda tasdiqlaydi yoki bekor qiladi.
+model Payment {
+  id            String        @id @default(uuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount        Int
+  status        PaymentStatus @default(PENDING)
+  /// "manual" (hozircha yagona usul)
+  method        String        @default("manual") @db.VarChar(20)
+  /// Admin izohi
+  note          String?       @db.VarChar(500)
+  /// Foydalanuvchi so'rov bilan yuborgan izoh
+  userNote      String?       @db.VarChar(500)
+  createdById   String?
+  createdBy     Admin?        @relation("PaymentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  confirmedById String?
+  confirmedBy   Admin?        @relation("PaymentConfirmedBy", fields: [confirmedById], references: [id], onDelete: SetNull)
+  confirmedAt   DateTime?     @db.Timestamptz(3)
+  cancelledAt   DateTime?     @db.Timestamptz(3)
+  createdAt     DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime      @updatedAt @db.Timestamptz(3)
+
+  @@index([status, createdAt])
+  @@index([userId])
+}
+
+/// Har bir javob tekshiruvi (check-answer) — eng ko'p xato qilinadigan savollar statistikasi uchun.
+model AnswerLog {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  correct    Boolean
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([questionId, correct])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
+/// Admin yuklagan rasmlar baytlari bazada (serverless'da fayl tizimi doimiy emas).
+/// `public=false` — asl/oraliq nusxa, faqat admin API orqali; `true` — /media/:id.webp.
+model MediaAsset {
+  id          String   @id @default(uuid())
+  /// "original" | "processed"
+  kind        String   @db.VarChar(20)
+  mime        String   @db.VarChar(50)
+  width       Int
+  height      Int
+  size        Int
+  sha256      String   @db.VarChar(64)
+  public      Boolean  @default(false)
+  data        Bytes
+  /// Qaysi asl rasmdan olingan (processed uchun).
+  sourceId    String?
+  createdById String?
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([sha256])
+}
+
+/// Rasmga ishlov berish vazifasi (avtomatik tozalash, qo'lda tahrir, fon kesish).
+/// Og'ir ishlov so'rovdan keyin fon rejimida bajariladi — admin holatini so'rab turadi.
+model ImageJob {
+  id            String   @id @default(uuid())
+  /// "auto" | "manual" | "original" | "remove-bg"
+  type          String   @db.VarChar(20)
+  /// "queued" | "running" | "done" | "failed"
+  status        String   @default("queued") @db.VarChar(20)
+  inputAssetId  String
+  outputAssetId String?
+  params        Json     @default("{}")
+  /// AI aniqlagan hududlar, bajarilgan qadamlar va h.k.
+  result        Json     @default("{}")
+  error         String?  @db.VarChar(1000)
+  createdById   String?
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([createdAt])
 }

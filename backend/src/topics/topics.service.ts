@@ -12,13 +12,14 @@ export class TopicsService {
       where: { slug },
       include: {
         questions: {
+          where: { deletedAt: null },
           orderBy: { order: "asc" },
           include: { options: { orderBy: OPTION_ORDER } },
         },
       },
     });
 
-    if (!topic) {
+    if (!topic || topic.deletedAt) {
       throw new NotFoundException(`Mavzu topilmadi: ${slug}`);
     }
 

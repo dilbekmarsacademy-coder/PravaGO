@@ -139,6 +139,8 @@ export interface Dictionary {
         ageInvalid: string;
         ageRange: string;
         phoneIncomplete: string;
+        phoneTaken: string;
+        serverError: string;
       };
     };
     otp: {

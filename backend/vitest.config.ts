@@ -23,7 +23,8 @@ export default defineConfig({
   test: {
     include: ["test/**/*.e2e-spec.ts"],
     globalSetup: ["test/global-setup.ts"],
-    env: { DATABASE_URL: testDatabaseUrl },
+    // To'lov sharti alohida testda yoqiladi (test/payments.e2e-spec.ts).
+    env: { DATABASE_URL: testDatabaseUrl, PAYMENT_ENFORCED: "false" },
     fileParallelism: false,
     testTimeout: 30_000,
     hookTimeout: 120_000,

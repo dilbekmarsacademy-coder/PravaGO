@@ -18,7 +18,7 @@ export class QuestionsService {
       include: { options: true, keywords: true, topic: { select: { slug: true } } },
     });
 
-    if (!question) {
+    if (!question || question.deletedAt) {
       throw new NotFoundException(`Savol topilmadi: ${questionId}`);
     }
     // Testga kirish huquqi bo'lmasa, javob ham tekshirilmaydi (video sharti va h.k.).
@@ -35,6 +35,11 @@ export class QuestionsService {
         `Savol #${question.order} uchun to'g'ri javob hali belgilanmagan (needsReview).`,
       );
     }
+
+    // Statistika uchun (eng ko'p xato qilinadigan savollar) — javobni sekinlatmaydi.
+    this.prisma.answerLog
+      .create({ data: { userId, questionId: question.id, correct: submittedOption.isCorrect } })
+      .catch(() => undefined);
 
     return new CheckAnswerResultDto(
       submittedOption.isCorrect,

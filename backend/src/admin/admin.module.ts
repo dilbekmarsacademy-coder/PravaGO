@@ -4,11 +4,15 @@ import { AdminAuthService } from "./admin-auth.service";
 import { AdminGuard, AdminProxyGuard } from "./admin.guard";
 import { AdminSessionMiddleware } from "./admin-session.middleware";
 import { AuditService } from "./audit.service";
+import { PaymentsModule } from "../payments/payments.module";
+import { AdminPaymentsController, AdminUsersController } from "./users/admin-users.controller";
+import { AdminUsersService } from "./users/admin-users.service";
 
 @Global()
 @Module({
-  controllers: [AdminAuthController, AdminAuditController],
-  providers: [AdminAuthService, AuditService, AdminGuard, AdminProxyGuard],
+  imports: [PaymentsModule],
+  controllers: [AdminAuthController, AdminAuditController, AdminUsersController, AdminPaymentsController],
+  providers: [AdminAuthService, AuditService, AdminGuard, AdminProxyGuard, AdminUsersService],
   exports: [AuditService, AdminGuard, AdminProxyGuard],
 })
 export class AdminModule implements NestModule {

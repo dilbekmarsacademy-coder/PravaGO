@@ -10,6 +10,8 @@ import { SavedModule } from "./saved/saved.module";
 import { LessonsModule } from "./lessons/lessons.module";
 import { KeywordsModule } from "./keywords/keywords.module";
 import { AdminModule } from "./admin/admin.module";
+import { AccessModule } from "./access/access.module";
+import { AccountModule } from "./account/account.module";
 
 @Module({
   imports: [
@@ -22,6 +24,7 @@ import { AdminModule } from "./admin/admin.module";
       },
     ]),
     PrismaModule,
+    AccessModule,
     TopicsModule,
     QuestionsModule,
     AuthModule,
@@ -29,6 +32,7 @@ import { AdminModule } from "./admin/admin.module";
     LessonsModule,
     KeywordsModule,
     AdminModule,
+    AccountModule,
   ],
   providers: [
     {

@@ -4,6 +4,7 @@ import { AuthGuard, CurrentUser } from "../auth/auth.guard";
 import type { SessionUser } from "../auth/auth.service";
 import { LessonIdParamDto, ReportProgressDto, type LessonStatusDto } from "./dto/lesson.dto";
 import { LessonsService } from "./lessons.service";
+import { AccessService } from "../access/access.service";
 
 // TODO(auth): hozircha "kabinetga kirgan foydalanuvchi" = anonim qurilma
 // sessiyasi (AuthGuard). Real login (telefon + OTP) qo'shilganda shu yerda
@@ -11,7 +12,10 @@ import { LessonsService } from "./lessons.service";
 @Controller("lessons")
 @UseGuards(AuthGuard)
 export class LessonsController {
-  constructor(private readonly lessons: LessonsService) {}
+  constructor(
+    private readonly lessons: LessonsService,
+    private readonly access: AccessService,
+  ) {}
 
   @Get()
   list(@CurrentUser() user: SessionUser): Promise<LessonStatusDto[]> {
@@ -24,7 +28,8 @@ export class LessonsController {
   }
 
   @Get(":lessonId/video")
-  video(@Param() params: LessonIdParamDto): { videoId: string } {
+  async video(@CurrentUser() user: SessionUser, @Param() params: LessonIdParamDto): Promise<{ videoId: string }> {
+    await this.access.assertCourseAccess(user.id);
     return this.lessons.video(params.lessonId);
   }
 

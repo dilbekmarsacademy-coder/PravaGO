@@ -18,7 +18,7 @@ export class KeywordsService {
   async list(userId: string, slug: string): Promise<KeywordListDto> {
     const topicId = await this.topicId(slug);
     const questions = await this.prisma.question.findMany({
-      where: { topicId },
+      where: { topicId, deletedAt: null },
       orderBy: { order: "asc" },
       include: {
         options: { orderBy: OPTION_ORDER },
@@ -49,7 +49,7 @@ export class KeywordsService {
   /** Idempotent: qayta belgilash/olib tashlash xato bermaydi. */
   async setReviewed(userId: string, slug: string, questionId: string, reviewed: boolean): Promise<ReviewResultDto> {
     const topicId = await this.topicId(slug);
-    const question = await this.prisma.question.findFirst({ where: { id: questionId, topicId }, select: { id: true } });
+    const question = await this.prisma.question.findFirst({ where: { id: questionId, topicId, deletedAt: null }, select: { id: true } });
     if (!question) throw new NotFoundException(`Savol topilmadi: ${questionId}`);
 
     if (reviewed) {
@@ -63,8 +63,8 @@ export class KeywordsService {
     }
 
     const [total, reviewedCount] = await Promise.all([
-      this.prisma.question.count({ where: { topicId } }),
-      this.prisma.keywordReview.count({ where: { userId, question: { topicId } } }),
+      this.prisma.question.count({ where: { topicId, deletedAt: null } }),
+      this.prisma.keywordReview.count({ where: { userId, question: { topicId, deletedAt: null } } }),
     ]);
     return { questionId, reviewed, total, reviewedCount };
   }

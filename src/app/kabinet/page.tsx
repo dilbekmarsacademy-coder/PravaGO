@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RotateCcwIcon, SparklesIcon, TriangleAlertIcon } from "lucide-react";
-import { getRegistration, clearRegistration, useRegistration } from "@/lib/registration-store";
+import { getRegistration, clearRegistration, syncAccount, useRegistration } from "@/lib/registration-store";
 import { getDashboardData, type DashboardData } from "@/lib/api/course";
 import { clearSessionToken } from "@/lib/api/session";
 import { resetSavedStore } from "@/lib/saved/store";
@@ -29,13 +29,26 @@ export default function KabinetPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const { t } = useLocale();
 
+  // Kirish huquqi serverdan (to'lov admin tomonidan tasdiqlangan bo'lishi kerak);
+  // tarmoq xatosida klientdagi oxirgi ma'lum holat ishlatiladi.
   useEffect(() => {
-    const record = getRegistration();
-    if (!record) {
-      router.replace("/");
-    } else if (record.status !== "active") {
-      router.replace("/tolov");
-    }
+    let cancelled = false;
+    syncAccount()
+      .then((me) => {
+        if (cancelled) return;
+        const local = getRegistration();
+        if (!me.registered && !local) router.replace("/");
+        else if (!me.access || !me.registered) router.replace("/tolov");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        const record = getRegistration();
+        if (!record) router.replace("/");
+        else if (record.status !== "active") router.replace("/tolov");
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   // Profilda saqlangan til (masalan, boshqa qurilmada tanlangan) cookie'dagidan ustun.
