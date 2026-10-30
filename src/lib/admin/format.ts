@@ -56,6 +56,22 @@ export function formatPhone(phone: string | null | undefined): string {
   return m ? `+998 ${m[1]} ${m[2]} ${m[3]} ${m[4]}` : phone;
 }
 
+/**
+ * Telefon maydoni: kiritilgan matndan +998 dan keyingi 9 ta raqam.
+ * "+998 90 123…" (maska bilan), "998901234567" yoki "901234567" (joylashtirilgan) — hammasi qabul qilinadi.
+ */
+export function phoneInputDigits(raw: string): string {
+  let digits = raw.replace(/\D/g, "");
+  if (digits.startsWith("998") && (/^\s*\+?\s*998/.test(raw) || digits.length > 9)) digits = digits.slice(3);
+  return digits.slice(0, 9);
+}
+
+/** 9 ta raqam → "+998 90 123 45 67" (to'liq bo'lmasa ham guruhlab). */
+export function formatPhoneInput(digits: string): string {
+  const groups = [digits.slice(0, 2), digits.slice(2, 5), digits.slice(5, 7), digits.slice(7, 9)].filter(Boolean);
+  return groups.length ? `+998 ${groups.join(" ")}` : "+998 ";
+}
+
 /** Video davomiyligi: 478 → "7:58", 3725 → "1:02:05". */
 export function formatClock(totalSec: number): string {
   const h = Math.floor(totalSec / 3600);

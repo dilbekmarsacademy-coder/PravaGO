@@ -7,7 +7,7 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { CheckIcon, CopyIcon, DownloadIcon, TriangleAlertIcon, XIcon } from "lucide-react";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { adminFetch, AdminApiError } from "@/lib/admin/api";
-import { formatPhone } from "@/lib/admin/format";
+import { formatPhone, formatPhoneInput, phoneInputDigits } from "@/lib/admin/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/shared/Button";
 import { Field, Spinner, TextArea, TextInput } from "@/components/admin/ui";
@@ -81,6 +81,34 @@ export function AdminDialog({
         <div className="mt-5">{children}</div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** +998 qotib turadi, faqat 9 ta raqam; "+998 90 123 45 67" ko'rinishida guruhlanadi. */
+function PhoneField({ digits, onChange }: { digits: string; onChange: (digits: string) => void }) {
+  return (
+    <Field label="Telefon raqami" hint={digits.length > 0 && digits.length < 9 ? `Yana ${9 - digits.length} ta raqam` : undefined}>
+      <TextInput
+        value={formatPhoneInput(digits)}
+        onChange={(e) => onChange(phoneInputDigits(e.target.value))}
+        // Joylashtirilgan raqam ("+998 (90) 123-45-67", "998901234567") — maska uzunligidan qat'i nazar to'liq olinadi.
+        onPaste={(e) => {
+          e.preventDefault();
+          onChange(phoneInputDigits(e.clipboardData.getData("text")));
+        }}
+        onFocus={(e) => {
+          const end = e.target.value.length;
+          requestAnimationFrame(() => e.target.setSelectionRange(end, end));
+        }}
+        placeholder="+998 90 123 45 67"
+        inputMode="numeric"
+        maxLength={17}
+        name="phone"
+        autoComplete="off"
+        className="font-mono"
+        data-testid="student-phone"
+      />
+    </Field>
   );
 }
 
@@ -231,6 +259,7 @@ export function CredentialsDialog({
 
 export function CreateStudentDialog({ open, onOpenChange, onCreated }: { open: boolean; onOpenChange: (open: boolean) => void; onCreated: (c: StudentCredentials) => void }) {
   const [phone, setPhone] = useState("");
+  const phoneReady = phone.length === 9;
   const [name, setName] = useState("");
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
@@ -244,7 +273,7 @@ export function CreateStudentDialog({ open, onOpenChange, onCreated }: { open: b
     setError(null);
     try {
       const created = await adminFetch<StudentCredentials>("students", {
-        json: { phone: phone.trim(), ...(name.trim() ? { name: name.trim() } : {}), ...(login.trim() ? { login: login.trim() } : {}), ...(password ? { password } : {}) },
+        json: { phone: `+998${phone}`, ...(name.trim() ? { name: name.trim() } : {}), ...(login.trim() ? { login: login.trim() } : {}), ...(password ? { password } : {}) },
       });
       setPhone("");
       setName("");
@@ -261,9 +290,7 @@ export function CreateStudentDialog({ open, onOpenChange, onCreated }: { open: b
   return (
     <AdminDialog open={open} onOpenChange={onOpenChange} title="O'quvchi qo'shish" description="Login va parol bo'sh qoldirilsa, tizim o'zi yaratadi.">
       <form onSubmit={submit} className="flex flex-col gap-4">
-        <Field label="Telefon raqami">
-          <TextInput value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+998 90 123 45 67" inputMode="tel" required name="phone" autoComplete="off" />
-        </Field>
+        <PhoneField digits={phone} onChange={setPhone} />
         <Field label="Ism familiya (ixtiyoriy)">
           <TextInput value={name} onChange={(e) => setName(e.target.value)} name="name" autoComplete="off" />
         </Field>
@@ -276,7 +303,7 @@ export function CreateStudentDialog({ open, onOpenChange, onCreated }: { open: b
           </Field>
         </div>
         <FormError message={error} />
-        <Button type="submit" disabled={busy || !phone.trim()} className="self-start" data-testid="student-create-submit">
+        <Button type="submit" disabled={busy || !phoneReady} className="self-start" data-testid="student-create-submit">
           {busy && <Spinner className="size-4 text-brand-foreground" />} Qo&apos;shish
         </Button>
       </form>
@@ -341,7 +368,7 @@ export function EditStudentDialog({ student, onClose, onSaved }: { student: Stud
 
 function EditStudentForm({ student, onSaved }: { student: StudentRow; onSaved: () => void }) {
   const [name, setName] = useState([student.firstName, student.lastName].filter(Boolean).join(" "));
-  const [phone, setPhone] = useState(student.phone ?? "");
+  const [phone, setPhone] = useState(phoneInputDigits(student.phone ?? ""));
   const [access, setAccess] = useState(student.centerAccess);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -352,7 +379,7 @@ function EditStudentForm({ student, onSaved }: { student: StudentRow; onSaved: (
     setBusy(true);
     setError(null);
     try {
-      await adminFetch(`students/${student.id}`, { method: "PATCH", json: { name: name.trim(), phone: phone.trim(), centerAccess: access } });
+      await adminFetch(`students/${student.id}`, { method: "PATCH", json: { name: name.trim(), phone: `+998${phone}`, centerAccess: access } });
       onSaved();
     } catch (err) {
       setError(errorText(err));
@@ -365,9 +392,7 @@ function EditStudentForm({ student, onSaved }: { student: StudentRow; onSaved: (
       <Field label="Ism familiya">
         <TextInput value={name} onChange={(e) => setName(e.target.value)} name="name" autoComplete="off" />
       </Field>
-      <Field label="Telefon raqami">
-        <TextInput value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" name="phone" autoComplete="off" />
-      </Field>
+      <PhoneField digits={phone} onChange={setPhone} />
       <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-3 text-sm">
         <input type="checkbox" checked={access} onChange={(e) => setAccess(e.target.checked)} className="mt-0.5 size-4 accent-[var(--brand)]" />
         <span>
@@ -379,7 +404,7 @@ function EditStudentForm({ student, onSaved }: { student: StudentRow; onSaved: (
         Login: <span className="font-mono">{student.login}</span> — o&apos;zgarmaydi. Parolni ro&apos;yxatdagi &quot;Parolni yangilash&quot; tugmasi bilan almashtiring.
       </p>
       <FormError message={error} />
-      <Button type="submit" disabled={busy} className="self-start">
+      <Button type="submit" disabled={busy || phone.length !== 9} className="self-start">
         {busy && <Spinner className="size-4 text-brand-foreground" />} Saqlash
       </Button>
     </form>
