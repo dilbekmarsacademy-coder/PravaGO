@@ -95,6 +95,19 @@ describe("admin login", () => {
     await login({ accessCode: TEST_ACCESS_CODE, login: target, password: PASSWORD }, "10.4.1.1").expect(429);
   });
 
+  it("bloklangan paytdagi urinishlar blokni uzaytirmaydi", async () => {
+    const target = "e2e-retry";
+    await createTestAdmin(prisma, target, PASSWORD);
+    for (let i = 0; i < 5; i++) await login({ accessCode: TEST_ACCESS_CODE, login: target, password: "bad" }, `10.5.0.${i + 1}`).expect(401);
+    for (let i = 0; i < 5; i++) await login({ accessCode: TEST_ACCESS_CODE, login: target, password: PASSWORD }, `10.5.1.${i + 1}`).expect(429);
+    // Haqiqiy xatolar oynadan chiqdi; faqat yangi "rate_limited" yozuvlar qoldi.
+    await prisma.adminLoginAttempt.updateMany({
+      where: { login: target, reason: { not: "rate_limited" } },
+      data: { createdAt: new Date(Date.now() - 16 * 60 * 1000) },
+    });
+    await login({ accessCode: TEST_ACCESS_CODE, login: target, password: PASSWORD }, "10.5.2.1").expect(200);
+  });
+
   it("parolni o'zgartirish: eski parol bilan kirib bo'lmaydi, boshqa sessiyalar yopiladi", async () => {
     const user = "e2e-changer";
     await createTestAdmin(prisma, user, PASSWORD);
