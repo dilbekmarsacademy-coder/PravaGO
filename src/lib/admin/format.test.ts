@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatClock, parseDuration } from "./format";
+import { formatClock, formatPhoneInput, parseDuration, phoneInputDigits } from "./format";
 
 describe("video davomiyligi", () => {
   it("formatlaydi", () => {
@@ -21,5 +21,25 @@ describe("video davomiyligi", () => {
     expect(parseDuration("7:75")).toBeNull();
     expect(parseDuration("7.5")).toBeNull();
     expect(parseDuration("1:2:3:4")).toBeNull();
+  });
+});
+
+describe("telefon maydoni", () => {
+  it("+998 dan keyingi 9 ta raqamni oladi", () => {
+    expect(phoneInputDigits("+998 90 123 45 67")).toBe("901234567");
+    expect(phoneInputDigits("+998901234567")).toBe("901234567");
+    expect(phoneInputDigits("998901234567")).toBe("901234567");
+    expect(phoneInputDigits("901234567")).toBe("901234567");
+    expect(phoneInputDigits("+998 90 123 45 67 89")).toBe("901234567");
+    expect(phoneInputDigits("+998 ")).toBe("");
+    expect(phoneInputDigits("+99")).toBe("99");
+    expect(phoneInputDigits("+998 99 8")).toBe("998");
+  });
+
+  it("guruhlab ko'rsatadi", () => {
+    expect(formatPhoneInput("")).toBe("+998 ");
+    expect(formatPhoneInput("90")).toBe("+998 90");
+    expect(formatPhoneInput("90123")).toBe("+998 90 123");
+    expect(formatPhoneInput("901234567")).toBe("+998 90 123 45 67");
   });
 });
