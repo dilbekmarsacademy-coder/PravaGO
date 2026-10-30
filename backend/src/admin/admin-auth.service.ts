@@ -56,8 +56,9 @@ export class AdminAuthService {
 
     const since = new Date(Date.now() - LOGIN_WINDOW_MS);
     const [ipFailures, loginFailures] = await Promise.all([
-      this.prisma.adminLoginAttempt.count({ where: { ip, success: false, createdAt: { gte: since } } }),
-      this.prisma.adminLoginAttempt.count({ where: { login, success: false, createdAt: { gte: since } } }),
+      // Bloklangan paytdagi urinishlar hisoblanmaydi — aks holda blok o'zini o'zi uzaytiradi.
+      this.prisma.adminLoginAttempt.count({ where: { ip, success: false, reason: { not: "rate_limited" }, createdAt: { gte: since } } }),
+      this.prisma.adminLoginAttempt.count({ where: { login, success: false, reason: { not: "rate_limited" }, createdAt: { gte: since } } }),
     ]);
     if (ipFailures >= LOGIN_MAX_FAILURES || loginFailures >= LOGIN_MAX_FAILURES) {
       await this.prisma.adminLoginAttempt.create({ data: { login, ip, success: false, reason: "rate_limited", userAgent: ua } });
