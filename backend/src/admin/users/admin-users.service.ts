@@ -35,7 +35,7 @@ export class AdminUsersService {
 
   private where(query: Pick<UsersQueryDto, "q" | "payment" | "activity">): Prisma.UserWhereInput {
     const since = new Date(Date.now() - ACTIVE_WINDOW_MS);
-    const and: Prisma.UserWhereInput[] = [{ registeredAt: { not: null } }];
+    const and: Prisma.UserWhereInput[] = [{ registeredAt: { not: null } }, { type: "SELF" }];
     if (query.q?.trim()) and.push(userSearch(query.q));
     if (query.payment === "paid") and.push({ paymentStatus: "PAID" });
     if (query.payment === "pending") and.push({ paymentStatus: "PENDING" });
@@ -171,6 +171,12 @@ export class AdminUsersService {
 
     return {
       id: user.id,
+      type: user.type,
+      login: user.login,
+      isActive: user.isActive,
+      centerAccess: user.centerAccess,
+      lastLoginAt: user.lastLoginAt,
+      lastDevice: user.lastDevice,
       firstName: user.firstName,
       lastName: user.lastName,
       phone: user.phone,
@@ -208,6 +214,7 @@ export class AdminUsersService {
     await this.prisma.$transaction(async (tx) => {
       const user = await tx.user.findUnique({
         where: { id },
+        omit: { passwordHash: true },
         include: { payments: { select: { id: true, amount: true, status: true, method: true, note: true, createdAt: true, confirmedAt: true } } },
       });
       if (!user) throw new NotFoundException("Foydalanuvchi topilmadi");

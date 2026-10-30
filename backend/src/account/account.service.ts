@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { normalizePhone } from "../common/phone";
 import { coursePrice } from "../common/prices";
-import { paymentEnforced } from "../access/access.service";
+import { computeCourseAccess, paymentEnforced } from "../access/access.service";
 import { syncUserPaymentStatus } from "../payments/payments.service";
 import type { RegisterDto } from "./account.dto";
 
@@ -18,6 +18,8 @@ export interface MeDto {
   /** Kurs kontentiga kirish (backend tekshiruvi bilan bir xil). */
   access: boolean;
   paymentRequired: boolean;
+  /** "CENTER" — markaz o'quvchisi (login + parol, bitta faol qurilma). */
+  type: "SELF" | "CENTER";
 }
 
 @Injectable()
@@ -46,8 +48,9 @@ export class AccountService {
         amount: user.payments[0]?.amount ?? coursePrice(user.examStatus),
         pendingSince: user.payments[0]?.createdAt ?? null,
       },
-      access: !paymentEnforced() || user.paymentStatus === "PAID",
-      paymentRequired: paymentEnforced(),
+      access: computeCourseAccess(user),
+      paymentRequired: user.type === "CENTER" ? false : paymentEnforced(),
+      type: user.type,
     };
   }
 
@@ -70,6 +73,8 @@ export class AccountService {
       });
     }
     const current = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    // Markaz o'quvchisining profilini admin boshqaradi.
+    if (current.type === "CENTER") return this.me(userId);
     try {
       await this.prisma.$transaction(async (tx) => {
         await tx.user.update({

@@ -147,6 +147,21 @@ model User {
   /// To'lovlar jadvalidan hisoblanadi (PaymentsService.syncUserPaymentStatus).
   paymentStatus     UserPaymentStatus  @default(NONE)
   accessGrantedAt   DateTime?          @db.Timestamptz(3)
+  /// SELF — o'zi ro'yxatdan o'tgan; CENTER — o'quv markaz o'quvchisi (admin yaratadi, login + parol).
+  type              UserType           @default(SELF)
+  /// Faqat CENTER: kirish logini (kichik harf, unique) va parol xeshi (argon2id).
+  login             String?            @unique @db.VarChar(40)
+  passwordHash      String?
+  /// Faolsiz akkaunt kira olmaydi, eski sessiyalari ham 401 oladi.
+  isActive          Boolean            @default(true)
+  /// Faqat CENTER: kursga to'liq kirish (to'lov qilgan bilan teng). Admin o'chirib-yoqadi.
+  centerAccess      Boolean            @default(true)
+  createdByAdminId  String?
+  lastLoginAt       DateTime?          @db.Timestamptz(3)
+  /// Faqat CENTER: yagona faol sessiya (Session.id). Boshqa sessiyalar 401 SESSION_REPLACED oladi.
+  activeSessionId   String?            @db.VarChar(64)
+  /// Oxirgi kirgan qurilma, masalan "Android · Chrome".
+  lastDevice        String?            @db.VarChar(80)
   sessions          Session[]
   examAttempts      ExamAttempt[]
   savedQuestions    SavedQuestion[]
@@ -159,6 +174,27 @@ model User {
 
   @@index([registeredAt])
   @@index([lastActiveAt])
+  @@index([type])
+}
+
+enum UserType {
+  SELF
+  CENTER
+}
+
+/// Markaz o'quvchisi kirish urinishi — rate limit (IP va login bo'yicha).
+model UserLoginAttempt {
+  id        String   @id @default(uuid())
+  login     String   @db.VarChar(100)
+  ip        String   @db.VarChar(100)
+  success   Boolean
+  /// "bad_credentials" | "inactive" | "rate_limited" | "ok"
+  reason    String   @db.VarChar(40)
+  userAgent String?  @db.VarChar(300)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([ip, createdAt])
+  @@index([login, createdAt])
 }
 
 enum UserPaymentStatus {

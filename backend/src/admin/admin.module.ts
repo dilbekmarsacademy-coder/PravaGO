@@ -15,12 +15,14 @@ import { LessonsModule } from "../lessons/lessons.module";
 import { AdminStatsController, CronController } from "./stats/stats.controller";
 import { StatsService } from "./stats/stats.service";
 import { AiAnalysisService } from "./stats/ai-analysis.service";
+import { AdminStudentsController } from "./students/students.controller";
+import { StudentsService } from "./students/students.service";
 
 @Global()
 @Module({
   imports: [PaymentsModule, LessonsModule],
-  controllers: [AdminAuthController, AdminAuditController, AdminUsersController, AdminPaymentsController, AdminContentController, AdminStatsController, CronController],
-  providers: [AdminAuthService, AuditService, AdminGuard, AdminProxyGuard, AdminUsersService, ContentService, QuestionEditorService, LessonEditorService, StatsService, AiAnalysisService],
+  controllers: [AdminAuthController, AdminAuditController, AdminUsersController, AdminPaymentsController, AdminContentController, AdminStatsController, CronController, AdminStudentsController],
+  providers: [AdminAuthService, AuditService, AdminGuard, AdminProxyGuard, AdminUsersService, ContentService, QuestionEditorService, LessonEditorService, StatsService, AiAnalysisService, StudentsService],
   exports: [AuditService, AdminGuard, AdminProxyGuard, QuestionEditorService],
 })
 export class AdminModule implements NestModule {
