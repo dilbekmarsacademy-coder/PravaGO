@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { parseCourseSlug } from "../../common/rules";
 import { editableDays } from "./content.config";
+import { findLessonIdForTopic } from "../../lessons/lessons.config";
 import { QuestionEditorService } from "./question-editor.service";
 
 export type QuestionFilter = "all" | "needsReview" | "noKeywords" | "noCorrect";
@@ -51,6 +52,7 @@ export class ContentService {
         needsReviewCount: t.questions.filter((q) => q.ruNeedsReview || q.keywords?.needsReview).length,
         noKeywordsCount: t.questions.filter((q) => !hasKeywords(q.keywords)).length,
         noCorrectCount: t.questions.filter((q) => q.options.length === 0).length,
+        hasVideo: findLessonIdForTopic(t.slug) !== undefined,
       });
       byDay.set(t.day, entry);
     }

@@ -11,6 +11,11 @@
 //   - `topicSlug` (ixtiyoriy, standart — lessonId) — shu darsdan keyin
 //     ochiladigan test banki (savollar endpointi dars ko'rilmaguncha 403).
 // Ro'yxatda yo'q dars (masalan day1-topic7) — "video hali olinmagan" holati.
+//
+// Admin panel (Kontent → mavzu → "Video dars") mavjud darsning videosi va
+// davomiyligini almashtira oladi: qiymat LessonVideo jadvaliga yoziladi va shu
+// ro'yxatdagidan ustun turadi (LessonCatalogService). Bu yerdagi qiymat —
+// "asl video".
 
 export interface LessonConfig {
   videoId: string;

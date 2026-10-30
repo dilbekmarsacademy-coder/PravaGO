@@ -1,8 +1,9 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Put, Query, UseGuards } from "@nestjs/common";
-import { IsIn, IsOptional, IsUUID, Matches } from "class-validator";
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query, UseGuards } from "@nestjs/common";
+import { IsIn, IsInt, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min } from "class-validator";
 import { AdminGuard, CurrentAdmin, RequestIp, RequirePermission } from "../admin.guard";
 import type { AdminUser } from "../admin-request";
 import { ContentService, type QuestionFilter } from "./content.service";
+import { LessonEditorService } from "./lesson-editor.service";
 import { QuestionEditorService } from "./question-editor.service";
 import { QuestionInputDto } from "./question-input.dto";
 
@@ -22,6 +23,18 @@ class FilterQuery {
   filter: QuestionFilter = "all";
 }
 
+class LessonInput {
+  /** YouTube havolasi yoki 11 belgili video ID. */
+  @IsString()
+  @MaxLength(300)
+  video: string;
+
+  @IsInt()
+  @Min(1)
+  @Max(6 * 60 * 60)
+  durationSec: number;
+}
+
 @Controller("admin")
 @UseGuards(AdminGuard)
 @RequirePermission("content")
@@ -29,6 +42,7 @@ export class AdminContentController {
   constructor(
     private readonly content: ContentService,
     private readonly editor: QuestionEditorService,
+    private readonly lessons: LessonEditorService,
   ) {}
 
   @Get("content/days")
@@ -39,6 +53,22 @@ export class AdminContentController {
   @Get("content/topics/:slug/questions")
   topicQuestions(@Param() params: SlugParam, @Query() query: FilterQuery) {
     return this.content.topicQuestions(params.slug, query.filter);
+  }
+
+  @Get("content/topics/:slug/lesson")
+  async lesson(@Param() params: SlugParam) {
+    // null JSON sifatida qaytishi uchun obyektga o'raladi.
+    return { lesson: await this.lessons.get(params.slug) };
+  }
+
+  @Put("content/topics/:slug/lesson")
+  updateLesson(@Param() params: SlugParam, @Body() body: LessonInput, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    return this.lessons.update(admin, ip, params.slug, body);
+  }
+
+  @Delete("content/topics/:slug/lesson")
+  resetLesson(@Param() params: SlugParam, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    return this.lessons.reset(admin, ip, params.slug);
   }
 
   @Get("questions/:id")

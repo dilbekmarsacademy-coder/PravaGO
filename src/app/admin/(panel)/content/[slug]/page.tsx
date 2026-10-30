@@ -4,6 +4,7 @@ import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeftIcon } from "lucide-react";
 import { adminFetch } from "@/lib/admin/api";
+import LessonPanel from "@/components/admin/LessonPanel";
 import QuestionList, { type QuestionSummary } from "@/components/admin/QuestionList";
 import { ErrorBlock, LoadingBlock, PageHeader, Panel, Tabs } from "@/components/admin/ui";
 
@@ -34,6 +35,7 @@ export default function AdminTopicPage({ params }: { params: Promise<{ slug: str
         <ArrowLeftIcon className="size-4" /> Kontent
       </Link>
       <PageHeader title={data ? (data.topic.title !== slug ? data.topic.title : data.topic.titleCyrl ?? slug) : slug} subtitle={<span className="font-mono">{slug}{data ? ` · ${data.total} savol` : ""}</span>} />
+      <LessonPanel slug={slug} />
       <Tabs
         className="mb-4"
         value={filter}

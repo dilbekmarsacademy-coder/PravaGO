@@ -11,7 +11,8 @@ import { adminHeaders, configureAdminEnv, createTestAdmin } from "./helpers/admi
 // 6-kun savolini tahrirlash: validatsiya, kalit so'z diapazonlari, audit va
 // foydalanuvchi API'sida to'g'ri javob/kalit so'z yashirinligi.
 const SLUG = "day6-topic99";
-const LOCKED_SLUG = "day1-topic99";
+// Kurs kunlari (1–7) hammasi ochiq; kursda yo'q kun — yopiq.
+const LOCKED_SLUG = "day9-topic99";
 const ADMIN = "e2e-content";
 const PASSWORD = "Content-Admin-123";
 
@@ -84,7 +85,7 @@ describe("admin kontent", () => {
     await http().put(`/admin/questions/${questionId}`).send(body()).expect(403);
   });
 
-  it("6-kun ochiq, 1-kun yopiq (ADMIN_EDITABLE_DAYS)", async () => {
+  it("kurs kunlari ochiq, kursdan tashqari kun yopiq (ADMIN_EDITABLE_DAYS)", async () => {
     await http().get(`/admin/questions/${lockedQuestionId}`).set(admin).expect(403);
     await http().get(`/admin/content/topics/${LOCKED_SLUG}/questions`).set(admin).expect(403);
     const res = await http().get(`/admin/content/topics/${SLUG}/questions?filter=needsReview`).set(admin).expect(200);
