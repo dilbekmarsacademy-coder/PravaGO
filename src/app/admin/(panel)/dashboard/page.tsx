@@ -11,6 +11,7 @@ type Range = "today" | "7d" | "30d";
 interface Dashboard {
   active: { dau: number; wau: number; mau: number };
   registrations: { inRange: number; total: number };
+  userTypes?: { self: { inRange: number; total: number }; center: { addedInRange: number; total: number; loggedInRange: number } };
   payments: { confirmedInRange: number; paidUsersTotal: number; pending: number };
   conversion: { registeredInRange: number; paidOfThem: number; percent: number };
   sessions: { count: number; avgSec: number };
@@ -19,7 +20,11 @@ interface Dashboard {
   mostSolved: { slug: string; title: string; attempts: number; avgPercent: number; passRate: number }[];
   abandoned: { slug: string; title: string; started: number; finished: number; abandoned: number }[];
   topWrong: { questionId: string; topicSlug: string; order: number; text: string; answers: number; wrong: number; wrongRate: number }[];
-  funnel: { registered: number; days: { day: number; started: number; completed: number }[] };
+  funnel: {
+    registered: number;
+    registeredByType?: { self: number; center: number };
+    days: { day: number; started: number; completed: number; center?: { started: number; completed: number }; self?: { started: number; completed: number } }[];
+  };
 }
 
 const DEVICE: Record<string, string> = { mobile: "Telefon", tablet: "Planshet", desktop: "Kompyuter" };
@@ -74,7 +79,11 @@ export default function AdminDashboardPage() {
             <StatCard label="DAU" value={formatNumber(data.active.dau)} hint="oxirgi 24 soat" tone="brand" />
             <StatCard label="WAU" value={formatNumber(data.active.wau)} hint="oxirgi 7 kun" />
             <StatCard label="MAU" value={formatNumber(data.active.mau)} hint="oxirgi 30 kun" />
-            <StatCard label="Yangi ro'yxat" value={formatNumber(data.registrations.inRange)} hint={`jami ${formatNumber(data.registrations.total)}`} />
+            <StatCard
+              label="Yangi ro'yxat"
+              value={formatNumber(data.userTypes?.self.inRange ?? data.registrations.inRange)}
+              hint={`yangi foydalanuvchilar · jami ${formatNumber(data.userTypes?.self.total ?? data.registrations.total)}`}
+            />
             <StatCard
               label="To'lov qilganlar"
               value={formatNumber(data.payments.confirmedInRange)}
@@ -83,6 +92,19 @@ export default function AdminDashboardPage() {
             />
             <StatCard label="O'rtacha sessiya" value={formatDuration(data.sessions.avgSec)} hint={`${formatNumber(data.sessions.count)} sessiya`} />
           </div>
+
+          {data.userTypes && (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3" data-testid="user-types">
+              <StatCard label="Jami foydalanuvchilar" value={formatNumber(data.userTypes.self.total + data.userTypes.center.total)} hint="markaz o'quvchilari + yangi foydalanuvchilar" />
+              <StatCard
+                label="Markaz o'quvchilari"
+                value={formatNumber(data.userTypes.center.total)}
+                hint={`davrda qo'shilgan ${formatNumber(data.userTypes.center.addedInRange)} · kirgan ${formatNumber(data.userTypes.center.loggedInRange)}`}
+                tone="brand"
+              />
+              <StatCard label="Yangi foydalanuvchilar" value={formatNumber(data.userTypes.self.total)} hint={`davrda ro'yxatdan o'tgan ${formatNumber(data.userTypes.self.inRange)}`} />
+            </div>
+          )}
 
           <div className="grid gap-6 lg:grid-cols-2">
             <Panel title="Tashrifchilar">
@@ -100,9 +122,14 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <Panel title={`Kunlar bo'yicha voronka (ro'yxatdan o'tgan: ${data.funnel.registered})`}>
+            <Panel
+              title={`Kunlar bo'yicha voronka (jami: ${data.funnel.registered}${data.funnel.registeredByType ? ` · markaz ${data.funnel.registeredByType.center} · yangi ${data.funnel.registeredByType.self}` : ""})`}
+            >
               <HBars
-                rows={data.funnel.days.flatMap((d) => [{ label: `${d.day}-kun boshlagan`, value: d.started }, { label: `${d.day}-kun tugatgan`, value: d.completed }])}
+                rows={data.funnel.days.flatMap((d) => [
+                  { label: `${d.day}-kun boshlagan${d.center ? ` (markaz ${d.center.started} · yangi ${d.self?.started ?? 0})` : ""}`, value: d.started },
+                  { label: `${d.day}-kun tugatgan${d.center ? ` (markaz ${d.center.completed} · yangi ${d.self?.completed ?? 0})` : ""}`, value: d.completed },
+                ])}
               />
             </Panel>
             <Panel title="Qurilma turi">

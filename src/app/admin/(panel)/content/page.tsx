@@ -23,7 +23,7 @@ export default function AdminContentPage() {
 
   return (
     <>
-      <PageHeader title="Kontent" subtitle="Kunlar → mavzular. Mavzuni ochib, videoni, savollarni, rasmlarni, javoblarni va kalit so'zlarni o'zgartiring." />
+      <PageHeader title="Kontent" subtitle="Kunlar → mavzular. Mavzuni ochib, videoni, savollarni, rasmlarni, javoblarni va kalit so'zlarni o'zgartiring. Har bir kunning 1-mavzusi har doim ochiq — oldingi kunni tugatish shart emas (oy o'rtasidan qo'shilganlar istalgan kundan boshlaydi)." />
       {error && <ErrorBlock message={error} />}
       {!days ? (
         <LoadingBlock />
@@ -44,6 +44,7 @@ export default function AdminContentPage() {
                         <span className="font-mono text-xs text-muted-foreground">{t.order}.</span> {t.title !== t.slug ? t.title : t.titleCyrl ?? t.slug}
                       </p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
+                        {t.order === 1 && <Badge tone="success">har doim ochiq</Badge>}
                         {t.hasVideo && <Badge tone="brand">video</Badge>}
                         <Badge>{t.questionCount} savol</Badge>
                         {t.needsReviewCount > 0 && <Badge tone="warning">{t.needsReviewCount} tekshirilmagan</Badge>}

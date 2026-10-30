@@ -39,14 +39,21 @@ export class StatsService {
       this.distinctVisitors(new Date(now - 30 * DAY_MS)),
     ]);
 
-    const [registered, registeredTotal, paidInRange, paidTotal, pendingPayments, registeredPaid] = await Promise.all([
-      this.prisma.user.count({ where: { registeredAt: { gte: since } } }),
-      this.prisma.user.count({ where: { registeredAt: { not: null } } }),
-      this.prisma.payment.count({ where: { status: "CONFIRMED", confirmedAt: { gte: since } } }),
-      this.prisma.user.count({ where: { paymentStatus: "PAID" } }),
-      this.prisma.payment.count({ where: { status: "PENDING" } }),
-      this.prisma.user.count({ where: { registeredAt: { gte: since }, paymentStatus: "PAID" } }),
-    ]);
+    // Markaz o'quvchilari (CENTER) to'lov qilmaydi — konversiya faqat o'zi ro'yxatdan o'tganlar (SELF) bo'yicha.
+    const [registered, registeredTotal, paidInRange, paidTotal, pendingPayments, registeredPaid, selfInRange, selfTotal, centerInRange, centerTotal, centerLoggedIn] =
+      await Promise.all([
+        this.prisma.user.count({ where: { registeredAt: { gte: since } } }),
+        this.prisma.user.count({ where: { registeredAt: { not: null } } }),
+        this.prisma.payment.count({ where: { status: "CONFIRMED", confirmedAt: { gte: since } } }),
+        this.prisma.user.count({ where: { paymentStatus: "PAID" } }),
+        this.prisma.payment.count({ where: { status: "PENDING" } }),
+        this.prisma.user.count({ where: { type: "SELF", registeredAt: { gte: since }, paymentStatus: "PAID" } }),
+        this.prisma.user.count({ where: { type: "SELF", registeredAt: { gte: since } } }),
+        this.prisma.user.count({ where: { type: "SELF", registeredAt: { not: null } } }),
+        this.prisma.user.count({ where: { type: "CENTER", createdAt: { gte: since } } }),
+        this.prisma.user.count({ where: { type: "CENTER" } }),
+        this.prisma.user.count({ where: { type: "CENTER", lastLoginAt: { gte: since } } }),
+      ]);
 
     const session = await this.prisma.$queryRaw<{ avg: number | null; sessions: bigint }[]>`
       SELECT AVG(d) AS avg, COUNT(*) AS sessions FROM (
@@ -136,8 +143,12 @@ export class StatsService {
       generatedAt: new Date(now),
       active: { dau, wau, mau },
       registrations: { inRange: registered, total: registeredTotal },
+      userTypes: {
+        self: { inRange: selfInRange, total: selfTotal },
+        center: { addedInRange: centerInRange, total: centerTotal, loggedInRange: centerLoggedIn },
+      },
       payments: { confirmedInRange: paidInRange, paidUsersTotal: paidTotal, pending: pendingPayments },
-      conversion: { registeredInRange: registered, paidOfThem: registeredPaid, percent: registered ? Math.round((registeredPaid / registered) * 100) : 0 },
+      conversion: { registeredInRange: selfInRange, paidOfThem: registeredPaid, percent: selfInRange ? Math.round((registeredPaid / selfInRange) * 100) : 0 },
       sessions: { count: n(session[0]?.sessions), avgSec: Math.round(n(session[0]?.avg)) },
       series: {
         bucket,
@@ -154,29 +165,39 @@ export class StatsService {
 
   /** Kunlar bo'yicha voronka: kunni boshlagan (kamida bitta urinish) va to'liq o'tgan ro'yxatdagi foydalanuvchilar. */
   private async funnel(topics: Awaited<ReturnType<typeof loadCourseTopics>>) {
-    const best = await this.prisma.$queryRaw<{ userId: string; topicId: string; best: number }[]>(Prisma.sql`
-      SELECT a."userId", a."topicId", MAX(a.percent) AS best
+    const best = await this.prisma.$queryRaw<{ userId: string; type: "SELF" | "CENTER"; topicId: string; best: number }[]>(Prisma.sql`
+      SELECT a."userId", u.type::text AS type, a."topicId", MAX(a.percent) AS best
       FROM "TopicTestAttempt" a JOIN "User" u ON u.id = a."userId"
-      WHERE u."registeredAt" IS NOT NULL GROUP BY 1, 2`);
+      WHERE u."registeredAt" IS NOT NULL GROUP BY 1, 2, 3`);
     const days = [...new Set(topics.map((t) => t.day))].sort((a, b) => a - b);
-    const byUser = new Map<string, Map<string, number>>();
+    const byUser = new Map<string, { type: "SELF" | "CENTER"; best: Map<string, number> }>();
     for (const row of best) {
-      const m = byUser.get(row.userId) ?? new Map<string, number>();
-      m.set(row.topicId, n(row.best));
-      byUser.set(row.userId, m);
+      const entry = byUser.get(row.userId) ?? { type: row.type, best: new Map<string, number>() };
+      entry.best.set(row.topicId, n(row.best));
+      byUser.set(row.userId, entry);
     }
-    const registered = await this.prisma.user.count({ where: { registeredAt: { not: null } } });
+    const [registered, registeredCenter] = await Promise.all([
+      this.prisma.user.count({ where: { registeredAt: { not: null } } }),
+      this.prisma.user.count({ where: { registeredAt: { not: null }, type: "CENTER" } }),
+    ]);
     return {
       registered,
+      registeredByType: { self: registered - registeredCenter, center: registeredCenter },
       days: days.map((day) => {
         const ids = topics.filter((t) => t.day === day).map((t) => t.id);
-        let started = 0;
-        let completed = 0;
-        for (const m of byUser.values()) {
-          if (ids.some((id) => m.has(id))) started++;
-          if (ids.every((id) => (m.get(id) ?? -1) >= PASS_PERCENT)) completed++;
+        const counts = { started: 0, completed: 0, center: { started: 0, completed: 0 }, self: { started: 0, completed: 0 } };
+        for (const { type, best: m } of byUser.values()) {
+          const group = type === "CENTER" ? counts.center : counts.self;
+          if (ids.some((id) => m.has(id))) {
+            counts.started++;
+            group.started++;
+          }
+          if (ids.every((id) => (m.get(id) ?? -1) >= PASS_PERCENT)) {
+            counts.completed++;
+            group.completed++;
+          }
         }
-        return { day, started, completed };
+        return { day, ...counts };
       }),
     };
   }

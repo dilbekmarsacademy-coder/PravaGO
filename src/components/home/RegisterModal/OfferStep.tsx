@@ -4,14 +4,16 @@ import { useState } from "react";
 import { DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { GraduationCapIcon } from "lucide-react";
 import { useLocale } from "@/lib/i18n/useLocale";
 
 interface OfferStepProps {
   stepLabel: string;
   onAccept: () => void;
+  onCenterLogin?: () => void;
 }
 
-export default function OfferStep({ stepLabel, onAccept }: OfferStepProps) {
+export default function OfferStep({ stepLabel, onAccept, onCenterLogin }: OfferStepProps) {
   const [checked, setChecked] = useState(false);
   const { t } = useLocale();
 
@@ -69,6 +71,21 @@ export default function OfferStep({ stepLabel, onAccept }: OfferStepProps) {
       >
         {t.registerModal.offer.cta}
       </Button>
+
+      {onCenterLogin && (
+        <div className="flex flex-col gap-2 border-t border-border pt-4">
+          <span className="text-xs text-muted-foreground">{t.centerLogin.buttonHint}</span>
+          <button
+            type="button"
+            onClick={onCenterLogin}
+            data-testid="center-login-open-modal"
+            className="inline-flex items-center gap-2 self-start rounded-full border border-neon-cyan/40 px-5 py-2 text-sm font-semibold text-foreground transition-colors hover:border-neon-cyan hover:text-neon-cyan"
+          >
+            <GraduationCapIcon className="size-4 text-neon-cyan" />
+            {t.centerLogin.button}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

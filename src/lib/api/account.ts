@@ -13,6 +13,8 @@ export interface Me {
   payment: { status: PaymentState; amount: number; pendingSince: string | null };
   access: boolean;
   paymentRequired: boolean;
+  /** "CENTER" — o'quv markaz o'quvchisi (login + parol, bitta faol qurilma). */
+  type?: "SELF" | "CENTER";
 }
 
 export interface RegisterInput {

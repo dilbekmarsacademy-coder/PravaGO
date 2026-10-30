@@ -13,8 +13,8 @@ Markdown ishlat: qisqa sarlavhalar va ro'yxatlar.`;
 
 const REPORT_PROMPT = `Quyidagi statistika asosida hisobot yoz. Bo'limlar:
 1. Foydalanish darajasi (DAU/WAU/MAU, sessiya vaqti, qurilmalar).
-2. Ro'yxatdan o'tish va to'lov konversiyasi.
-3. Qayerda tashlab ketishyapti (kunlar voronkasi, tugatilmagan testlar).
+2. Foydalanuvchilar: markaz o'quvchilari (userTypes.center — to'lov qilmaydi, admin qo'shadi) va yangi foydalanuvchilar (userTypes.self) alohida; umumiy son; yangi foydalanuvchilarning to'lov konversiyasi.
+3. Qayerda tashlab ketishyapti (kunlar voronkasi — center/self alohida, tugatilmagan testlar).
 4. Qaysi mavzu va savollar qiyin (eng ko'p xato).
 5. Aniq takliflar (3–6 ta, har biri amalga oshirsa bo'ladigan qadam).`;
 

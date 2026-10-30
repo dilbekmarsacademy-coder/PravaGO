@@ -14,7 +14,7 @@ export class AuthGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const req = context.switchToHttp().getRequest<RequestWithUser>();
     if (!req.user) {
-      throw new UnauthorizedException("Sessiya topilmadi yoki muddati tugagan");
+      throw new UnauthorizedException({ statusCode: 401, code: "SESSION_INVALID", message: "Sessiya topilmadi yoki muddati tugagan" });
     }
     return true;
   }

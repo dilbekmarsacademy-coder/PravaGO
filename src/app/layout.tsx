@@ -4,6 +4,7 @@ import Script from "next/script";
 import type { ReactNode } from "react";
 import { Toaster } from "@/components/shared/Toast";
 import AnalyticsTracker from "@/components/shared/AnalyticsTracker";
+import CenterSessionWatcher from "@/components/shared/CenterSessionWatcher";
 import "./globals.css";
 
 const THEME_INIT_SCRIPT = `(function () {
@@ -77,6 +78,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         {children}
         <Toaster />
         <AnalyticsTracker />
+        <CenterSessionWatcher />
       </body>
     </html>
   );

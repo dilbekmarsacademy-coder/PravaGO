@@ -20,6 +20,8 @@ interface RegisterModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   examStatus: ExamStatus | null;
+  /** "Men shu yerda o'qiyman" — markaz o'quvchisi kirishiga o'tish. */
+  onCenterLogin?: () => void;
 }
 
 const INITIAL_FORM_DATA: RegisterFormData = {
@@ -34,6 +36,7 @@ export default function RegisterModal({
   open,
   onOpenChange,
   examStatus,
+  onCenterLogin,
 }: RegisterModalProps) {
   const [step, setStep] = useState<ModalStep>("offer");
   const [formData, setFormData] = useState<RegisterFormData>(INITIAL_FORM_DATA);
@@ -93,7 +96,7 @@ export default function RegisterModal({
           className="animate-in fade-in slide-in-from-right-4 p-6 duration-300 sm:p-8"
         >
           {step === "offer" && (
-            <OfferStep stepLabel={stepLabel} onAccept={handleOfferAccept} />
+            <OfferStep stepLabel={stepLabel} onAccept={handleOfferAccept} onCenterLogin={onCenterLogin} />
           )}
           {step === "status" && (
             <StatusStep

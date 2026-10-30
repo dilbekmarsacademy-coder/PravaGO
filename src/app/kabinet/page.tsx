@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { RotateCcwIcon, SparklesIcon, TriangleAlertIcon } from "lucide-react";
+import { LockIcon, RotateCcwIcon, SparklesIcon, TriangleAlertIcon } from "lucide-react";
 import { getRegistration, clearRegistration, syncAccount, useRegistration } from "@/lib/registration-store";
 import { getDashboardData, type DashboardData } from "@/lib/api/course";
-import { clearSessionToken } from "@/lib/api/session";
+import { clearSessionToken, isCenterSession } from "@/lib/api/session";
+import { logoutSession } from "@/lib/api/center";
 import { resetSavedStore } from "@/lib/saved/store";
 import { applyLocale, useLocale } from "@/lib/i18n/useLocale";
 import { buildCourseState } from "@/lib/progress/unlock";
@@ -27,6 +28,8 @@ export default function KabinetPage() {
   const registration = useRegistration();
   const [dataState, setDataState] = useState<DataState>("loading");
   const [data, setData] = useState<DashboardData | null>(null);
+  // Markaz o'quvchisi, lekin admin kursga kirishni o'chirgan (to'lov sahifasi unga tegishli emas).
+  const [centerBlocked, setCenterBlocked] = useState(false);
   const { t } = useLocale();
 
   // Kirish huquqi serverdan (to'lov admin tomonidan tasdiqlangan bo'lishi kerak);
@@ -38,6 +41,7 @@ export default function KabinetPage() {
         if (cancelled) return;
         const local = getRegistration();
         if (!me.registered && !local) router.replace("/");
+        else if (me.type === "CENTER" && !me.access) setCenterBlocked(true);
         else if (!me.access || !me.registered) router.replace("/tolov");
       })
       .catch(() => {
@@ -81,12 +85,33 @@ export default function KabinetPage() {
     loadData();
   }
 
-  function handleLogout() {
+  async function handleLogout() {
+    // Markaz o'quvchisi: serverdagi yagona faol sessiya ham bo'shatiladi.
+    if (isCenterSession()) await logoutSession();
     clearRegistration();
     // Keyingi foydalanuvchi oldingisining saqlanganlarini ko'rmasligi uchun.
     clearSessionToken();
     resetSavedStore();
     router.push("/");
+  }
+
+  if (centerBlocked) {
+    return (
+      <main className="flex min-h-dvh items-center justify-center bg-background px-4">
+        <Card className="flex w-full max-w-md flex-col items-center gap-4 p-8 text-center" data-testid="center-access-disabled">
+          <span className="flex size-14 items-center justify-center rounded-full bg-warning/15 text-warning">
+            <LockIcon className="size-6" />
+          </span>
+          <div>
+            <h1 className="font-display text-lg font-bold text-foreground">{t.centerLogin.accessDisabled.title}</h1>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{t.centerLogin.accessDisabled.desc}</p>
+          </div>
+          <button type="button" onClick={handleLogout} className={buttonClasses({ variant: "secondary", size: "md" })}>
+            {t.kabinet.header.logout}
+          </button>
+        </Card>
+      </main>
+    );
   }
 
   if (!registration || registration.status !== "active") {
