@@ -187,7 +187,7 @@ export interface Dictionary {
       dayTitle: (day: number) => string;
       dayQuestions: (count: number) => string;
       dayProgressAria: (day: number) => string;
-      status: { completed: string; current: string; locked: string };
+      status: { completed: string; current: string; locked: string; firstTopicOpen: string };
     };
     topic: {
       testNo: (testNo: number) => string;
@@ -471,5 +471,38 @@ export interface Dictionary {
       startTest: string;
       backToTopic: string;
     };
+  };
+
+  /** "Men shu yerda o'qiyman" — o'quv markaz o'quvchisi kirishi. */
+  centerLogin: {
+    button: string;
+    buttonHint: string;
+    title: string;
+    desc: string;
+    phone: string;
+    phonePlaceholder: string;
+    login: string;
+    loginPlaceholder: string;
+    password: string;
+    showPassword: string;
+    hidePassword: string;
+    oneDeviceNote: string;
+    submit: string;
+    submitting: string;
+    errors: {
+      phoneIncomplete: string;
+      required: string;
+      invalid: string;
+      rateLimited: string;
+      inactive: string;
+      network: string;
+      server: string;
+    };
+    kicked: {
+      replaced: string;
+      revoked: string;
+      inactive: string;
+    };
+    accessDisabled: { title: string; desc: string };
   };
 }

@@ -121,8 +121,16 @@ describe("getTopicStage", () => {
 describe("isTopicUnlocked", () => {
   const dayTopics = [topic("t1", "d1"), topic("t2", "d1"), topic("t3", "d1")];
 
-  it("locks every topic when the day itself is locked", () => {
-    expect(isTopicUnlocked(dayTopics[0], dayTopics, {}, false)).toBe(false);
+  it("keeps the first topic open even when the day itself is locked", () => {
+    expect(isTopicUnlocked(dayTopics[0], dayTopics, {}, false)).toBe(true);
+  });
+
+  it("locks the other topics of a locked day, even when earlier topics are completed", () => {
+    const progressByTopicId = {
+      t1: { topicId: "t1", videoWatched: true, pdfOpened: true, attempts: [{ percent: 100, date: "2026-01-01" }] },
+    };
+    expect(isTopicUnlocked(dayTopics[1], dayTopics, progressByTopicId, false)).toBe(false);
+    expect(isTopicUnlocked(dayTopics[2], dayTopics, progressByTopicId, false)).toBe(false);
   });
 
   it("unlocks the first topic of an unlocked day with no progress needed", () => {
@@ -184,10 +192,14 @@ describe("isFinalExamUnlocked", () => {
 describe("buildCourseState (new user)", () => {
   const state = buildCourseState(COURSE_DAYS, TOPICS_WITH_CONTENT, MOCK_TOPIC_PROGRESS, MOCK_EXAM_PROGRESS);
 
-  it("starts with nothing completed and only the first topic of day 1 open", () => {
+  it("starts with nothing completed and only the first topic of every day open", () => {
     const topics = state.days.flatMap((d) => d.topics);
     expect(topics.some((t) => t.completed)).toBe(false);
-    expect(topics.filter((t) => t.unlocked).map((t) => t.topic.id)).toEqual(["day1-topic1"]);
+    const firstTopics = state.days.filter((d) => d.topics.length > 0).map((d) => d.topics[0].topic.id);
+    expect(firstTopics).toContain("day3-topic1");
+    expect(topics.filter((t) => t.unlocked).map((t) => t.topic.id)).toEqual(firstTopics);
+    // Kunlarning o'zi (2-mavzudan boshlab) hali qulflangan.
+    expect(state.days.filter((d) => d.unlocked).map((d) => d.day.number)).toEqual([1]);
     expect(state.continueTarget?.topic.topic.id).toBe("day1-topic1");
   });
 });

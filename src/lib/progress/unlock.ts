@@ -67,9 +67,15 @@ export function getTopicStage(progress: TopicProgress | undefined): TopicStage {
   return "test";
 }
 
+/** Har bir kunning 1-mavzusi oldingi kun/mavzu shartisiz ochiq (oy o'rtasidan qo'shilganlar istalgan kundan boshlay oladi). */
+export function isDayEntryTopic(topic: Topic, dayTopics: Topic[]): boolean {
+  return dayTopics.findIndex((t) => t.id === topic.id) <= 0;
+}
+
 /**
- * Mavzu ochiqmi: kunning birinchi mavzusi (kun ochiq bo'lsa) YOKI oldingi
- * barcha mavzular tugagan (yoki "Tez orada") bo'lsa. `dayTopics` — shu kunning mavzulari, kun ichidagi
+ * Mavzu ochiqmi: kunning birinchi mavzusi — HAR DOIM (oldingi kun tugaganidan
+ * qat'i nazar); qolganlari — kun ochiq VA kun ichidagi oldingi barcha mavzular
+ * tugagan (yoki "Tez orada") bo'lsa. `dayTopics` — shu kunning mavzulari, kun ichidagi
  * tartibda (masalan `day.topicIds` bo'yicha) berilishi kerak.
  */
 export function isTopicUnlocked(
@@ -78,11 +84,10 @@ export function isTopicUnlocked(
   progressByTopicId: ProgressByTopicId,
   dayUnlocked: boolean,
 ): boolean {
+  if (isDayEntryTopic(topic, dayTopics)) return true;
   if (!dayUnlocked) return false;
 
   const index = dayTopics.findIndex((t) => t.id === topic.id);
-  if (index <= 0) return true;
-
   return dayTopics.slice(0, index).every((t) => isTopicPassable(t, progressByTopicId));
 }
 

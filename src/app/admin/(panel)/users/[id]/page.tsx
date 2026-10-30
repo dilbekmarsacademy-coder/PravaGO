@@ -32,6 +32,12 @@ interface TopicResult {
 
 interface UserDetail {
   id: string;
+  type?: "SELF" | "CENTER";
+  login?: string | null;
+  isActive?: boolean;
+  centerAccess?: boolean;
+  lastLoginAt?: string | null;
+  lastDevice?: string | null;
   firstName: string | null;
   lastName: string | null;
   phone: string | null;
@@ -86,12 +92,12 @@ export default function AdminUserPage({ params }: { params: Promise<{ id: string
 
   return (
     <>
-      <Link href="/admin/users" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand">
+      <Link href={data.type === "SELF" ? "/admin/users?tab=self" : "/admin/users"} className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand">
         <ArrowLeftIcon className="size-4" /> Foydalanuvchilar
       </Link>
       <PageHeader title={fullName(data)} subtitle={<span className="font-mono">{formatPhone(data.phone)}</span>} actions={
           <>
-            <UserPaymentBadge status={data.paymentStatus} />
+            {data.type === "CENTER" ? <Badge tone="brand">markaz o&apos;quvchisi</Badge> : <UserPaymentBadge status={data.paymentStatus} />}
             <DeleteButton label="Foydalanuvchini o'chirish" confirmLabel="Ha, butunlay o'chirish" onDelete={remove} testId="user-delete" />
           </>
         }
@@ -107,6 +113,23 @@ export default function AdminUserPage({ params }: { params: Promise<{ id: string
       <div className="mb-6 grid gap-6 lg:grid-cols-2">
         <Panel title="Shaxsiy ma'lumot">
           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+            <dt className="text-muted-foreground">Turi</dt>
+            <dd>{data.type === "CENTER" ? "Shu yerda o'qiydi (markaz o'quvchisi)" : "Yangi foydalanuvchi (o'zi ro'yxatdan o'tgan)"}</dd>
+            {data.type === "CENTER" && (
+              <>
+                <dt className="text-muted-foreground">Login</dt>
+                <dd className="font-mono">{data.login}</dd>
+                <dt className="text-muted-foreground">Holat</dt>
+                <dd>
+                  {data.isActive ? "faol" : "faolsiz"} · kirish {data.centerAccess ? "to'liq" : "o'chirilgan"}
+                </dd>
+                <dt className="text-muted-foreground">Oxirgi kirish</dt>
+                <dd>
+                  {formatDateTime(data.lastLoginAt)}
+                  {data.lastDevice ? ` · ${data.lastDevice}` : ""}
+                </dd>
+              </>
+            )}
             <dt className="text-muted-foreground">Ism, familiya</dt>
             <dd>{fullName(data)}</dd>
             <dt className="text-muted-foreground">Telefon</dt>

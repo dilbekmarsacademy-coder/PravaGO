@@ -35,6 +35,11 @@ export default function DayCard({ dayState, expanded, onToggle }: DayCardProps) 
     <Badge tone="brand">
       {labels.status.current}
     </Badge>
+  ) : topics[0]?.unlocked ? (
+    // Kun hali to'liq ochilmagan, lekin 1-mavzusi har doim ochiq.
+    <Badge tone="brand">
+      {labels.status.firstTopicOpen}
+    </Badge>
   ) : (
     <Badge tone="muted">
       <LockIcon className="size-3" /> {labels.status.locked}

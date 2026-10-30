@@ -1,13 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { RocketIcon } from "lucide-react";
+import { GraduationCapIcon, RocketIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/lib/i18n/useLocale";
 import HeroBackground from "./HeroBackground";
 
 interface HeroProps {
   onStart: () => void;
+  /** "Men shu yerda o'qiyman" — o'quv markaz o'quvchisi kirishi. */
+  onCenterLogin: () => void;
 }
 
 const container = {
@@ -27,7 +29,7 @@ const item = {
   },
 };
 
-export default function Hero({ onStart }: HeroProps) {
+export default function Hero({ onStart, onCenterLogin }: HeroProps) {
   const { t } = useLocale();
 
   return (
@@ -89,6 +91,19 @@ export default function Hero({ onStart }: HeroProps) {
           >
             {t.hero.ctaSecondary}
           </a>
+        </motion.div>
+
+        <motion.div variants={item} className="mt-6 flex flex-col items-center gap-1.5">
+          <button
+            type="button"
+            onClick={onCenterLogin}
+            data-testid="center-login-open"
+            className="glass inline-flex items-center gap-2 rounded-full border border-neon-cyan/40 px-5 py-2.5 text-sm font-semibold text-foreground transition-colors hover:border-neon-cyan hover:text-neon-cyan"
+          >
+            <GraduationCapIcon className="size-4 text-neon-cyan" />
+            {t.centerLogin.button}
+          </button>
+          <span className="text-xs text-muted-foreground">{t.centerLogin.buttonHint}</span>
         </motion.div>
 
         <motion.p
