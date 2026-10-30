@@ -47,6 +47,9 @@ export const metadata: Metadata = {
   title: "PravaTayyor — Haydovchilik imtihoniga tayyorgarlik",
   description:
     "Respublika miqyosidagi onlayn haydovchilik (prava) imtihoniga tayyorgarlik platformasi.",
+  // Brauzer tarjimasi (Chrome/Google Translate) DOM'dagi matnlarni o'zgartiradi
+  // va React birinchi yangilanishda qulaydi — oq ekran. Sayt o'zi 3 tilda.
+  other: { google: "notranslate" },
 };
 
 export const viewport: Viewport = {
@@ -60,8 +63,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="uz"
+      translate="no"
       suppressHydrationWarning
-      className={`h-full ${onest.variable} ${jetbrainsMono.variable}`}
+      className={`notranslate h-full ${onest.variable} ${jetbrainsMono.variable}`}
     >
       <body className="flex min-h-full flex-col bg-background font-sans text-foreground antialiased">
         <Script id="theme-init" strategy="beforeInteractive">
