@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatClock, formatPhoneInput, parseDuration, phoneInputDigits } from "./format";
+import { formatClock, formatPhoneInput, normalizeUzPhone, parseBulkPhones, parseDuration, phoneInputDigits } from "./format";
 
 describe("video davomiyligi", () => {
   it("formatlaydi", () => {
@@ -41,5 +41,29 @@ describe("telefon maydoni", () => {
     expect(formatPhoneInput("90")).toBe("+998 90");
     expect(formatPhoneInput("90123")).toBe("+998 90 123");
     expect(formatPhoneInput("901234567")).toBe("+998 90 123 45 67");
+  });
+});
+
+describe("ommaviy qo'shish: telefon qatorlari", () => {
+  it("to'g'ri formatlarni qabul qiladi", () => {
+    for (const raw of ["+998 90 123 45 67", "+998901234567", "998901234567", "901234567", "90 123-45-67", "+998 (90) 123-45-67", "(90) 123 45 67"]) {
+      expect(normalizeUzPhone(raw)).toBe("+998901234567");
+    }
+  });
+
+  it("noto'g'ri raqamlarni rad etadi", () => {
+    for (const raw of ["12345", "9012345678", "90123456", "+7 901 234 56 78", "+90 123 45 67 89", "998 90 123 45 6", "90abc1234567", "Ali 901234567", "99890123456789"]) {
+      expect(normalizeUzPhone(raw)).toBeNull();
+    }
+  });
+
+  it("qator raqami, xato va takroriy qatorlarni ajratadi", () => {
+    const lines = parseBulkPhones("+998 90 123 45 67\n\n12345\n901234567\n93 111 22 33\n");
+    expect(lines).toEqual([
+      { line: 1, raw: "+998 90 123 45 67", status: "ok", phone: "+998901234567" },
+      { line: 3, raw: "12345", status: "invalid" },
+      { line: 4, raw: "901234567", status: "duplicate", phone: "+998901234567", firstLine: 1 },
+      { line: 5, raw: "93 111 22 33", status: "ok", phone: "+998931112233" },
+    ]);
   });
 });
