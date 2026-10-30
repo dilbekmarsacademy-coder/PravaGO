@@ -55,3 +55,21 @@ export function formatPhone(phone: string | null | undefined): string {
   const m = /^\+998(\d{2})(\d{3})(\d{2})(\d{2})$/.exec(phone);
   return m ? `+998 ${m[1]} ${m[2]} ${m[3]} ${m[4]}` : phone;
 }
+
+/** Video davomiyligi: 478 → "7:58", 3725 → "1:02:05". */
+export function formatClock(totalSec: number): string {
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}
+
+/** "7:58", "1:02:05" yoki "478" → soniya; noto'g'ri bo'lsa null. */
+export function parseDuration(value: string): number | null {
+  const parts = value.trim().split(":");
+  if (parts.length > 3 || parts.some((p) => !/^\d+$/.test(p))) return null;
+  const nums = parts.map(Number);
+  if (nums.slice(1).some((n) => n >= 60)) return null;
+  const sec = nums.reduce((acc, n) => acc * 60 + n, 0);
+  return sec > 0 ? sec : null;
+}

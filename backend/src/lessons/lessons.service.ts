@@ -3,7 +3,8 @@ import type { LessonProgress } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AccessService } from "../access/access.service";
 import type { LessonStatusDto, ReportProgressDto } from "./dto/lesson.dto";
-import { LESSONS, findLesson, findLessonIdForTopic, lessonTopicSlug, type LessonConfig } from "./lessons.config";
+import { LessonCatalogService } from "./lesson-catalog.service";
+import { findLessonIdForTopic, lessonTopicSlug, type LessonConfig } from "./lessons.config";
 
 /**
  * "Ko'rildi": eng uzoq ko'rilgan nuqta davomiylikning shu qismidan kam emas
@@ -53,29 +54,30 @@ export class LessonsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: AccessService,
+    private readonly catalog: LessonCatalogService,
   ) {}
 
-  private getLesson(lessonId: string): LessonConfig {
-    const lesson = findLesson(lessonId);
+  private async getLesson(lessonId: string): Promise<LessonConfig> {
+    const lesson = await this.catalog.get(lessonId);
     if (!lesson) throw new NotFoundException({ statusCode: 404, code: "LESSON_NOT_FOUND", message: "Dars topilmadi" });
     return lesson;
   }
 
   async status(userId: string, lessonId: string): Promise<LessonStatusDto> {
-    const lesson = this.getLesson(lessonId);
+    const lesson = await this.getLesson(lessonId);
     const row = await this.prisma.lessonProgress.findUnique({ where: { userId_lessonId: { userId, lessonId } } });
     return toStatus(lessonId, lesson, row ?? EMPTY_PROGRESS);
   }
 
   /** Barcha darslar holati — kabinetdagi mavzular ro'yxati uchun (bitta so'rov). */
   async list(userId: string): Promise<LessonStatusDto[]> {
-    const rows = await this.prisma.lessonProgress.findMany({ where: { userId } });
+    const [rows, lessons] = await Promise.all([this.prisma.lessonProgress.findMany({ where: { userId } }), this.catalog.all()]);
     const byId = new Map(rows.map((row) => [row.lessonId, row]));
-    return Object.keys(LESSONS).map((id) => toStatus(id, LESSONS[id], byId.get(id) ?? EMPTY_PROGRESS));
+    return Object.keys(lessons).map((id) => toStatus(id, lessons[id], byId.get(id) ?? EMPTY_PROGRESS));
   }
 
-  video(lessonId: string): { videoId: string } {
-    return { videoId: this.getLesson(lessonId).videoId };
+  async video(lessonId: string): Promise<{ videoId: string }> {
+    return { videoId: (await this.getLesson(lessonId)).videoId };
   }
 
   /**
@@ -86,7 +88,7 @@ export class LessonsService {
    * tezlikdagi ko'rishdan tezroq "ko'rildi" qilib bo'lmaydi.
    */
   async reportProgress(userId: string, lessonId: string, report: ReportProgressDto): Promise<LessonStatusDto> {
-    const lesson = this.getLesson(lessonId);
+    const lesson = await this.getLesson(lessonId);
     const key = { userId_lessonId: { userId, lessonId } };
     const now = new Date();
 

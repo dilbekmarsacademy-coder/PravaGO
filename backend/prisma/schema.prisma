@@ -243,6 +243,17 @@ model LessonProgress {
   @@unique([userId, lessonId])
 }
 
+/// Admin panelda almashtirilgan video dars. Standart qiymat —
+/// src/lessons/lessons.config.ts (LESSONS); shu yerda yozuv bo'lsa, u ustun.
+/// Faqat LESSONS'dagi darslar uchun (yangi dars qo'shish — kod orqali).
+model LessonVideo {
+  lessonId    String   @id @db.VarChar(64)
+  videoId     String   @db.VarChar(32)
+  durationSec Int
+  updatedById String?
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+}
+
 /// Mavzu testi natijasi. Foiz serverda hisoblanadi (yuborilgan javoblar bazadagi
 /// to'g'ri javoblar bilan solishtiriladi) — kabinetdagi 98% qoidasi shunga tayanadi.
 model TopicTestAttempt {

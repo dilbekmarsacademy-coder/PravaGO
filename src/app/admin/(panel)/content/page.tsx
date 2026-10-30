@@ -10,7 +10,7 @@ import { ErrorBlock, LoadingBlock, PageHeader, Panel } from "@/components/admin/
 interface DayInfo {
   day: number;
   editable: boolean;
-  topics: { slug: string; order: number; title: string; titleCyrl: string | null; questionCount: number; needsReviewCount: number; noKeywordsCount: number; noCorrectCount: number }[];
+  topics: { slug: string; order: number; title: string; titleCyrl: string | null; questionCount: number; needsReviewCount: number; noKeywordsCount: number; noCorrectCount: number; hasVideo: boolean }[];
 }
 
 export default function AdminContentPage() {
@@ -23,7 +23,7 @@ export default function AdminContentPage() {
 
   return (
     <>
-      <PageHeader title="Kontent" subtitle="Kunlar → mavzular → savollar. Hozircha tahrirlash uchun faqat ochiq kunlar." />
+      <PageHeader title="Kontent" subtitle="Kunlar → mavzular. Mavzuni ochib, videoni, savollarni, rasmlarni, javoblarni va kalit so'zlarni o'zgartiring." />
       {error && <ErrorBlock message={error} />}
       {!days ? (
         <LoadingBlock />
@@ -44,6 +44,7 @@ export default function AdminContentPage() {
                         <span className="font-mono text-xs text-muted-foreground">{t.order}.</span> {t.title !== t.slug ? t.title : t.titleCyrl ?? t.slug}
                       </p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
+                        {t.hasVideo && <Badge tone="brand">video</Badge>}
                         <Badge>{t.questionCount} savol</Badge>
                         {t.needsReviewCount > 0 && <Badge tone="warning">{t.needsReviewCount} tekshirilmagan</Badge>}
                         {t.noKeywordsCount > 0 && <Badge tone="muted">{t.noKeywordsCount} kalit so&apos;zsiz</Badge>}
