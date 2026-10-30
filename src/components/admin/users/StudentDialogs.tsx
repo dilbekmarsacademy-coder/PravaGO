@@ -7,10 +7,14 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { CheckIcon, CopyIcon, DownloadIcon, TriangleAlertIcon, XIcon } from "lucide-react";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { adminFetch, AdminApiError } from "@/lib/admin/api";
-import { formatPhone, formatPhoneInput, phoneInputDigits } from "@/lib/admin/format";
+import { formatPhone, formatPhoneInput, parseBulkPhones, phoneInputDigits } from "@/lib/admin/format";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/shared/Badge";
 import { Button } from "@/components/shared/Button";
 import { Field, Spinner, TextArea, TextInput } from "@/components/admin/ui";
+
+/** Backend'dagi BULK_MAX bilan bir xil. */
+const BULK_MAX = 200;
 
 export interface StudentCredentials {
   id: string;
@@ -323,19 +327,30 @@ export function BulkStudentsDialog({
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const lines = text.split(/\r?\n/);
-  const count = lines.filter((l) => l.trim()).length;
+  const lines = parseBulkPhones(text);
+  const valid = lines.filter((l) => l.status === "ok");
+  const invalid = lines.filter((l) => l.status === "invalid");
+  const duplicates = lines.filter((l) => l.status === "duplicate");
+  const hasProblems = invalid.length + duplicates.length > 0;
+  const tooMany = valid.length > BULK_MAX;
+
+  /** Xato va takroriy qatorlarni olib tashlab, to'g'rilarini +998 XX XXX XX XX ko'rinishiga keltiradi. */
+  function cleanUp() {
+    setText(valid.map((l) => formatPhone(l.phone)).join("\n"));
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (busy || count === 0) return;
-    if (lines.length > 200) return setError("Bir martada ko'pi bilan 200 qator");
+    if (busy || valid.length === 0 || hasProblems || tooMany) return;
     setBusy(true);
     setError(null);
     try {
-      const result = await adminFetch<{ created: StudentCredentials[]; errors: { line: number; value: string; message: string }[] }>("students/bulk", { json: { phones: lines } });
+      const result = await adminFetch<{ created: StudentCredentials[]; errors: { line: number; value: string; message: string }[] }>("students/bulk", {
+        json: { phones: valid.map((l) => l.phone) },
+      });
       setText("");
-      onCreated(result);
+      // Backend xatolari (masalan raqam band) yuborilgan ro'yxat tartibida — asl qator raqamiga qaytaramiz.
+      onCreated({ ...result, errors: result.errors.map((err) => ({ ...err, line: valid[err.line - 1]?.line ?? err.line })) });
     } catch (err) {
       setError(errorText(err));
     } finally {
@@ -344,15 +359,52 @@ export function BulkStudentsDialog({
   }
 
   return (
-    <AdminDialog open={open} onOpenChange={onOpenChange} title="Ommaviy qo'shish" description="Har bir qatorga bitta telefon raqami. Login va parollar avtomatik yaratiladi.">
+    <AdminDialog open={open} onOpenChange={onOpenChange} title="Ommaviy qo'shish" description="Har bir qatorga bitta telefon raqami. Login va parollar avtomatik yaratiladi." wide>
       <form onSubmit={submit} className="flex flex-col gap-4">
-        <Field label="Telefon raqamlari" hint={`${count} ta raqam`}>
-          <TextArea value={text} onChange={(e) => setText(e.target.value)} rows={8} placeholder={"+998 90 123 45 67\n901234568\n998 93 111 22 33"} className="font-mono" name="phones" />
+        <Field label="Telefon raqamlari" hint="Qabul qilinadi: +998 90 123 45 67, 998901234567 yoki 901234567">
+          <TextArea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={8}
+            placeholder={"+998 90 123 45 67\n901234568\n998 93 111 22 33"}
+            className="font-mono"
+            name="phones"
+            data-testid="bulk-phones"
+          />
         </Field>
+
+        {lines.length > 0 && (
+          <div className="flex flex-col gap-2" data-testid="bulk-preview">
+            <p className="flex flex-wrap items-center gap-1.5 text-sm">
+              <Badge tone="success">{valid.length} ta to&apos;g&apos;ri</Badge>
+              {invalid.length > 0 && <Badge tone="danger">{invalid.length} ta noto&apos;g&apos;ri</Badge>}
+              {duplicates.length > 0 && <Badge tone="warning">{duplicates.length} ta takroriy</Badge>}
+            </p>
+            {hasProblems && (
+              <div className="rounded-xl border border-danger/30 bg-danger/5 p-3 text-sm">
+                <ul className="flex max-h-40 flex-col gap-1 overflow-y-auto font-mono text-xs">
+                  {lines
+                    .filter((l) => l.status !== "ok")
+                    .map((l) => (
+                      <li key={l.line} className={l.status === "invalid" ? "text-danger" : "text-warning"}>
+                        {l.line}-qator: {l.raw} — {l.status === "invalid" ? "raqam noto'g'ri (+998 dan keyin 9 ta raqam bo'lishi kerak)" : `takroriy (${l.firstLine}-qatorda bor)`}
+                      </li>
+                    ))}
+                </ul>
+                <Button size="sm" variant="secondary" className="mt-2" onClick={cleanUp} data-testid="bulk-cleanup">
+                  Xatolarni olib tashlash
+                </Button>
+              </div>
+            )}
+            {tooMany && <p className="text-sm text-danger">Bir martada ko&apos;pi bilan {BULK_MAX} ta raqam qo&apos;shish mumkin.</p>}
+          </div>
+        )}
+
         <FormError message={error} />
-        <Button type="submit" disabled={busy || count === 0} className="self-start">
-          {busy && <Spinner className="size-4 text-brand-foreground" />} {count || ""} ta o&apos;quvchini qo&apos;shish
+        <Button type="submit" disabled={busy || valid.length === 0 || hasProblems || tooMany} className="self-start" data-testid="bulk-submit">
+          {busy && <Spinner className="size-4 text-brand-foreground" />} {valid.length || ""} ta o&apos;quvchini qo&apos;shish
         </Button>
+        {hasProblems && <p className="-mt-2 text-xs text-muted-foreground">Avval noto&apos;g&apos;ri va takroriy qatorlarni tuzating yoki olib tashlang.</p>}
       </form>
     </AdminDialog>
   );

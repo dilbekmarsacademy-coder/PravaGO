@@ -66,6 +66,44 @@ export function phoneInputDigits(raw: string): string {
   return digits.slice(0, 9);
 }
 
+/**
+ * Bitta qatordagi telefon (ommaviy qo'shish) → "+998XXXXXXXXX" yoki null.
+ * Backend'dagi normalizePhone bilan bir xil qoida: 9 ta raqam yoki 998 + 9 ta raqam;
+ * harf yoki boshqa belgilar bo'lsa — noto'g'ri.
+ */
+export function normalizeUzPhone(raw: string): string | null {
+  const value = raw.trim();
+  if (!/^[\d\s+()\-.]+$/.test(value)) return null;
+  let digits = value.replace(/\D/g, "");
+  if (digits.length === 12 && digits.startsWith("998")) digits = digits.slice(3);
+  if (value.includes("+") && !/^\+\s*\(?\s*998/.test(value)) return null;
+  return /^\d{9}$/.test(digits) ? `+998${digits}` : null;
+}
+
+export type BulkPhoneLine =
+  | { line: number; raw: string; status: "ok"; phone: string }
+  | { line: number; raw: string; status: "invalid" }
+  | { line: number; raw: string; status: "duplicate"; phone: string; firstLine: number };
+
+/** Ommaviy qo'shish matni → har bir (bo'sh bo'lmagan) qatorning holati. */
+export function parseBulkPhones(text: string): BulkPhoneLine[] {
+  const seen = new Map<string, number>();
+  const out: BulkPhoneLine[] = [];
+  text.split(/\r?\n/).forEach((rawLine, index) => {
+    const raw = rawLine.trim();
+    if (!raw) return;
+    const line = index + 1;
+    const phone = normalizeUzPhone(raw);
+    if (!phone) out.push({ line, raw, status: "invalid" });
+    else if (seen.has(phone)) out.push({ line, raw, status: "duplicate", phone, firstLine: seen.get(phone)! });
+    else {
+      seen.set(phone, line);
+      out.push({ line, raw, status: "ok", phone });
+    }
+  });
+  return out;
+}
+
 /** 9 ta raqam → "+998 90 123 45 67" (to'liq bo'lmasa ham guruhlab). */
 export function formatPhoneInput(digits: string): string {
   const groups = [digits.slice(0, 2), digits.slice(2, 5), digits.slice(5, 7), digits.slice(7, 9)].filter(Boolean);
