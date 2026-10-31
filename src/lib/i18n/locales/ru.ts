@@ -363,6 +363,13 @@ export const ru: Dictionary = {
     finishModalUnanswered: (unanswered) =>
       `Без ответа: ${unanswered} ${questionWord(unanswered)}. Они будут засчитаны как ошибки.`,
     finishModalAllAnswered: "Вы ответили на все вопросы.",
+    finishModalRemaining: "Осталось времени",
+    finishModalResult: "Текущий результат",
+    finishModalResultValue: (correct, total, percent) => `${correct} из ${total} верно · ${percent}%`,
+    finishConfirm: "Да, завершить",
+    nextTopic: "Перейти к следующей теме",
+    autoNext: (seconds) => `Следующая тема откроется через ${seconds} с`,
+    stayHere: "Остаться здесь",
     timeLeft: "Осталось времени",
     timeRunningOut: "Время заканчивается!",
     timeUp: "Время вышло!",

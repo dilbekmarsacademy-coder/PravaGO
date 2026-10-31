@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COURSE_TOPICS } from "@/data/curriculum";
+import { COURSE_TOPICS, nextCourseTopic } from "@/data/curriculum";
 import { withTestAttempts } from "./course";
 
 describe("withTestAttempts", () => {
@@ -18,5 +18,14 @@ describe("withTestAttempts", () => {
     expect(byId.get("day1-topic1")).toMatchObject({ videoWatched: true, attempts: [{ percent: 97 }, { percent: 100 }] });
     expect(byId.get("day1-topic2")?.attempts).toEqual([{ percent: 31, date: "2026-10-23T12:00:00.000Z" }]);
     expect(progress).toHaveLength(2);
+  });
+});
+
+describe("nextCourseTopic", () => {
+  it("kun ichida keyingi mavzu, kun oxirida keyingi kunning 1-mavzusi", () => {
+    expect(nextCourseTopic({ id: "day6-topic1" })?.id).toBe("day6-topic2");
+    expect(nextCourseTopic({ id: "day5-topic8" })?.id).toBe("day6-topic1");
+    expect(nextCourseTopic({ id: "day6-topic7" })).toBeUndefined();
+    expect(nextCourseTopic({ id: "yoq" })).toBeUndefined();
   });
 });

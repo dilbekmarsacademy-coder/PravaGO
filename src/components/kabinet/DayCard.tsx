@@ -31,7 +31,8 @@ export default function DayCard({ dayState, expanded, onToggle }: DayCardProps) 
     <Badge tone="success">
       <CheckIcon className="size-3" /> {labels.status.completed}
     </Badge>
-  ) : unlocked ? (
+  ) : unlocked || topics.some((topic) => topic.completed) ? (
+    // Oldingi kunlar tugagan yoki o'quvchi shu kunni boshlagan (istalgan kundan boshlash mumkin).
     <Badge tone="brand">
       {labels.status.current}
     </Badge>
@@ -54,7 +55,7 @@ export default function DayCard({ dayState, expanded, onToggle }: DayCardProps) 
   const isOpen = canExpand && expanded;
 
   return (
-    <Card className={cn("overflow-hidden", !unlocked && "opacity-80")}>
+    <Card className={cn("overflow-hidden", !unlocked && !topics.some((topic) => topic.completed) && "opacity-80")}>
       <button
         type="button"
         onClick={canExpand ? onToggle : undefined}
