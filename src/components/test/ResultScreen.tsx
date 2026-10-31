@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useReducedMotion } from "framer-motion";
-import { AlarmClockOffIcon, CheckIcon, RotateCcwIcon, TargetIcon, XIcon } from "lucide-react";
+import { AlarmClockOffIcon, ArrowRightIcon, CheckIcon, RotateCcwIcon, TargetIcon, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/shared/Badge";
 import { Button, buttonClasses } from "@/components/shared/Button";
@@ -28,14 +28,19 @@ interface ResultScreenProps {
   questions: ApiQuestion[];
   answers: Record<number, ResultAnswer>;
   elapsedSec: number;
+  /** To'liq mavzu testi o'tilganda ochiladigan keyingi mavzu (bo'lmasa null). */
+  nextHref?: string | null;
   onRestart: () => void;
   onRetryWrong: (questionIds: string[]) => void;
 }
 
+/** O'tilgan testdan keyin keyingi mavzuga avtomatik o'tish (soniya). */
+const AUTO_NEXT_SEC = 10;
+
 const RING_RADIUS = 52;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
-export function ResultScreen({ reason, mode, questions, answers, elapsedSec, onRestart, onRetryWrong }: ResultScreenProps) {
+export function ResultScreen({ reason, mode, questions, answers, elapsedSec, nextHref, onRestart, onRetryWrong }: ResultScreenProps) {
   const { locale, t } = useLocale();
   const total = questions.length;
   const correct = questions.filter((_, i) => answers[i]?.result?.correct).length;
@@ -105,6 +110,8 @@ export function ResultScreen({ reason, mode, questions, answers, elapsedSec, onR
         <Stat label={t.testSession.unansweredLabel} value={String(unanswered)} tone="muted" />
         <Stat label={t.testSession.timeSpent} value={formatClock(elapsedSec)} tone="muted" />
       </dl>
+
+      {passed && nextHref && <NextTopicCard href={nextHref} />}
 
       <div className="flex flex-col gap-2.5 sm:flex-row">
         <Button
@@ -274,5 +281,44 @@ function Confetti() {
         />
       ))}
     </div>
+  );
+}
+
+/**
+ * Test o'tildi (biror urinishda PASS_PERCENT dan yuqori) — keyingi mavzu ochiq.
+ * AUTO_NEXT_SEC soniyadan keyin o'zi o'tadi; "Shu yerda qolish" sanoqni to'xtatadi.
+ */
+function NextTopicCard({ href }: { href: string }) {
+  const router = useRouter();
+  const { t } = useLocale();
+  const [left, setLeft] = useState<number | null>(AUTO_NEXT_SEC);
+
+  useEffect(() => {
+    if (left === null) return;
+    if (left <= 0) {
+      router.push(href);
+      return;
+    }
+    const id = setTimeout(() => setLeft((v) => (v === null ? null : v - 1)), 1000);
+    return () => clearTimeout(id);
+  }, [left, href, router]);
+
+  return (
+    <Card className="flex flex-col items-center gap-3 border-success/40 px-5 py-4 text-center sm:flex-row sm:text-left" data-testid="next-topic">
+      <p className="flex-1 text-sm text-foreground" data-testid="next-topic-countdown">
+        {left !== null ? t.testSession.autoNext(left) : t.testSession.passed}
+      </p>
+      <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row">
+        {left !== null && (
+          <Button variant="ghost" size="md" onClick={() => setLeft(null)}>
+            {t.testSession.stayHere}
+          </Button>
+        )}
+        <Link href={href} className={buttonClasses({ variant: "primary", size: "md", className: "w-full sm:w-auto" })} data-testid="next-topic-link">
+          {t.testSession.nextTopic}
+          <ArrowRightIcon className="size-4" />
+        </Link>
+      </div>
+    </Card>
   );
 }

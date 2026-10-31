@@ -161,3 +161,20 @@ export const COURSE_TOPICS: Topic[] = CURRICULUM.filter((d) => !d.isFinalExam).f
     questionCount: t.questionCount,
   })),
 );
+
+/**
+ * Kurs tartibidagi keyingi mavzu (kun ichida, kun tugasa — keyingi kunning
+ * 1-mavzusi); video yoki testi yo'q ("Tez orada") mavzular o'tkazib yuboriladi.
+ */
+export function nextCourseTopic(topic: Pick<Topic, "id">): Topic | undefined {
+  const ids = COURSE_DAYS.filter((d) => !d.isFinalExam)
+    .sort((a, b) => a.number - b.number)
+    .flatMap((d) => d.topicIds);
+  const index = ids.indexOf(topic.id);
+  if (index < 0) return undefined;
+  for (const id of ids.slice(index + 1)) {
+    const next = COURSE_TOPICS.find((t) => t.id === id);
+    if (next && (next.testSlug || next.lessonId)) return next;
+  }
+  return undefined;
+}

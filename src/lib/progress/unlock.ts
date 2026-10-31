@@ -73,27 +73,28 @@ export function isDayEntryTopic(topic: Topic, dayTopics: Topic[]): boolean {
 }
 
 /**
- * Mavzu ochiqmi: kunning birinchi mavzusi — HAR DOIM (oldingi kun tugaganidan
- * qat'i nazar); qolganlari — kun ochiq VA kun ichidagi oldingi barcha mavzular
- * tugagan (yoki "Tez orada") bo'lsa. `dayTopics` — shu kunning mavzulari, kun ichidagi
- * tartibda (masalan `day.topicIds` bo'yicha) berilishi kerak.
+ * Mavzu ochiqmi: kunning 1-mavzusi — har doim; qolganlari — shu kun ichidagi
+ * oldingi barcha mavzular tugagan (test bo'lsa — biror urinishda PASS_PERCENT
+ * dan yuqori) yoki "Tez orada" bo'lsa. Oldingi KUNLAR tugaganmi — ahamiyatsiz:
+ * istalgan kundan boshlagan o'quvchi shu kunni oxirigacha ketma-ket o'ta oladi.
+ * `dayTopics` — shu kunning mavzulari, kun ichidagi tartibda (`day.topicIds` bo'yicha).
+ * `_dayUnlocked` — eski chaqiruvlar bilan moslik uchun (qaror qabul qilishda ishlatilmaydi).
  */
 export function isTopicUnlocked(
   topic: Topic,
   dayTopics: Topic[],
   progressByTopicId: ProgressByTopicId,
-  dayUnlocked: boolean,
+  _dayUnlocked?: boolean,
 ): boolean {
+  void _dayUnlocked;
   if (isDayEntryTopic(topic, dayTopics)) return true;
-  if (!dayUnlocked) return false;
-
   const index = dayTopics.findIndex((t) => t.id === topic.id);
   return dayTopics.slice(0, index).every((t) => isTopicPassable(t, progressByTopicId));
 }
 
 /**
- * Kun ochiqmi: 1-kun YOKI oldingi kunning barcha mavzulari tugagan (yoki
- * "Tez orada") bo'lsa.
+ * Kun "joriy"mi (kabinetdagi belgi uchun): 1-kun YOKI oldingi kunning barcha
+ * mavzulari tugagan (yoki "Tez orada") bo'lsa. Mavzularni qulflamaydi — qarang: isTopicUnlocked.
  * `days` kamida shu kun va undan oldingi kunlarni o'z ichiga olishi kerak.
  */
 export function isDayUnlocked(

@@ -125,12 +125,19 @@ describe("isTopicUnlocked", () => {
     expect(isTopicUnlocked(dayTopics[0], dayTopics, {}, false)).toBe(true);
   });
 
-  it("locks the other topics of a locked day, even when earlier topics are completed", () => {
+  it("opens the next topic of a not-yet-reached day once the earlier topics of that day are passed", () => {
     const progressByTopicId = {
       t1: { topicId: "t1", videoWatched: true, pdfOpened: true, attempts: [{ percent: 100, date: "2026-01-01" }] },
     };
-    expect(isTopicUnlocked(dayTopics[1], dayTopics, progressByTopicId, false)).toBe(false);
+    expect(isTopicUnlocked(dayTopics[1], dayTopics, progressByTopicId, false)).toBe(true);
     expect(isTopicUnlocked(dayTopics[2], dayTopics, progressByTopicId, false)).toBe(false);
+  });
+
+  it("counts any attempt at or above PASS_PERCENT, not the average", () => {
+    const progressByTopicId = {
+      t1: { topicId: "t1", videoWatched: true, pdfOpened: true, attempts: [{ percent: 20, date: "2026-01-01" }, { percent: 40, date: "2026-01-02" }, { percent: PASS_PERCENT, date: "2026-01-03" }] },
+    };
+    expect(isTopicUnlocked(dayTopics[1], dayTopics, progressByTopicId, false)).toBe(true);
   });
 
   it("unlocks the first topic of an unlocked day with no progress needed", () => {
@@ -349,5 +356,25 @@ describe("buildCourseState (all days completed)", () => {
     expect(state.allRegularDaysCompleted).toBe(true);
     expect(state.finalExamUnlocked).toBe(true);
     expect(state.continueTarget).toBeNull();
+  });
+});
+
+describe("buildCourseState (o'rtadan boshlagan o'quvchi)", () => {
+  // 6-kun 1-mavzu: video ko'rilgan, 2-urinishda 100% — 1–5-kunlar o'tilmagan.
+  const progress: TopicProgress[] = [
+    { topicId: "day6-topic1", videoWatched: true, pdfOpened: false, attempts: [{ percent: 60, date: "2026-10-30T09:00:00Z" }, { percent: 100, date: "2026-10-30T09:20:00Z" }] },
+  ];
+  const state = buildCourseState(COURSE_DAYS, COURSE_TOPICS, progress, MOCK_EXAM_PROGRESS);
+  const day6 = state.days.find((d) => d.day.number === 6)!;
+
+  it("opens day 6 topic 2 after topic 1 is passed, keeps topic 3 locked", () => {
+    expect(day6.topics[0].completed).toBe(true);
+    expect(day6.topics[1].unlocked).toBe(true);
+    expect(day6.topics[2].unlocked).toBe(false);
+  });
+
+  it("other days still start only from their first topic", () => {
+    const day5 = state.days.find((d) => d.day.number === 5)!;
+    expect(day5.topics.filter((t) => t.unlocked).map((t) => t.topic.id)).toEqual(["day5-topic1"]);
   });
 });

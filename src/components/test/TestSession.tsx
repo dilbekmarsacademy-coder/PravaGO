@@ -10,7 +10,7 @@ import { checkAnswer, getTopicQuestions, submitTestAttempt, type ApiQuestion, ty
 import { getSavedPracticeQuestions } from "@/lib/api/saved";
 import { LESSON_LOCKED_CODE } from "@/lib/api/lessons";
 import { ApiError } from "@/lib/api/session";
-import { topicDayNumber, topicPageHref } from "@/data/curriculum";
+import { nextCourseTopic, topicDayNumber, topicHref, topicPageHref } from "@/data/curriculum";
 import { Button, buttonClasses } from "@/components/shared/Button";
 import { Card } from "@/components/shared/Card";
 import { FinishModal } from "@/components/test/FinishModal";
@@ -237,6 +237,9 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
 
   const answeredCount = Object.keys(statusByIndex).length;
   const unansweredCount = questions ? questions.length - answeredCount : 0;
+  const correctCount = Object.values(answers).filter((a) => a.result?.correct).length;
+  // To'liq mavzu testi o'tilsa — keyingi mavzu (kun tugasa, keyingi kunning 1-mavzusi).
+  const nextTopic = persist && sourceKind === "topic" && topic ? nextCourseTopic(topic) : undefined;
 
   const goTo = useCallback(
     (index: number) => {
@@ -461,6 +464,7 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
             questions={questions}
             answers={answers}
             elapsedSec={elapsedSec}
+            nextHref={nextTopic ? topicHref(nextTopic) : null}
             onRestart={onRestart}
             onRetryWrong={onRetryWrong}
           />
@@ -470,6 +474,9 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
       <FinishModal
         open={finishModalOpen && !finished}
         unanswered={unansweredCount}
+        remainingSec={remainingSec}
+        correct={correctCount}
+        total={questions?.length ?? 0}
         onContinue={() => setFinishModalOpen(false)}
         onFinish={() => finish("manual")}
       />

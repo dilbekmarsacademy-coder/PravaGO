@@ -252,6 +252,13 @@ export interface Dictionary {
     finishModalTitle: string;
     finishModalUnanswered: (unanswered: number) => string;
     finishModalAllAnswered: string;
+    finishModalRemaining: string;
+    finishModalResult: string;
+    finishModalResultValue: (correct: number, total: number, percent: number) => string;
+    finishConfirm: string;
+    nextTopic: string;
+    autoNext: (seconds: number) => string;
+    stayHere: string;
     timeLeft: string;
     timeRunningOut: string;
     timeUp: string;
