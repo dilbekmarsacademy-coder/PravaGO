@@ -61,6 +61,13 @@ export default function AdminQuestionPage({ params }: { params: Promise<{ id: st
         <ArrowLeftIcon className="size-4" /> {isCollection ? "To'plam" : question.topicSlug}
       </Link>
       <PageHeader title={`Savol #${question.order}`} subtitle={<span className="font-mono">{question.topicSlug}</span>} />
+      {question.answerPending && (
+        <p className="mb-4 rounded-xl border border-warning/40 bg-warning/10 px-3 py-2.5 text-sm text-foreground" data-testid="pending-note">
+          Bu savolning to&apos;g&apos;ri javobi manbada belgilanmagan edi. To&apos;g&apos;ri javobni belgilab saqlang — savol hozircha o&apos;quvchiga
+          ko&apos;rinmaydi. Barcha javoblarni belgilab bo&apos;lgach, Statistika yoki Kontent sahifasidagi <b>&quot;Tugatdim&quot;</b> tugmasini bosing —
+          shunda savollar saytga chiqadi.
+        </p>
+      )}
       <QuestionEditor
         key={`${question.id}-${version}`}
         mode="edit"
@@ -69,6 +76,12 @@ export default function AdminQuestionPage({ params }: { params: Promise<{ id: st
         onTranslate={translateDraft}
         onSave={async (payload) => {
           const updated = await adminFetch<EditableQuestion>(`questions/${id}`, { method: "PUT", json: payload });
+          if (updated.answerPending) {
+            // Javobsiz savollar ro'yxatiga qaytamiz — keyingisini belgilash uchun.
+            showToast({ message: "Saqlandi. \"Tugatdim\" bosilgach saytga chiqadi", tone: "success" });
+            router.push(`/admin/content/${updated.topicSlug}?filter=pending`);
+            return;
+          }
           setQuestion(updated);
           setVersion((v) => v + 1);
           showToast({ message: "Saqlandi — saytda darhol ko'rinadi", tone: "success" });

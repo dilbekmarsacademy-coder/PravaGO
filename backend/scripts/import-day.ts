@@ -57,6 +57,13 @@ const RU_DIR = path.join(SOURCE_DIR, "ru");
 const REPORT_NOTES_PATH = path.join(SOURCE_DIR, "report-notes.md");
 
 const DRY_RUN = process.argv.includes("--dry-run");
+/**
+ * Faqat to'g'ri javobi belgilanmagani sababli o'tkazib yuborilgan savollarni
+ * qo'shadi (barcha variantlar isCorrect=false). Bazadagi mavjud savollarga
+ * (admin tahrirlaganlariga ham) tegilmaydi; o'sha tartib raqamida savol bo'lsa — o'tkaziladi.
+ * O'quvchiga bunday savol ko'rinmaydi (STUDENT_QUESTION_WHERE) — admin panelda javob belgilanguncha.
+ */
+const UNANSWERED_ONLY = process.argv.includes("--unanswered-only");
 const PAIR_THRESHOLD = 0.8;
 /** Savol matni bo'yicha shu farq ichidagi nomzodlar "bir xil matnli" hisoblanadi. */
 const AMBIGUITY_MARGIN = 0.05;
@@ -158,6 +165,8 @@ interface TopicResult {
   parsedCount: number;
   questions: ImportQuestion[];
   skipped: { number: number; reason: string }[];
+  /** --unanswered-only: javobi belgilanmagan savollar (variantlarning hammasi isCorrect=false). */
+  unanswered: ImportQuestion[];
   numbering: string[];
   warnings: string[];
   answerConflicts: { order: number; docx: string; html: string; sim: number; htmlMatchesOther: string | null }[];
@@ -366,6 +375,7 @@ async function processTopic(def: TopicDef, docxPath: string, htmlPath: string | 
     parsedCount: parsed.questions.length,
     questions: [],
     skipped: [],
+    unanswered: [],
     numbering: [],
     warnings: [...parsed.warnings],
     answerConflicts: [],
@@ -418,6 +428,7 @@ async function processTopic(def: TopicDef, docxPath: string, htmlPath: string | 
 
   // Validatsiya: ≥2 variant va aynan 1 ta qalin javob.
   const valid: { q: ParsedQuestion; order: number; correctIndex: number; correct: string }[] = [];
+  const unansweredRaw: { q: ParsedQuestion; order: number }[] = [];
   parsed.questions.forEach((q, i) => {
     const order = numbersUnique && !CONFIG.sequentialOrder ? q.number : i + 1;
     if (q.options.length < 2) {
@@ -433,6 +444,7 @@ async function processTopic(def: TopicDef, docxPath: string, htmlPath: string | 
             ? `barcha variantlar qalin (${correct.boldNumbers.map((n) => `F${n}`).join(", ")}) — to'g'ri javobni aniqlab bo'lmaydi`
             : `${correct.boldNumbers.length} ta variant qalin (${correct.boldNumbers.map((n) => `F${n}`).join(", ")})`;
       result.skipped.push({ number: q.number, reason });
+      unansweredRaw.push({ q, order });
       return;
     }
     if (q.imageRids.length > 1) result.warnings.push(`${q.number}-savol: ${q.imageRids.length} ta rasm — birinchisi olindi`);
@@ -748,7 +760,106 @@ async function processTopic(def: TopicDef, docxPath: string, htmlPath: string | 
     });
   }
 
+  if (UNANSWERED_ONLY) {
+    for (const { q, order } of unansweredRaw) {
+      const translit = (text: string) => cyrillicToLatinMapped(text).text;
+      let image: ImportQuestion["image"] = null;
+      const rid = q.imageRids[0] ?? q.strayImageRids[0];
+      if (rid) {
+        const img = await docx.readImage(rid);
+        if (img) {
+          const file = `d${DAY}t${def.order}-q${String(order).padStart(2, "0")}.webp`;
+          try {
+            image = { file, ...(await convertImage(img.data, file)) };
+          } catch (err) {
+            result.warnings.push(`${q.number}-savol: rasmni o'girib bo'lmadi (${img.ext}): ${(err as Error).message}`);
+          }
+        }
+      }
+      const ruEntry: RuEntry | undefined = ru[String(order)];
+      result.unanswered.push({
+        order,
+        text: q.text,
+        textLatn: originalLatin.get(q) ?? translit(q.text),
+        textRu: ruEntry?.text ?? null,
+        explanation: q.explanation,
+        explanationLatn: q.explanation ? translit(q.explanation) : null,
+        explanationRu: ruEntry?.explanation ?? null,
+        image,
+        options: q.options.map((o, i) => ({
+          order: i + 1,
+          text: o.text,
+          textLatn: originalLatin.get(o) ?? translit(o.text),
+          textRu: ruEntry?.options[String(i + 1)] ?? null,
+          isCorrect: false,
+        })),
+        keywords: {
+          source: "none",
+          questionText: null,
+          questionTextCyrl: null,
+          questionTextRu: null,
+          answerText: null,
+          answerTextCyrl: null,
+          answerTextRu: null,
+          highlights: { question: {}, answer: {} },
+          docxKeyword: q.docxKeyword,
+          needsReview: false,
+        },
+        ruNeedsReview: true,
+        pair: null,
+      });
+    }
+  }
+
   return result;
+}
+
+/**
+ * --unanswered-only: javobsiz savollarni qo'shadi. Mavzu bazada bo'lishi shart
+ * (yo'q bo'lsa — yaratiladi). Mavjud savollar o'zgarmaydi; tartib raqami band bo'lsa — o'tkaziladi.
+ */
+async function writeUnanswered(prisma: PrismaClient, result: TopicResult): Promise<{ created: number[]; existing: number[] }> {
+  const { def } = result;
+  const created: number[] = [];
+  const existing: number[] = [];
+  if (result.unanswered.length === 0) return { created, existing };
+  await prisma.$transaction(
+    async (tx) => {
+      const topic =
+        (await tx.topic.findUnique({ where: { slug: def.slug } })) ??
+        (await tx.topic.create({ data: { slug: def.slug, title: def.title.uz, titleCyrl: def.title.cyrl, titleRu: def.title.ru, day: DAY, dayOrder: def.order } }));
+      for (const q of result.unanswered) {
+        const taken = await tx.question.findUnique({ where: { topicId_order: { topicId: topic.id, order: q.order } }, select: { id: true } });
+        if (taken) {
+          existing.push(q.order);
+          continue;
+        }
+        await tx.question.create({
+          data: {
+            topicId: topic.id,
+            order: q.order,
+            text: q.text,
+            textLatn: q.textLatn,
+            textRu: q.textRu,
+            imageUrl: q.image ? `/images/${q.image.file}` : null,
+            imageWidth: q.image?.width ?? null,
+            imageHeight: q.image?.height ?? null,
+            explanation: q.explanation,
+            explanationLatn: q.explanationLatn,
+            explanationRu: q.explanationRu,
+            keyword: "",
+            needsReview: true,
+            ruNeedsReview: true,
+            answerPending: true,
+            options: { create: q.options.map((o) => ({ order: o.order, text: o.text, textLatn: o.textLatn, textRu: o.textRu, isCorrect: false })) },
+          },
+        });
+        created.push(q.order);
+      }
+    },
+    { timeout: 120_000, maxWait: 30_000 },
+  );
+  return { created, existing };
 }
 
 /** Qo'lda tanlangan kalit so'zlar ro'yxati — tekshirish uchun (content-source/dayN/auto-keywords-<slug>.md). */
@@ -1151,6 +1262,23 @@ async function main() {
     for (const r of results) {
       const diff = await compareLegacy(prisma, r);
       if (diff) legacy.push(diff);
+    }
+    if (UNANSWERED_ONLY) {
+      const lines = [`# ${DAY}-kun — javobsiz savollar (--unanswered-only)`, "", `Sana: ${new Date().toISOString()}  `, `Rejim: ${DRY_RUN ? "dry-run" : "bazaga yozildi"}`, ""];
+      for (const r of results) {
+        if (r.unanswered.length === 0) continue;
+        const orders = r.unanswered.map((q) => q.order);
+        if (DRY_RUN) {
+          console.log(`${r.def.slug}: qo'shiladi ${orders.join(", ")}`);
+          lines.push(`- ${r.def.slug}: ${orders.join(", ")}`);
+        } else {
+          const { created, existing } = await writeUnanswered(prisma, r);
+          console.log(`${r.def.slug}: qo'shildi ${created.join(", ") || "—"}${existing.length ? `; bazada bor (o'tkazildi): ${existing.join(", ")}` : ""}`);
+          lines.push(`- ${r.def.slug}: qo'shildi ${created.join(", ") || "—"}${existing.length ? `; bazada bor: ${existing.join(", ")}` : ""}`);
+        }
+      }
+      fs.writeFileSync(path.join(SOURCE_DIR, "unanswered-report.md"), lines.join("\n") + "\n");
+      return;
     }
     if (!DRY_RUN) {
       for (const r of results) await writeTopic(prisma, r);

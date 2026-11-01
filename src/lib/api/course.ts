@@ -8,6 +8,7 @@ import { COURSE_DAYS, COURSE_TOPICS } from "@/data/curriculum";
 import { MOCK_EXAM_PROGRESS, MOCK_TOPIC_PROGRESS } from "@/lib/mock/progress";
 import { listLessonStatuses, type LessonStatus } from "./lessons";
 import { listTestAttempts, type TestAttempt } from "./test";
+import { getReadyCounts } from "./ready";
 
 const NETWORK_DELAY_MS = 700;
 // Xato holatini (skeleton → "qayta urinish") tabiiy ravishda sinash imkonini
@@ -34,17 +35,33 @@ export async function getDashboardData(options?: { forceError?: boolean }): Prom
 
   // Video progressi va test natijalari haqiqiy backend'dan; ular ishlamasa ham
   // kabinet ochiladi (foizlar shunchaki ko'rsatilmaydi).
-  const [lessons, attempts] = await Promise.all([
+  const [lessons, attempts, ready] = await Promise.all([
     listLessonStatuses().catch(() => [] as LessonStatus[]),
     listTestAttempts().catch(() => [] as TestAttempt[]),
+    getReadyCounts().catch(() => null),
   ]);
+  const topics = withReadyCounts(COURSE_TOPICS, ready);
 
   return {
     days: COURSE_DAYS,
-    topics: COURSE_TOPICS,
-    topicProgress: withTestAttempts(withLessonProgress(MOCK_TOPIC_PROGRESS, COURSE_TOPICS, lessons), COURSE_TOPICS, attempts),
+    topics,
+    topicProgress: withTestAttempts(withLessonProgress(MOCK_TOPIC_PROGRESS, topics, lessons), topics, attempts),
     examProgress: MOCK_EXAM_PROGRESS,
   };
+}
+
+/**
+ * Server bergan savol soni (faqat to'g'ri javobi belgilanganlar). Testida
+ * hali bitta ham shunday savol yo'q mavzu — test ulanmagan deb hisoblanadi
+ * (faqat video), ketma-ketlikni to'smaydi. Server javob bermasa — o'zgarishsiz.
+ */
+export function withReadyCounts(topics: Topic[], ready: Record<string, number> | null): Topic[] {
+  if (!ready) return topics;
+  return topics.map((topic) => {
+    if (!topic.testSlug || ready[topic.testSlug] === undefined) return topic;
+    const count = ready[topic.testSlug];
+    return count > 0 ? { ...topic, questionCount: count } : { ...topic, testSlug: undefined, questionCount: 0 };
+  });
 }
 
 /** Serverda saqlangan test natijalarini mavzu progressiga qo'shadi (`testSlug` bo'yicha). */

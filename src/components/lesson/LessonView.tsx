@@ -10,6 +10,7 @@ import type { Topic } from "@/lib/course-types";
 import { keywordsHref, testHref, topicDayNumber } from "@/data/curriculum";
 import { LESSON_NOT_FOUND_CODE, getLessonStatus, type LessonStatus } from "@/lib/api/lessons";
 import { ApiError } from "@/lib/api/session";
+import { getReadyCounts } from "@/lib/api/ready";
 import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { getRegistration } from "@/lib/registration-store";
@@ -32,6 +33,16 @@ export function LessonView({ topic }: LessonViewProps) {
   const [status, setStatus] = useState<LessonStatus | null>(null);
   // Darsga hali video ulanmagan (serverda yo'q) — holat-ekran, test qulflangan.
   const [unavailable, setUnavailable] = useState(false);
+  // Testda hali javobi belgilangan savol yo'q — test "tez orada" (null — noma'lum, ulangan deb olinadi).
+  const [testReady, setTestReady] = useState<boolean | null>(null);
+  const testSlug = topic.testSlug;
+  useEffect(() => {
+    if (!testSlug) return;
+    getReadyCounts()
+      .then((counts) => setTestReady((counts[testSlug] ?? 1) > 0))
+      .catch(() => undefined);
+  }, [testSlug]);
+  const hasTest = Boolean(testSlug) && testReady !== false;
   const title = localize(topic.title, locale);
 
   // Kabinet bilan bir xil: ro'yxatdan o'tmagan / to'lovi faol bo'lmagan foydalanuvchi kirmaydi.
@@ -105,8 +116,8 @@ export function LessonView({ topic }: LessonViewProps) {
         <LessonTestGate
           status={status}
           unavailable={unavailable}
-          testHref={topic.testSlug ? testHref(topic.testSlug) : null}
-          keywordsHref={topic.testSlug ? keywordsHref(topic) : null}
+          testHref={hasTest && testSlug ? testHref(testSlug) : null}
+          keywordsHref={hasTest ? keywordsHref(topic) : null}
         />
       </main>
     </>

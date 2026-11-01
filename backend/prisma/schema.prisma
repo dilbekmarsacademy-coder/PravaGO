@@ -57,6 +57,8 @@ model Question {
   keyword         String
   keywordRu       String?
   needsReview     Boolean          @default(false)
+  /// To'g'ri javob manbada belgilanmagan — admin belgilab "Tugatdim" bosmaguncha o'quvchiga ko'rinmaydi.
+  answerPending   Boolean          @default(false)
   /// Ruscha tarjima qo'lda tekshirilmagan (mashina/AI tarjimasi).
   ruNeedsReview   Boolean          @default(false)
   options         Option[]

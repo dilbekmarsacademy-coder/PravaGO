@@ -13,6 +13,12 @@ export class TopicsController {
     private readonly lessons: LessonsService,
   ) {}
 
+  /** Kurs mavzulari: testdagi (javobi belgilangan) savollar soni — faqat sonlar. */
+  @Get("ready-counts")
+  readyCounts(): Promise<Record<string, number>> {
+    return this.topicsService.readyCounts();
+  }
+
   /** Video darsi bor mavzu — dars ko'rilmaguncha 403 (LESSON_NOT_COMPLETED). */
   @Get(":slug/questions")
   async getQuestions(@Param("slug") slug: string, @CurrentUser() user: SessionUser): Promise<PublicQuestionDto[]> {

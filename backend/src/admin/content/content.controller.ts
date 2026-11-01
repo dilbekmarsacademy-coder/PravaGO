@@ -19,7 +19,7 @@ class IdParam {
 
 class FilterQuery {
   @IsOptional()
-  @IsIn(["all", "needsReview", "noKeywords", "noCorrect"])
+  @IsIn(["all", "needsReview", "noKeywords", "noCorrect", "pending"])
   filter: QuestionFilter = "all";
 }
 
@@ -44,6 +44,19 @@ export class AdminContentController {
     private readonly editor: QuestionEditorService,
     private readonly lessons: LessonEditorService,
   ) {}
+
+  /** Javobi kutilayotgan savollar (admin panel ogohlantirishi). */
+  @Get("content/pending")
+  pending() {
+    return this.content.pending();
+  }
+
+  /** "Tugatdim" — javobi belgilangan kutilayotgan savollar saytga chiqadi. */
+  @Post("content/pending/publish")
+  @HttpCode(200)
+  publishPending(@CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    return this.content.publishPending(admin, ip);
+  }
 
   @Get("content/days")
   days() {
