@@ -26,6 +26,8 @@ export interface EditableQuestionDto {
   image: { url: string; width: number | null; height: number | null; assetId: string | null } | null;
   keywords: { none: boolean; question: Ranges; answer: Ranges; needsReview: boolean; source: string | null };
   needsReview: boolean;
+  /** Javob kutilmoqda — "Tugatdim" bosilguncha o'quvchiga ko'rinmaydi. */
+  answerPending: boolean;
   ruNeedsReview: boolean;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -98,6 +100,7 @@ export function toEditable(q: FullQuestion): EditableQuestionDto {
       source: q.keywords?.source ?? null,
     },
     needsReview: q.needsReview,
+    answerPending: q.answerPending,
     ruNeedsReview: q.ruNeedsReview,
     updatedAt: q.updatedAt,
     deletedAt: q.deletedAt,

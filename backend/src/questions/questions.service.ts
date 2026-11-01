@@ -19,7 +19,7 @@ export class QuestionsService {
     });
 
     // Javobi hali belgilanmagan savol testda yo'q — tekshirib ham bo'lmaydi.
-    if (!question || question.deletedAt || !question.options.some((o) => o.isCorrect)) {
+    if (!question || question.deletedAt || question.answerPending || !question.options.some((o) => o.isCorrect)) {
       throw new NotFoundException(`Savol topilmadi: ${questionId}`);
     }
     // Testga kirish huquqi bo'lmasa, javob ham tekshirilmaydi (video sharti va h.k.).

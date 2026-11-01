@@ -35,6 +35,8 @@ export interface EditableQuestion {
   image: { url: string; width: number | null; height: number | null; assetId: string | null } | null;
   keywords: { none: boolean; question: LangRanges; answer: LangRanges; needsReview: boolean; source: string | null };
   needsReview: boolean;
+  /** Javob kutilmoqda — "Tugatdim" bosilguncha o'quvchiga ko'rinmaydi. */
+  answerPending?: boolean;
   ruNeedsReview: boolean;
   updatedAt: string;
   deletedAt: string | null;

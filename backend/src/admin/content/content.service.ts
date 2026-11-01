@@ -1,18 +1,66 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
+import type { AdminUser } from "../admin-request";
+import { AuditService } from "../audit.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { parseCourseSlug } from "../../common/rules";
 import { editableDays } from "./content.config";
 import { findLessonIdForTopic } from "../../lessons/lessons.config";
 import { QuestionEditorService } from "./question-editor.service";
 
-export type QuestionFilter = "all" | "needsReview" | "noKeywords" | "noCorrect";
+export type QuestionFilter = "all" | "needsReview" | "noKeywords" | "noCorrect" | "pending";
 
 @Injectable()
 export class ContentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly editor: QuestionEditorService,
+    private readonly audit: AuditService,
   ) {}
+
+  /**
+   * "Javob kutilmoqda" savollar (manbada javobi belgilanmagan) — kun → mavzu
+   * bo'yicha: jami va admin javobini belgilagani. Bo'sh bo'lsa — ogohlantirish yo'q.
+   */
+  async pending() {
+    const rows = await this.prisma.question.findMany({
+      where: { answerPending: true, deletedAt: null, topic: { kind: "course", deletedAt: null } },
+      select: { topic: { select: { slug: true, title: true } }, options: { where: { isCorrect: true }, select: { id: true } } },
+    });
+    const bySlug = new Map<string, { slug: string; day: number; order: number; title: string; total: number; answered: number }>();
+    for (const r of rows) {
+      const parsed = parseCourseSlug(r.topic.slug);
+      if (!parsed) continue;
+      const entry = bySlug.get(r.topic.slug) ?? { slug: r.topic.slug, ...parsed, title: r.topic.title, total: 0, answered: 0 };
+      entry.total++;
+      if (r.options.length > 0) entry.answered++;
+      bySlug.set(r.topic.slug, entry);
+    }
+    const topics = [...bySlug.values()].sort((a, b) => a.day - b.day || a.order - b.order);
+    return {
+      total: topics.reduce((n, t) => n + t.total, 0),
+      answered: topics.reduce((n, t) => n + t.answered, 0),
+      topics,
+    };
+  }
+
+  /**
+   * "Tugatdim": javobi belgilangan kutilayotgan savollar saytga chiqadi
+   * (o'quvchi testida paydo bo'ladi). Javobi hali belgilanmaganlari kutishda qoladi.
+   */
+  async publishPending(admin: AdminUser, ip: string) {
+    const ready = await this.prisma.question.findMany({
+      where: { answerPending: true, deletedAt: null, options: { some: { isCorrect: true } } },
+      select: { id: true, order: true, topic: { select: { slug: true } } },
+    });
+    if (ready.length) {
+      await this.prisma.question.updateMany({ where: { id: { in: ready.map((q) => q.id) } }, data: { answerPending: false } });
+      const byTopic: Record<string, number[]> = {};
+      for (const q of ready) (byTopic[q.topic.slug] ??= []).push(q.order);
+      await this.audit.log(admin, ip, { action: "content.pending_published", entityType: "question", after: { count: ready.length, topics: byTopic } });
+    }
+    const left = await this.pending();
+    return { published: ready.length, remaining: left.total };
+  }
 
   /** Kunlar → mavzular, har mavzu bo'yicha tekshirilmagan / kalit so'zsiz savollar soni. */
   async days() {
@@ -75,6 +123,7 @@ export class ContentService {
         ruNeedsReview: true,
         keywords: { select: { needsReview: true, questionText: true, questionTextCyrl: true, answerText: true, answerTextCyrl: true } },
         options: { where: { isCorrect: true }, select: { id: true } },
+        answerPending: true,
         updatedAt: true,
       },
     });
@@ -88,6 +137,7 @@ export class ContentService {
         keywordNeedsReview: q.keywords?.needsReview ?? false,
         hasKeywords: hasKeywords(q.keywords),
         hasCorrect: q.options.length > 0,
+        answerPending: q.answerPending,
         updatedAt: q.updatedAt,
       }))
       .filter((q) =>
@@ -97,7 +147,9 @@ export class ContentService {
             ? !q.hasKeywords
             : filter === "noCorrect"
               ? !q.hasCorrect
-              : true,
+              : filter === "pending"
+                ? q.answerPending
+                : true,
       );
     return { topic: { slug: topic.slug, title: topic.title, titleCyrl: topic.titleCyrl, kind: topic.kind }, total: questions.length, items };
   }

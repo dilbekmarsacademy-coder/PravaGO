@@ -8,6 +8,8 @@ import { chipText, suggestRanges, textOf, type KwLang, type LangRanges, type Ran
 import { Button } from "@/components/shared/Button";
 import { Badge } from "@/components/shared/Badge";
 import { Panel, Spinner, Tabs, TextArea, TextInput } from "@/components/admin/ui";
+import { Modal } from "@/components/shared/Modal";
+import { autoKeywords } from "@/lib/admin/auto-keywords";
 import ImageField from "@/components/admin/image/ImageField";
 import KeywordMarker from "./KeywordMarker";
 import QuestionPreview from "./QuestionPreview";
@@ -50,6 +52,9 @@ function convert(value: string, to: Script): string {
   return to === "latn" ? cyrillicToLatin(value) : latinToCyrillic(value);
 }
 
+/** "Kalit so'zlar" bo'limining tartib raqami (yaratish rejimidagi qadamlar). */
+const KEYWORDS_STEP = 3;
+
 export default function QuestionEditor({ initial, mode, onSave, onTranslate, aiConfigured, actions, textFooter, saveLabel }: QuestionEditorProps) {
   const [draft, setDraft] = useState<QuestionDraft>(initial);
   const [lang, setLang] = useState<KwLang>("cyrl");
@@ -62,6 +67,8 @@ export default function QuestionEditor({ initial, mode, onSave, onTranslate, aiC
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  // To'g'ri javob tanlandi — kalit so'zni admin yozadimi yoki sayt o'zi topadimi, so'raladi.
+  const [askKeywords, setAskKeywords] = useState(false);
 
   const correct = draft.correctIndex !== null ? draft.options[draft.correctIndex] : undefined;
 
@@ -109,7 +116,29 @@ export default function QuestionEditor({ initial, mode, onSave, onTranslate, aiC
   }
 
   function setCorrect(index: number) {
-    update((d) => (d.correctIndex === index ? d : { ...d, correctIndex: index, keywords: { ...d.keywords, answer: {} } }));
+    if (draft.correctIndex === index) return;
+    update((d) => ({ ...d, correctIndex: index, keywords: { ...d.keywords, answer: {} } }));
+    setAskKeywords(true);
+  }
+
+  /** "Sayt o'zi topsin": to'g'ri javob va savol matnidan kalit so'z (kirill, lotin, rus). */
+  function applyAutoKeywords() {
+    setAskKeywords(false);
+    const found = draft.correctIndex !== null ? autoKeywords(draft.text, draft.options.map((o) => o.text), draft.correctIndex) : null;
+    if (!found) {
+      setNotice("Kalit so'zni avtomatik topib bo'lmadi — \"Kalit so'zlar\" bo'limida o'zingiz belgilang.");
+      return;
+    }
+    update((d) => ({ ...d, keywords: { none: false, question: found.question, answer: found.answer } }));
+    setNotice("Kalit so'zlar avtomatik belgilandi (savol va to'g'ri javobda). \"Kalit so'zlar\" bo'limida ko'rib chiqing va saqlang.");
+  }
+
+  /** "O'zim yozaman": kalit so'zlar bo'limiga o'tadi. */
+  function writeKeywordsManually() {
+    setAskKeywords(false);
+    update((d) => ({ ...d, keywords: { ...d.keywords, none: false } }));
+    if (mode === "create") setStep(KEYWORDS_STEP);
+    else requestAnimationFrame(() => document.getElementById("keywords-section")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
   function moveOption(index: number, dir: -1 | 1) {
@@ -296,7 +325,12 @@ export default function QuestionEditor({ initial, mode, onSave, onTranslate, aiC
       title: "Kalit so'zlar",
       hint: "Matnda so'zni belgilab, tugmani bosing. Har til alohida saqlanadi; bir nechta bo'lak mumkin.",
       body: (
-        <div className="flex flex-col gap-4">
+        <div className="flex scroll-mt-24 flex-col gap-4" id="keywords-section">
+          {correct && !draft.keywords.none && (
+            <Button size="sm" variant="secondary" className="self-start" onClick={applyAutoKeywords} data-testid="keywords-auto">
+              <WandSparklesIcon className="size-4" /> Kalit so&apos;zni sayt o&apos;zi topsin
+            </Button>
+          )}
           <label className="inline-flex items-center gap-2 text-sm">
             <input
               type="checkbox"
@@ -396,10 +430,29 @@ export default function QuestionEditor({ initial, mode, onSave, onTranslate, aiC
     </div>
   );
 
+  const keywordsDialog = (
+    <Modal
+      open={askKeywords}
+      onOpenChange={(open) => !open && setAskKeywords(false)}
+      title="Kalit so'zni kim yozadi?"
+      description="To'g'ri javob belgilandi. Kalit so'zni o'zingiz yozasizmi yoki sayt to'g'ri javobga qarab o'zi topib qo'ysinmi?"
+    >
+      <div className="flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
+        <Button variant="secondary" onClick={writeKeywordsManually} data-testid="keywords-manual">
+          O&apos;zim yozaman
+        </Button>
+        <Button onClick={applyAutoKeywords} autoFocus data-testid="keywords-auto-confirm">
+          <WandSparklesIcon className="size-4" /> Sayt o&apos;zi topsin
+        </Button>
+      </div>
+    </Modal>
+  );
+
   if (mode === "create") {
     const last = sections.length;
     return (
       <div className="flex flex-col gap-4">
+        {keywordsDialog}
         {toolbar}
         <ol className="flex flex-wrap gap-1.5">
           {[...sections.map((s) => s.title), "Ko'rib chiqish"].map((title, i) => (
@@ -444,6 +497,7 @@ export default function QuestionEditor({ initial, mode, onSave, onTranslate, aiC
 
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+      {keywordsDialog}
       <div className="flex min-w-0 flex-col gap-4">
         <div className="sticky top-14 z-10 -mx-1 rounded-2xl bg-background/85 px-1 py-2 backdrop-blur-xl lg:top-0">{toolbar}</div>
         {sections.map((s, i) => (

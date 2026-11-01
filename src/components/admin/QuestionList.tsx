@@ -15,6 +15,8 @@ export interface QuestionSummary {
   keywordNeedsReview: boolean;
   hasKeywords: boolean;
   hasCorrect: boolean;
+  /** Javob kutilmoqda ("Tugatdim" bosilmagan) — o'quvchiga ko'rinmaydi. */
+  answerPending?: boolean;
 }
 
 export default function QuestionList({
@@ -43,6 +45,7 @@ export default function QuestionList({
                   </Badge>
                 )}
                 {!q.hasCorrect && <Badge tone="danger">javob belgilanmagan</Badge>}
+                {q.answerPending && q.hasCorrect && <Badge tone="brand">javob belgilandi · saytga chiqmagan</Badge>}
                 {q.ruNeedsReview && <Badge tone="warning">ruscha tekshirilmagan</Badge>}
                 {q.keywordNeedsReview && <Badge tone="warning">kalit so&apos;z tekshirilmagan</Badge>}
                 {!q.hasKeywords && <Badge tone="muted">kalit so&apos;zsiz</Badge>}

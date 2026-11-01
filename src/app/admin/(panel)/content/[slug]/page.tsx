@@ -8,7 +8,7 @@ import LessonPanel from "@/components/admin/LessonPanel";
 import QuestionList, { type QuestionSummary } from "@/components/admin/QuestionList";
 import { ErrorBlock, LoadingBlock, PageHeader, Panel, Tabs } from "@/components/admin/ui";
 
-type Filter = "all" | "needsReview" | "noKeywords" | "noCorrect";
+type Filter = "all" | "needsReview" | "noKeywords" | "noCorrect" | "pending";
 
 export default function AdminTopicPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -17,7 +17,7 @@ export default function AdminTopicPage({ params }: { params: Promise<{ slug: str
   useEffect(() => {
     const value = new URLSearchParams(window.location.search).get("filter");
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (value === "noCorrect" || value === "needsReview" || value === "noKeywords") setFilter(value);
+    if (value === "noCorrect" || value === "needsReview" || value === "noKeywords" || value === "pending") setFilter(value);
   }, []);
   const [data, setData] = useState<{ topic: { title: string; titleCyrl: string | null }; total: number; items: QuestionSummary[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +56,7 @@ export default function AdminTopicPage({ params }: { params: Promise<{ slug: str
           { value: "needsReview", label: "Tekshirilmagan" },
           { value: "noKeywords", label: "Kalit so'zsiz" },
           { value: "noCorrect", label: "Javobsiz" },
+          { value: "pending", label: "Saytga chiqmagan" },
         ]}
       />
       {error && <ErrorBlock message={error} onRetry={load} />}

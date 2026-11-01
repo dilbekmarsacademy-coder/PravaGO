@@ -850,6 +850,7 @@ async function writeUnanswered(prisma: PrismaClient, result: TopicResult): Promi
             keyword: "",
             needsReview: true,
             ruNeedsReview: true,
+            answerPending: true,
             options: { create: q.options.map((o) => ({ order: o.order, text: o.text, textLatn: o.textLatn, textRu: o.textRu, isCorrect: false })) },
           },
         });
