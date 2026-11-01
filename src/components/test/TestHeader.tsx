@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowLeftIcon, FlagIcon } from "lucide-react";
 import { AppHeader } from "@/components/shared/AppHeader";
 import { buttonClasses } from "@/components/shared/Button";
-import { HeaderMenu, HeaderMenuItem } from "@/components/shared/HeaderMenu";
+import { HeaderMenu } from "@/components/shared/HeaderMenu";
 import LanguageSwitcher from "@/components/shared/LanguageSwitcher";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import { useLocale } from "@/lib/i18n/useLocale";
@@ -80,23 +80,19 @@ export function TestHeader({
             {t.testSession.finishShort}
           </button>
         </div>
-        <HeaderMenu
-          label={t.testSession.moreActions}
-          className="md:hidden"
-          actions={(close) =>
-            canFinish ? (
-              <HeaderMenuItem
-                icon={<FlagIcon className="size-4 text-brand" />}
-                onClick={() => {
-                  close();
-                  onFinish();
-                }}
-              >
-                {t.testSession.finishTest}
-              </HeaderMenuItem>
-            ) : null
-          }
-        />
+        {/* Telefonda "Yakunlash" menyuda yashirinmasin — 3 nuqta yonida alohida tugma. */}
+        {canFinish && (
+          <button
+            type="button"
+            onClick={onFinish}
+            className={buttonClasses({ variant: "secondary", size: "sm", className: "h-11 px-3 md:hidden" })}
+            data-testid="finish-mobile"
+          >
+            <FlagIcon className="size-4 text-brand" />
+            {t.testSession.finishShort}
+          </button>
+        )}
+        <HeaderMenu label={t.testSession.moreActions} className="md:hidden" />
       </div>
     </AppHeader>
   );
