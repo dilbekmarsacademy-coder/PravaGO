@@ -34,8 +34,7 @@ interface ResultScreenProps {
   onRetryWrong: (questionIds: string[]) => void;
 }
 
-/** O'tilgan testdan keyin keyingi mavzuga avtomatik o'tish (soniya). */
-const AUTO_NEXT_SEC = 10;
+
 
 const RING_RADIUS = 52;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
@@ -284,41 +283,16 @@ function Confetti() {
   );
 }
 
-/**
- * Test o'tildi (biror urinishda PASS_PERCENT dan yuqori) — keyingi mavzu ochiq.
- * AUTO_NEXT_SEC soniyadan keyin o'zi o'tadi; "Shu yerda qolish" sanoqni to'xtatadi.
- */
+/** Test o'tildi — keyingi mavzu ochiq (natija oynasi yopilgandan keyin ham shu yerda). */
 function NextTopicCard({ href }: { href: string }) {
-  const router = useRouter();
   const { t } = useLocale();
-  const [left, setLeft] = useState<number | null>(AUTO_NEXT_SEC);
-
-  useEffect(() => {
-    if (left === null) return;
-    if (left <= 0) {
-      router.push(href);
-      return;
-    }
-    const id = setTimeout(() => setLeft((v) => (v === null ? null : v - 1)), 1000);
-    return () => clearTimeout(id);
-  }, [left, href, router]);
-
   return (
     <Card className="flex flex-col items-center gap-3 border-success/40 px-5 py-4 text-center sm:flex-row sm:text-left" data-testid="next-topic">
-      <p className="flex-1 text-sm text-foreground" data-testid="next-topic-countdown">
-        {left !== null ? t.testSession.autoNext(left) : t.testSession.passed}
-      </p>
-      <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row">
-        {left !== null && (
-          <Button variant="ghost" size="md" onClick={() => setLeft(null)}>
-            {t.testSession.stayHere}
-          </Button>
-        )}
-        <Link href={href} className={buttonClasses({ variant: "primary", size: "md", className: "w-full sm:w-auto" })} data-testid="next-topic-link">
-          {t.testSession.nextTopic}
-          <ArrowRightIcon className="size-4" />
-        </Link>
-      </div>
+      <p className="flex-1 text-sm text-foreground">{t.testSession.passed}</p>
+      <Link href={href} className={buttonClasses({ variant: "primary", size: "md", className: "w-full sm:w-auto" })} data-testid="next-topic-link">
+        {t.testSession.nextTopic}
+        <ArrowRightIcon className="size-4" />
+      </Link>
     </Card>
   );
 }

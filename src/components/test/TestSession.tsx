@@ -14,6 +14,7 @@ import { nextCourseTopic, topicDayNumber, topicHref, topicPageHref } from "@/dat
 import { Button, buttonClasses } from "@/components/shared/Button";
 import { Card } from "@/components/shared/Card";
 import { FinishModal } from "@/components/test/FinishModal";
+import { CompletionModal } from "@/components/test/CompletionModal";
 import { BottomSheet, MobileNavBar } from "@/components/test/MobileNavBar";
 import { QuestionNavigator, type QuestionStatus } from "@/components/test/QuestionNavigator";
 import { QuestionView, type TestMode } from "@/components/test/QuestionView";
@@ -52,7 +53,11 @@ interface QuestionAnswer {
   result: CheckAnswerResult | null;
 }
 
-type FinishReason = "manual" | "timeout";
+/** "complete" — barcha savollarga javob berildi, test o'zi yakunlandi. */
+type FinishReason = "manual" | "timeout" | "complete";
+
+/** Oxirgi javobdan keyin natija oynasigacha — javob rangi ko'rinib ulgurishi uchun (ms). */
+const AUTO_FINISH_DELAY_MS = 900;
 
 // Hozircha faqat mashq rejimi ishlatiladi; imtihon rejimi uslublari tayyor.
 const MODE: TestMode = "practice";
@@ -105,6 +110,8 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
   const [finishReason, setFinishReason] = useState<FinishReason | null>(null);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [finishedAt, setFinishedAt] = useState<number | null>(null);
+  // Test tugagach ekran o'rtasidagi natija oynasi (vaqt tugaganda — yo'q, u o'z ekraniga ega).
+  const [completionOpen, setCompletionOpen] = useState(false);
   const finished = finishReason !== null;
   // Sessiya faqat to'liq testda saqlanadi ("xatolarni qayta ishlash" — vaqtinchalik).
   const persist = onlyQuestionIds === null;
@@ -118,6 +125,7 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
   const finish = useCallback((reason: FinishReason) => {
     setFinishReason((prev) => prev ?? reason);
     setFinishedAt((prev) => prev ?? Date.now());
+    if (reason !== "timeout") setCompletionOpen(true);
     setFinishModalOpen(false);
     setSheetOpen(false);
   }, []);
@@ -238,6 +246,14 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
   const answeredCount = Object.keys(statusByIndex).length;
   const unansweredCount = questions ? questions.length - answeredCount : 0;
   const correctCount = Object.values(answers).filter((a) => a.result?.correct).length;
+
+  // Barcha savollarga javob berildi — test o'zi yakunlanadi va natija hisoblanadi.
+  const allAnswered = questions !== null && questions.length > 0 && answeredCount === questions.length;
+  useEffect(() => {
+    if (!allAnswered || finished) return;
+    const id = setTimeout(() => finish("complete"), AUTO_FINISH_DELAY_MS);
+    return () => clearTimeout(id);
+  }, [allAnswered, finished, finish]);
   // To'liq mavzu testi o'tilsa — keyingi mavzu (kun tugasa, keyingi kunning 1-mavzusi).
   const nextTopic = persist && sourceKind === "topic" && topic ? nextCourseTopic(topic) : undefined;
 
@@ -459,7 +475,7 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
 
         {questions && finishReason && (
           <ResultScreen
-            reason={finishReason}
+            reason={finishReason === "timeout" ? "timeout" : "manual"}
             mode={MODE}
             questions={questions}
             answers={answers}
@@ -470,6 +486,18 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
           />
         )}
       </main>
+
+      {sourceKind === "topic" && persist && (
+        <CompletionModal
+          open={completionOpen && finished && finishReason !== "timeout"}
+          correct={correctCount}
+          total={questions?.length ?? 0}
+          dayNumber={topic ? topicDayNumber(topic) : null}
+          lastOfDay={Boolean(topic && (!nextTopic || nextTopic.dayId !== topic.dayId))}
+          nextHref={nextTopic ? topicHref(nextTopic) : null}
+          onClose={() => setCompletionOpen(false)}
+        />
+      )}
 
       <FinishModal
         open={finishModalOpen && !finished}

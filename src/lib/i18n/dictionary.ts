@@ -257,8 +257,13 @@ export interface Dictionary {
     finishModalResultValue: (correct: number, total: number, percent: number) => string;
     finishConfirm: string;
     nextTopic: string;
-    autoNext: (seconds: number) => string;
-    stayHere: string;
+    nextDay: string;
+    completeTitle: string;
+    dayCompleteTitle: (day: number) => string;
+    completeResult: (correct: number, total: number, percent: number) => string;
+    notPassedTitle: string;
+    notPassedDesc: (passPercent: number) => string;
+    viewResults: string;
     timeLeft: string;
     timeRunningOut: string;
     timeUp: string;
