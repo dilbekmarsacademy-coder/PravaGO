@@ -7,6 +7,14 @@
 import type { Option, Prisma, Question, QuestionKeyword } from "@prisma/client";
 import { toLocalizedText, type LocalizedTextDto } from "./localized-text";
 
+/**
+ * O'quvchiga ko'rinadigan savol: o'chirilmagan VA to'g'ri javobi belgilangan.
+ * Javobi hali belgilanmagan savol (manbada belgilanmagan, admin panelda
+ * belgilanadi) testda, "Kalit so'zlar"da va javob tekshiruvida qatnashmaydi —
+ * aks holda 98% ga yetib bo'lmasdi. Admin javobni belgilashi bilan savol o'zi qo'shiladi.
+ */
+export const STUDENT_QUESTION_WHERE = { deletedAt: null, options: { some: { isCorrect: true } } } satisfies Prisma.QuestionWhereInput;
+
 /** Variantlar manbadagi tartibda (F1, F2, ...). Eski yozuvlarda tartib 0 — yaratilish vaqti bo'yicha. */
 export const OPTION_ORDER: Prisma.OptionOrderByWithRelationInput[] = [{ order: "asc" }, { createdAt: "asc" }, { id: "asc" }];
 

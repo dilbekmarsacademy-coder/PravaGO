@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { toLocalizedText } from "../common/localized-text";
-import { OPTION_ORDER, optionText, questionText, toKeywordsDto } from "../common/question-content";
+import { OPTION_ORDER, STUDENT_QUESTION_WHERE, optionText, questionText, toKeywordsDto } from "../common/question-content";
 import type { KeywordListDto, ReviewResultDto } from "./dto/keywords.dto";
 
 @Injectable()
@@ -18,7 +18,7 @@ export class KeywordsService {
   async list(userId: string, slug: string): Promise<KeywordListDto> {
     const topicId = await this.topicId(slug);
     const questions = await this.prisma.question.findMany({
-      where: { topicId, deletedAt: null },
+      where: { topicId, ...STUDENT_QUESTION_WHERE },
       orderBy: { order: "asc" },
       include: {
         options: { orderBy: OPTION_ORDER },
@@ -49,7 +49,7 @@ export class KeywordsService {
   /** Idempotent: qayta belgilash/olib tashlash xato bermaydi. */
   async setReviewed(userId: string, slug: string, questionId: string, reviewed: boolean): Promise<ReviewResultDto> {
     const topicId = await this.topicId(slug);
-    const question = await this.prisma.question.findFirst({ where: { id: questionId, topicId, deletedAt: null }, select: { id: true } });
+    const question = await this.prisma.question.findFirst({ where: { id: questionId, topicId, ...STUDENT_QUESTION_WHERE }, select: { id: true } });
     if (!question) throw new NotFoundException(`Savol topilmadi: ${questionId}`);
 
     if (reviewed) {
@@ -63,8 +63,8 @@ export class KeywordsService {
     }
 
     const [total, reviewedCount] = await Promise.all([
-      this.prisma.question.count({ where: { topicId, deletedAt: null } }),
-      this.prisma.keywordReview.count({ where: { userId, question: { topicId, deletedAt: null } } }),
+      this.prisma.question.count({ where: { topicId, ...STUDENT_QUESTION_WHERE } }),
+      this.prisma.keywordReview.count({ where: { userId, question: { topicId, ...STUDENT_QUESTION_WHERE } } }),
     ]);
     return { questionId, reviewed, total, reviewedCount };
   }

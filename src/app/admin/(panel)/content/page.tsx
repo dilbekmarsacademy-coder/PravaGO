@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import MissingAnswersBanner from "@/components/admin/MissingAnswersBanner";
 import { LockIcon } from "lucide-react";
 import { adminFetch } from "@/lib/admin/api";
 import { Badge } from "@/components/shared/Badge";
@@ -24,6 +25,7 @@ export default function AdminContentPage() {
   return (
     <>
       <PageHeader title="Kontent" subtitle="Kunlar → mavzular. Mavzuni ochib, videoni, savollarni, rasmlarni, javoblarni va kalit so'zlarni o'zgartiring. Har bir kunning 1-mavzusi har doim ochiq — oldingi kunni tugatish shart emas (oy o'rtasidan qo'shilganlar istalgan kundan boshlaydi)." />
+      <MissingAnswersBanner />
       {error && <ErrorBlock message={error} />}
       {!days ? (
         <LoadingBlock />

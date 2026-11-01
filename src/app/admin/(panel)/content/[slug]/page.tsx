@@ -13,6 +13,12 @@ type Filter = "all" | "needsReview" | "noKeywords" | "noCorrect";
 export default function AdminTopicPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
   const [filter, setFilter] = useState<Filter>("all");
+  // Ogohlantirishdan kelinganda (?filter=noCorrect) — darhol javobsiz savollar.
+  useEffect(() => {
+    const value = new URLSearchParams(window.location.search).get("filter");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (value === "noCorrect" || value === "needsReview" || value === "noKeywords") setFilter(value);
+  }, []);
   const [data, setData] = useState<{ topic: { title: string; titleCyrl: string | null }; total: number; items: QuestionSummary[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
 

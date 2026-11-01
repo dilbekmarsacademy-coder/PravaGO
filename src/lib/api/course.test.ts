@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { COURSE_TOPICS, nextCourseTopic } from "@/data/curriculum";
-import { withTestAttempts } from "./course";
+import { withReadyCounts, withTestAttempts } from "./course";
 
 describe("withTestAttempts", () => {
   it("adds server attempts to the topic with the matching test bank", () => {
@@ -27,5 +27,21 @@ describe("nextCourseTopic", () => {
     expect(nextCourseTopic({ id: "day5-topic8" })?.id).toBe("day6-topic1");
     expect(nextCourseTopic({ id: "day6-topic7" })).toBeUndefined();
     expect(nextCourseTopic({ id: "yoq" })).toBeUndefined();
+  });
+});
+
+describe("withReadyCounts", () => {
+  it("savol sonini serverdan oladi, javobli savoli yo'q testni ulamaydi", () => {
+    const topics = withReadyCounts(COURSE_TOPICS, { "day4-topic1": 0, "day4-topic2": 60 });
+    const t1 = topics.find((t) => t.id === "day4-topic1")!;
+    const t2 = topics.find((t) => t.id === "day4-topic2")!;
+    expect(t1.testSlug).toBeUndefined();
+    expect(t1.lessonId).toBe("day4-topic1");
+    expect(t2.questionCount).toBe(60);
+    expect(topics.find((t) => t.id === "day1-topic1")).toEqual(COURSE_TOPICS.find((t) => t.id === "day1-topic1"));
+  });
+
+  it("server javob bermasa — o'zgarishsiz", () => {
+    expect(withReadyCounts(COURSE_TOPICS, null)).toBe(COURSE_TOPICS);
   });
 });

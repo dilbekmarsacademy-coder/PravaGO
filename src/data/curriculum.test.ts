@@ -80,15 +80,9 @@ describe("curriculum", () => {
       ),
     );
     expect(COURSE_TOPICS.filter((t) => t.lessonId).every((t) => t.lessonId === t.id)).toBe(true);
-    // Test banki slug'i — mavzu ID'si (backend: day1-topic1 … day6-topic7; 4-kun 1- va 5-mavzu hozircha testsiz).
-    expect(COURSE_TOPICS.filter((t) => t.testSlug).map((t) => t.testSlug)).toEqual(
-      [
-        ...[[1, 7], [2, 7], [3, 6]].flatMap(([day, count]) => Array.from({ length: count }, (_, i) => `day${day}-topic${i + 1}`)),
-        ...[2, 3, 4, 6, 7].map((n) => `day4-topic${n}`),
-        ...Array.from({ length: 8 }, (_, i) => `day5-topic${i + 1}`),
-        ...Array.from({ length: 7 }, (_, i) => `day6-topic${i + 1}`),
-      ],
-    );
+    // Test banki slug'i — mavzu ID'si (backend: day1-topic1 … day6-topic7). Barcha mavzularda test bor;
+    // javobi belgilanmagan savollar o'quvchiga ko'rinmaydi (soni serverdan — withReadyCounts).
+    expect(COURSE_TOPICS.filter((t) => t.testSlug).map((t) => t.testSlug)).toEqual(COURSE_TOPICS.map((t) => t.id));
   });
 
   it("links to the topic page, or straight to the test when there is only a test bank", () => {

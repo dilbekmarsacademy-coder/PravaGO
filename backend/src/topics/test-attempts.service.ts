@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
+import { STUDENT_QUESTION_WHERE } from "../common/question-content";
 import { PrismaService } from "../prisma/prisma.service";
 import type { AttemptAnswerDto, TestAttemptDto } from "./dto/test-attempt.dto";
 
@@ -9,12 +10,13 @@ export class TestAttemptsService {
   /**
    * To'liq mavzu testi natijasini saqlaydi. Foiz klientdan olinmaydi: har bir
    * javob bazadagi to'g'ri variant bilan solishtiriladi, mavzudan tashqari
-   * savollar va takroriy javoblar hisobga olinmaydi; maxraj — mavzudagi barcha savollar.
+   * savollar va takroriy javoblar hisobga olinmaydi; maxraj — mavzudagi barcha
+   * testdagi savollar (javobi hali belgilanmaganlari hisobga kirmaydi).
    */
   async create(userId: string, slug: string, answers: AttemptAnswerDto[]): Promise<TestAttemptDto> {
     const topic = await this.prisma.topic.findUnique({
       where: { slug },
-      select: { id: true, questions: { where: { deletedAt: null }, select: { id: true, options: { where: { isCorrect: true }, select: { id: true } } } } },
+      select: { id: true, questions: { where: STUDENT_QUESTION_WHERE, select: { id: true, options: { where: { isCorrect: true }, select: { id: true } } } } },
     });
     if (!topic) throw new NotFoundException(`Mavzu topilmadi: ${slug}`);
 

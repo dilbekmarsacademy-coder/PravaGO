@@ -72,11 +72,11 @@ export const CURRICULUM: CurriculumDay[] = [
     { id: "day3-topic6", lessonId: "day3-topic6", testSlug: "day3-topic6", testNo: 42, questionCount: 34, title: { uz: "Birinchi tibbiy yordam", cyrl: "Биринчи тиббий ёрдам", ru: "Первая медицинская помощь" } },
   ]},
   { day: 4, topics: [
-    { id: "day4-topic1", lessonId: "day4-topic1", testNo: 13, questionCount: 5, title: { uz: "Tik chiziqlar", cyrl: "Тик чизиқлар", ru: "Вертикальная разметка" } },
+    { id: "day4-topic1", lessonId: "day4-topic1", testSlug: "day4-topic1", testNo: 13, questionCount: 5, title: { uz: "Tik chiziqlar", cyrl: "Тик чизиқлар", ru: "Вертикальная разметка" } },
     { id: "day4-topic2", lessonId: "day4-topic2", testSlug: "day4-topic2", testNo: 12, questionCount: 74, title: { uz: "Yotiq chiziqlar", cyrl: "Ётиқ чизиқлар", ru: "Горизонтальная разметка" } },
     { id: "day4-topic3", lessonId: "day4-topic3", testSlug: "day4-topic3", testNo: 19, questionCount: 36, title: { uz: "Harakatlanish tezligi", cyrl: "Ҳаракатланиш тезлиги", ru: "Скорость движения" } },
     { id: "day4-topic4", lessonId: "day4-topic4", testSlug: "day4-topic4", testNo: 21, questionCount: 73, title: { uz: "To'xtash va to'xtab turish", cyrl: "Тўхташ ва тўхтаб туриш", ru: "Остановка и стоянка" } },
-    { id: "day4-topic5", lessonId: "day4-topic5", testNo: 31, questionCount: 3, title: { uz: "Tik balandlik va nishablikda harakatlanish", cyrl: "Тик баландлик ва нишабликда ҳаракатланиш", ru: "Движение на крутых подъёмах и спусках" } },
+    { id: "day4-topic5", lessonId: "day4-topic5", testSlug: "day4-topic5", testNo: 31, questionCount: 3, title: { uz: "Tik balandlik va nishablikda harakatlanish", cyrl: "Тик баландлик ва нишабликда ҳаракатланиш", ru: "Движение на крутых подъёмах и спусках" } },
     { id: "day4-topic6", lessonId: "day4-topic6", testSlug: "day4-topic6", testNo: 35, questionCount: 7, title: { uz: "Transport vositalarini boshqarishni o'rganish", cyrl: "Транспорт воситаларини бошқаришни ўрганиш", ru: "Учебная езда" } },
     { id: "day4-topic7", lessonId: "day4-topic7", testSlug: "day4-topic7", testNo: 39, questionCount: 14, title: { uz: "Mansabdor shaxslar va fuqarolarning yo'l harakati xavfsizligini ta'minlash", cyrl: "Мансабдор шахслар ва фуқароларнинг йўл ҳаракати хавфсизлигини таъминлаш", ru: "Обязанности должностных лиц и граждан по обеспечению безопасности дорожного движения" } },
   ]},

@@ -18,7 +18,8 @@ export class QuestionsService {
       include: { options: true, keywords: true, topic: { select: { slug: true } } },
     });
 
-    if (!question || question.deletedAt) {
+    // Javobi hali belgilanmagan savol testda yo'q — tekshirib ham bo'lmaydi.
+    if (!question || question.deletedAt || !question.options.some((o) => o.isCorrect)) {
       throw new NotFoundException(`Savol topilmadi: ${questionId}`);
     }
     // Testga kirish huquqi bo'lmasa, javob ham tekshirilmaydi (video sharti va h.k.).
