@@ -19,6 +19,8 @@ export interface ApiQuestion {
   text: LocalizedText;
   /** To'liq URL; rasmsiz savolda null. */
   imageUrl: string | null;
+  /** 800 px variant (bo'lsa) — telefon uchun srcset. */
+  imageSmallUrl?: string | null;
   /** Asl o'lchamlar (eski backend'da bo'lmasligi mumkin). */
   imageWidth?: number | null;
   imageHeight?: number | null;
@@ -56,6 +58,8 @@ export interface CheckAnswerResult {
   keyword: LocalizedText;
   /** Eski backend'da bo'lmaydi (`undefined`); `null` — kalit so'z mavjud emas. */
   keywords?: QuestionKeywords | null;
+  /** Faqat admin tasdiqlagan izoh; bo'lmasa `null`. */
+  explanation?: LocalizedText | null;
 }
 
 /**
@@ -88,6 +92,7 @@ export function normalizeQuestion<T extends RawQuestion>(q: T): Omit<T, "text" |
     ...q,
     text: toLocalizedText(q.text),
     imageUrl: resolveAssetUrl(q.imageUrl),
+    imageSmallUrl: q.imageSmallUrl ? resolveAssetUrl(q.imageSmallUrl) : null,
     options: q.options.map((o) => ({ id: o.id, text: toLocalizedText(o.text) })),
   };
 }

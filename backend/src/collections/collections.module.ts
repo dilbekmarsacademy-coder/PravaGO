@@ -1,9 +1,9 @@
 import { Module } from "@nestjs/common";
-import { AdminCollectionsController, AdminQuestionToolsController, CollectionsController } from "./collections.controller";
+import { AdminCollectionsController, AdminQuestionToolsController, AdminTestGroupsController, CollectionsController } from "./collections.controller";
 import { CollectionsService } from "./collections.service";
 
 @Module({
-  controllers: [AdminCollectionsController, AdminQuestionToolsController, CollectionsController],
+  controllers: [AdminCollectionsController, AdminTestGroupsController, AdminQuestionToolsController, CollectionsController],
   providers: [CollectionsService],
 })
 export class CollectionsModule {}

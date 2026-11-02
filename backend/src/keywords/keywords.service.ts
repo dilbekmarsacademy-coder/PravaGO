@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { toLocalizedText } from "../common/localized-text";
-import { OPTION_ORDER, STUDENT_QUESTION_WHERE, optionText, questionText, toKeywordsDto } from "../common/question-content";
+import { OPTION_ORDER, STUDENT_QUESTION_WHERE, approvedExplanation, optionText, questionText, toKeywordsDto } from "../common/question-content";
 import type { KeywordListDto, ReviewResultDto } from "./dto/keywords.dto";
 
 @Injectable()
@@ -29,7 +29,7 @@ export class KeywordsService {
 
     const items = questions.map((q) => {
       const correct = q.options.find((o) => o.isCorrect);
-      const explanation = q.explanation ? toLocalizedText(q.explanation, q.explanationRu, q.explanationLatn) : null;
+      const explanation = approvedExplanation(q);
       return {
         id: q.id,
         order: q.order,

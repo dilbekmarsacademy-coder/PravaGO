@@ -2,22 +2,21 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2Icon, SparklesIcon } from "lucide-react";
-import { listCollections, type CollectionSummary } from "@/lib/api/collections";
-import { localize } from "@/lib/i18n/localized";
+import { ChevronRightIcon, FolderOpenIcon, SparklesIcon } from "lucide-react";
+import { listCollectionGroups, type CollectionGroup } from "@/lib/api/collections";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { Card } from "@/components/shared/Card";
 
-/** Kabinetdagi "Yangi testlar" — admin panelda nashr qilingan to'plamlar (bo'lmasa — "tez orada"). */
+/** Kabinetdagi "Yangi testlar" — avval to'plamlar (nomi va testlar soni), to'plam ichida testlar. */
 export default function NewTestsBlock() {
-  const { t, locale } = useLocale();
+  const { t } = useLocale();
   const labels = t.kabinet.newTests;
-  const [items, setItems] = useState<CollectionSummary[] | null>(null);
+  const [groups, setGroups] = useState<CollectionGroup[] | null>(null);
 
   useEffect(() => {
-    listCollections()
-      .then(setItems)
-      .catch(() => setItems([]));
+    listCollectionGroups()
+      .then(setGroups)
+      .catch(() => setGroups([]));
   }, []);
 
   return (
@@ -27,40 +26,34 @@ export default function NewTestsBlock() {
           <SparklesIcon className="size-4" />
         </span>
         <div>
-          <h2 className="font-display text-base font-bold text-foreground">
-            {labels.title}
-          </h2>
+          <h2 className="font-display text-base font-bold text-foreground">{labels.title}</h2>
           <p className="text-xs text-muted-foreground">{labels.desc}</p>
         </div>
       </div>
-      {items === null ? (
+      {groups === null ? (
         <div className="mt-4 h-16 animate-pulse rounded-xl bg-foreground/[0.04]" />
-      ) : items.length === 0 ? (
-        <p className="mt-4 rounded-xl border border-dashed border-border px-4 py-5 text-center text-sm text-muted-foreground">
-          {labels.empty}
-        </p>
+      ) : groups.length === 0 ? (
+        <p className="mt-4 rounded-xl border border-dashed border-border px-4 py-5 text-center text-sm text-muted-foreground">{labels.empty}</p>
       ) : (
         <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-          {items.map((c) => (
-            <li key={c.slug}>
+          {groups.map((g) => (
+            <li key={g.id}>
               <Link
-                href={`/test/${c.slug}`}
+                href={`/kabinet/yangi-testlar/${g.id}`}
                 className="flex items-center justify-between gap-3 rounded-xl border border-border bg-foreground/[0.02] px-4 py-3 transition-colors hover:border-brand/40 hover:bg-foreground/[0.05]"
+                data-testid="new-tests-group"
               >
-                <span className="min-w-0">
-                  <span className="block font-semibold text-foreground">
-                    {localize(c.title, locale)}
-                  </span>
-                  <span className="block text-xs text-muted-foreground">
-                    {labels.questions(c.questionCount)} ·{" "}
-                    {c.bestPercent === null
-                      ? labels.notStarted
-                      : labels.best(c.bestPercent)}
+                <span className="flex min-w-0 items-center gap-3">
+                  <FolderOpenIcon className="size-5 shrink-0 text-brand" />
+                  <span className="min-w-0">
+                    <span className="block font-semibold break-words text-foreground">{g.name}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      {labels.tests(g.testCount)}
+                      {g.passedCount > 0 && ` · ${labels.passedOf(g.passedCount, g.testCount)}`}
+                    </span>
                   </span>
                 </span>
-                {c.passed && (
-                  <CheckCircle2Icon className="size-5 shrink-0 text-success" />
-                )}
+                <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
               </Link>
             </li>
           ))}

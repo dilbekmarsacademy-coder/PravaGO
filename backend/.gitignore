@@ -6,3 +6,5 @@ public/images/
 .vercel
 .env*
 !.env.example
+.storage/
+test/output/

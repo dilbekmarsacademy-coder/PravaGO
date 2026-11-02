@@ -102,3 +102,13 @@ export function toKeywordsDto(row: QuestionKeyword | null | undefined): Question
   const answer = part(row.answerText, row.answerTextCyrl, row.answerTextRu, highlights.answer);
   return question || answer ? { question, answer } : null;
 }
+
+/**
+ * O'quvchiga ko'rsatiladigan izoh: FAQAT admin tasdiqlagan bo'lsa (explanationApproved).
+ * AI yozgan, tasdiqlanmagan izohlar o'quvchiga hech qachon chiqmaydi.
+ */
+export function approvedExplanation(q: Pick<Question, "explanation" | "explanationLatn" | "explanationRu" | "explanationApproved">): LocalizedTextDto | null {
+  if (!q.explanationApproved) return null;
+  if (!q.explanation && !q.explanationLatn && !q.explanationRu) return null;
+  return toLocalizedText(q.explanation ?? q.explanationLatn ?? "", q.explanationRu, q.explanationLatn);
+}

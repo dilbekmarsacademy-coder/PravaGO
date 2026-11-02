@@ -103,6 +103,7 @@ export function QuestionView({
         <div className="self-start [grid-area:image]">
           <QuestionImage
             src={question.imageUrl}
+            smallSrc={question.imageSmallUrl}
             alt={text || t.testSession.imageAlt}
             width={question.imageWidth}
             height={question.imageHeight}
@@ -169,6 +170,12 @@ export function QuestionView({
                           <p>
                             <span className="font-semibold text-success">{t.testSession.keyword} </span>
                             {localize(result.keyword, locale)}
+                          </p>
+                        )}
+                        {result.explanation && (
+                          <p className="mt-3 border-t border-border pt-3" data-testid="explanation">
+                            <span className="font-semibold text-foreground">{t.keywords.page.explanation}: </span>
+                            {localize(result.explanation, locale)}
                           </p>
                         )}
                         {videoHref && (

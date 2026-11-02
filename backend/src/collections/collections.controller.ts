@@ -7,7 +7,7 @@ import { AdminGuard, CurrentAdmin, RequestIp, RequirePermission } from "../admin
 import type { AdminUser } from "../admin/admin-request";
 import { QuestionInputDto } from "../admin/content/question-input.dto";
 import { AiService } from "../ai/ai.service";
-import { CreateCollectionDto, ReorderDto, SimilarDto, TranslateDto, UpdateCollectionDto } from "./collections.dto";
+import { CreateCollectionDto, DeleteGroupDto, GroupNameDto, ReorderDto, SimilarDto, TranslateDto, UpdateCollectionDto } from "./collections.dto";
 import { CollectionsService } from "./collections.service";
 
 @Controller("admin/collections")
@@ -54,6 +54,41 @@ export class AdminCollectionsController {
   }
 }
 
+/** "Yangi testlar" to'plamlari: yaratish, nomini o'zgartirish, tartib, o'chirish. */
+@Controller("admin/test-groups")
+@UseGuards(AdminGuard)
+@RequirePermission("new-tests")
+export class AdminTestGroupsController {
+  constructor(private readonly collections: CollectionsService) {}
+
+  @Get()
+  list() {
+    return this.collections.groups();
+  }
+
+  @Post()
+  create(@Body() body: GroupNameDto, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    return this.collections.createGroup(admin, ip, body.name);
+  }
+
+  @Post("reorder")
+  @HttpCode(200)
+  reorder(@Body() body: ReorderDto, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    return this.collections.reorderGroups(admin, ip, body.ids);
+  }
+
+  @Patch(":id")
+  rename(@Param("id", ParseUUIDPipe) id: string, @Body() body: GroupNameDto, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    return this.collections.renameGroup(admin, ip, id, body.name);
+  }
+
+  @Post(":id/delete")
+  @HttpCode(204)
+  async remove(@Param("id", ParseUUIDPipe) id: string, @Body() body: DeleteGroupDto, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    await this.collections.removeGroup(admin, ip, id, body.withTests ?? false);
+  }
+}
+
 @Controller("admin")
 @UseGuards(AdminGuard)
 export class AdminQuestionToolsController {
@@ -86,8 +121,8 @@ export class AdminQuestionToolsController {
   @RequirePermission("new-tests")
   @HttpCode(200)
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
-  translate(@Body() body: TranslateDto) {
-    return this.ai.translateToRussian({ text: body.text, options: body.options, explanation: body.explanation ?? "" });
+  translate(@Body() body: TranslateDto, @CurrentAdmin() admin: AdminUser) {
+    return this.ai.translateToRussian({ text: body.text, options: body.options, explanation: body.explanation ?? "" }, { adminId: admin.id });
   }
 }
 
@@ -104,5 +139,12 @@ export class CollectionsController {
   async list(@CurrentUser() user: SessionUser) {
     await this.access.assertCourseAccess(user.id);
     return this.collections.published(user.id);
+  }
+
+  /** "Yangi testlar": to'plamlar → testlar. */
+  @Get("groups")
+  async groups(@CurrentUser() user: SessionUser) {
+    await this.access.assertCourseAccess(user.id);
+    return this.collections.publishedGroups(user.id);
   }
 }

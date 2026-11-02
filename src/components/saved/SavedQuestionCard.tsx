@@ -163,6 +163,13 @@ export function SavedQuestionCard({ item, mode, now, onRemove, onNoteSaved }: Sa
           ))
         )}
 
+        {!locked && revealed && item.explanation && (
+          <div className="rounded-xl border border-border bg-surface px-4 py-3 text-sm leading-relaxed text-foreground/90" data-testid="saved-explanation">
+            <p className="font-mono text-[0.65rem] font-bold tracking-[0.18em] text-muted-foreground uppercase">{t.keywords.page.explanation}</p>
+            <p className="mt-1">{localize(item.explanation, locale)}</p>
+          </div>
+        )}
+
         <NoteEditor questionId={item.questionId} note={item.note} onSaved={onNoteSaved} />
 
         <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">

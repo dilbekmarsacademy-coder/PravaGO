@@ -15,16 +15,20 @@ export class CheckAnswerResultDto {
   keyword: LocalizedTextDto;
   /** Savol va javob kalit so'zlari belgilash pozitsiyalari bilan; `null` — kalit so'z mavjud emas. */
   keywords: QuestionKeywordsDto | null;
+  /** Izoh — faqat admin tasdiqlagan bo'lsa; aks holda `null`. */
+  explanation: LocalizedTextDto | null;
 
   constructor(
     correct: boolean,
     correctOptionId: string,
     keyword: LocalizedTextDto,
     keywords: QuestionKeywordsDto | null,
+    explanation: LocalizedTextDto | null = null,
   ) {
     this.correct = correct;
     this.correctOptionId = correctOptionId;
     this.keyword = keyword;
     this.keywords = keywords;
+    this.explanation = explanation;
   }
 }

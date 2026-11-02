@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from "@nestjs/comm
 import { PrismaService } from "../prisma/prisma.service";
 import { LessonsService } from "../lessons/lessons.service";
 import { toLocalizedText } from "../common/localized-text";
-import { toKeywordsDto } from "../common/question-content";
+import { toKeywordsDto, approvedExplanation } from "../common/question-content";
 import { CheckAnswerResultDto } from "./dto/check-answer.dto";
 
 @Injectable()
@@ -47,6 +47,7 @@ export class QuestionsService {
       correctOption.id,
       toLocalizedText(question.keyword, question.keywordRu),
       toKeywordsDto(question.keywords),
+      approvedExplanation(question),
     );
   }
 }

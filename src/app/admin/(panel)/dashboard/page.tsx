@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { adminFetch } from "@/lib/admin/api";
-import { formatDuration, formatNumber } from "@/lib/admin/format";
+import { formatDuration, formatNumber, formatSom } from "@/lib/admin/format";
 import { BarChart, HBars } from "@/components/admin/charts";
 import MissingAnswersBanner from "@/components/admin/MissingAnswersBanner";
 import { ErrorBlock, LoadingBlock, PageHeader, Panel, StatCard, Table, Tabs, Td, Th } from "@/components/admin/ui";
@@ -21,6 +21,8 @@ interface Dashboard {
   mostSolved: { slug: string; title: string; attempts: number; avgPercent: number; passRate: number }[];
   abandoned: { slug: string; title: string; started: number; finished: number; abandoned: number }[];
   topWrong: { questionId: string; topicSlug: string; order: number; text: string; answers: number; wrong: number; wrongRate: number }[];
+  sales?: { byTariff: { tariff: string; label: string; price: number; count: number; revenue: number }[]; count: number; revenue: number };
+  passRate?: { threshold: number; attempts: number; passed: number; percent: number; users: { total: number; passed: number; percent: number } };
   funnel: {
     registered: number;
     registeredByType?: { self: number; center: number };
@@ -105,6 +107,48 @@ export default function AdminDashboardPage() {
                 tone="brand"
               />
               <StatCard label="Yangi foydalanuvchilar" value={formatNumber(data.userTypes.self.total)} hint={`davrda ro'yxatdan o'tgan ${formatNumber(data.userTypes.self.inRange)}`} />
+            </div>
+          )}
+
+          {data.sales && data.passRate && (
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+              <Panel title={`Sotuv tarif bo'yicha · jami ${formatNumber(data.sales.count)} ta, ${formatSom(data.sales.revenue)}`}>
+                <div data-testid="sales-by-tariff">
+                  <Table>
+                    <thead>
+                      <tr>
+                        <Th>Tarif</Th>
+                        <Th>Narx</Th>
+                        <Th>Sotuv</Th>
+                        <Th>Daromad</Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.sales.byTariff.map((t) => (
+                        <tr key={t.tariff}>
+                          <Td>{t.label}</Td>
+                          <Td className="font-mono whitespace-nowrap">{formatSom(t.price)}</Td>
+                          <Td className="font-mono">{formatNumber(t.count)}</Td>
+                          <Td className="font-mono whitespace-nowrap">{formatSom(t.revenue)}</Td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+              </Panel>
+              <div className="grid gap-3" data-testid="pass-rate">
+                <StatCard
+                  label={`${data.passRate.threshold}% dan o'tgan urinishlar`}
+                  value={`${data.passRate.percent}%`}
+                  hint={`${formatNumber(data.passRate.passed)} / ${formatNumber(data.passRate.attempts)} urinish`}
+                  tone="success"
+                />
+                <StatCard
+                  label="Kamida bitta testdan o'tganlar"
+                  value={`${data.passRate.users.percent}%`}
+                  hint={`${formatNumber(data.passRate.users.passed)} / ${formatNumber(data.passRate.users.total)} test yechgan foydalanuvchi`}
+                />
+              </div>
             </div>
           )}
 

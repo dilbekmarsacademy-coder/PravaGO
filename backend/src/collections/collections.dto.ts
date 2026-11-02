@@ -22,6 +22,24 @@ export class CreateCollectionDto {
   @ValidateNested()
   @Type(() => TitleDto)
   title: TitleDto;
+
+  /** To'plam (majburiy — "Yangi testlar" to'plamlarga bo'lingan). */
+  @IsUUID()
+  groupId: string;
+}
+
+export class GroupNameDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  name: string;
+}
+
+export class DeleteGroupDto {
+  /** Ichida test bo'lsa — testlar ham o'chirilishiga rozilik (ogohlantirishdan keyin). */
+  @IsOptional()
+  @IsBoolean()
+  withTests?: boolean;
 }
 
 export class UpdateCollectionDto {
@@ -29,6 +47,11 @@ export class UpdateCollectionDto {
   @ValidateNested()
   @Type(() => TitleDto)
   title?: TitleDto;
+
+  /** Testni boshqa to'plamga ko'chirish. */
+  @IsOptional()
+  @IsUUID()
+  groupId?: string;
 
   @IsOptional()
   @IsBoolean()

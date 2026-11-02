@@ -16,6 +16,7 @@ import OverallProgress from "@/components/kabinet/OverallProgress";
 import CourseMap from "@/components/kabinet/CourseMap";
 import RandomTestBlock from "@/components/kabinet/RandomTestBlock";
 import NewTestsBlock from "@/components/kabinet/NewTestsBlock";
+import MyInsightBlock from "@/components/kabinet/MyInsightBlock";
 import SavedCard from "@/components/kabinet/SavedCard";
 import DeviceInfo from "@/components/kabinet/DeviceInfo";
 import { Card } from "@/components/shared/Card";
@@ -200,6 +201,8 @@ function DashboardContent({
       <NewTestsBlock />
 
       <OverallProgress days={courseState.days} />
+
+      <MyInsightBlock />
 
       <SavedCard />
 

@@ -5,6 +5,7 @@ import { AdminGuard, CurrentAdmin, RequestIp, RequirePermission } from "../admin
 import type { AdminUser } from "../admin-request";
 import { safeEqual } from "../admin-config";
 import { AiAnalysisService } from "./ai-analysis.service";
+import { AiInsightsService } from "./ai-insights.service";
 import { StatsService, type RangeKey } from "./stats.service";
 
 class RangeQuery {
@@ -26,6 +27,7 @@ export class AdminStatsController {
   constructor(
     private readonly stats: StatsService,
     private readonly analysis: AiAnalysisService,
+    private readonly insights: AiInsightsService,
   ) {}
 
   @Get("stats/dashboard")
@@ -51,6 +53,36 @@ export class AdminStatsController {
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   create(@CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
     return this.analysis.generate("manual", admin, ip);
+  }
+
+  /** "AI xulosa" — keshdagi (bo'lsa). */
+  @Get("ai/summary")
+  @RequirePermission("ai")
+  summary(@Query() query: RangeQuery) {
+    return this.insights.summary(query.range).then((s) => s ?? { text: null });
+  }
+
+  @Post("ai/summary")
+  @RequirePermission("ai")
+  @HttpCode(200)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  refreshSummary(@Query() query: RangeQuery, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    return this.insights.refreshSummary(admin, ip, query.range);
+  }
+
+  /** "Statistikadan so'rash" — AI faqat o'qiydigan metrika funksiyalarini chaqiradi. */
+  @Post("ai/ask-stats")
+  @RequirePermission("ai")
+  @HttpCode(200)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  askStats(@Body() body: AskDto, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    return this.insights.ask(admin, ip, body.question);
+  }
+
+  @Get("ai/costs")
+  @RequirePermission("ai")
+  costs() {
+    return this.insights.costs();
   }
 
   @Post("ai/reports/:id/ask")

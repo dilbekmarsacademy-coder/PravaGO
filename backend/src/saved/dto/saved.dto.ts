@@ -128,6 +128,8 @@ export interface SavedItemDto extends SavedRecordDto {
   keyword?: LocalizedTextDto;
   /** `null` — kalit so'z mavjud emas. */
   keywords?: QuestionKeywordsDto | null;
+  /** Faqat admin tasdiqlagan izoh. */
+  explanation?: LocalizedTextDto | null;
 }
 
 export interface SavedListDto {

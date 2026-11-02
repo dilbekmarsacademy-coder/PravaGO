@@ -25,7 +25,7 @@ export default function AdminNewQuestionPage({ params }: { params: Promise<{ id:
   return (
     <>
       <Link href={`/admin/new-tests/${id}`} className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand">
-        <ArrowLeftIcon className="size-4" /> To&apos;plam
+        <ArrowLeftIcon className="size-4" /> Test
       </Link>
       <PageHeader title="Test qo'shish" subtitle="Rasm → savol → variantlar → to'g'ri javob → kalit so'zlar → ko'rib chiqish" />
       <QuestionEditor

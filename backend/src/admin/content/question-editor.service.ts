@@ -235,6 +235,8 @@ export class QuestionEditorService {
         explanation: data.explanation.cyrl || null,
         explanationLatn: data.explanation.latn || null,
         explanationRu: data.explanation.ru || null,
+        // Admin tahrirlovchida saqlangan izoh — admin ko'rib tasdiqlagan.
+        explanationApproved: Boolean(data.explanation.cyrl || data.explanation.latn || data.explanation.ru),
         keyword: none ? "" : chipText(correct.latn, aRanges.uz) ?? "",
         keywordRu: none ? null : chipText(correct.ru, aRanges.ru),
         needsReview: false,

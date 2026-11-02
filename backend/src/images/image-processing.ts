@@ -29,14 +29,35 @@ async function loadCv(): Promise<void> {
   cvReady ??= new Promise<void>((resolve) => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const cv = require("@techstark/opencv-js") as CV & { onRuntimeInitialized?: () => void };
+    let finished = false;
     const done = () => {
+      if (finished) return;
+      finished = true;
       cvModule = cv;
       resolve();
     };
-    if (cv.Mat) done();
-    else cv.onRuntimeInitialized = done;
+    if (cv.Mat) return done();
+    cv.onRuntimeInitialized = done;
+    // Ba'zi muhitlarda (test runner) hodisa obunadan oldin o'tib ketadi — tayyorlikni tekshirib turamiz.
+    const poll = setInterval(() => {
+      if (cv.Mat) {
+        clearInterval(poll);
+        done();
+      }
+    }, 50);
+    poll.unref?.();
   });
   await cvReady;
+}
+
+/**
+ * OpenCV (WASM) — bir marta yuklanadi; AI import rasm ishlovi ham shundan foydalanadi.
+ * Modul "thenable" — async funksiyadan to'g'ridan-to'g'ri qaytarilsa Promise uni cheksiz
+ * ochishga urinadi, shuning uchun obyekt ichida qaytariladi.
+ */
+export async function getCv(): Promise<{ cv: CV }> {
+  await loadCv();
+  return { cv: cvModule! };
 }
 
 /** EXIF bo'yicha burilgan va ishchi o'lchamga keltirilgan RGB piksellar. */

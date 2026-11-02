@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { toLocalizedText } from "../common/localized-text";
-import { OPTION_ORDER, optionText, questionText, toKeywordsDto } from "../common/question-content";
+import { OPTION_ORDER, optionText, questionText, toKeywordsDto, approvedExplanation } from "../common/question-content";
 import { PublicOptionDto, PublicQuestionDto } from "../topics/dto/public-question.dto";
 import type {
   CreateSavedDto,
@@ -225,6 +225,7 @@ export class SavedService {
         if (correct) item.correctOptionId = correct.id;
         item.keyword = toLocalizedText(q.keyword, q.keywordRu);
         item.keywords = toKeywordsDto(q.keywords);
+        item.explanation = approvedExplanation(q);
       }
       return item;
     });

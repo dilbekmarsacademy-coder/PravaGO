@@ -8,6 +8,7 @@ import type { QuestionInputDto } from "../admin/content/question-input.dto";
 import { toLocalizedText } from "../common/localized-text";
 import { PASS_PERCENT } from "../common/rules";
 import type { CreateCollectionDto, UpdateCollectionDto } from "./collections.dto";
+import { STUDENT_QUESTION_WHERE } from "../common/question-content";
 import { similarity } from "./similarity";
 
 const COLLECTION = "collection";
@@ -26,7 +27,60 @@ export class CollectionsService {
     return topic;
   }
 
-  // ── Admin ──
+  private async findGroup(id: string) {
+    const group = await this.prisma.testGroup.findFirst({ where: { id, deletedAt: null } });
+    if (!group) throw new NotFoundException("To'plam topilmadi");
+    return group;
+  }
+
+  // ── Admin: to'plamlar ──
+
+  async groups() {
+    const rows = await this.prisma.testGroup.findMany({
+      where: { deletedAt: null },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      include: { _count: { select: { topics: { where: { kind: COLLECTION, deletedAt: null } } } } },
+    });
+    return rows.map((g) => ({ id: g.id, name: g.name, sortOrder: g.sortOrder, testCount: g._count.topics, createdAt: g.createdAt }));
+  }
+
+  async createGroup(admin: AdminUser, ip: string, name: string) {
+    const clean = name.trim();
+    if (!clean) throw new BadRequestException("To'plam nomini yozing");
+    const last = await this.prisma.testGroup.aggregate({ where: { deletedAt: null }, _max: { sortOrder: true } });
+    const group = await this.prisma.testGroup.create({ data: { name: clean.slice(0, 200), sortOrder: (last._max.sortOrder ?? 0) + 1, createdById: admin.id } });
+    await this.audit.log(admin, ip, { action: "test_group.created", entityType: "test_group", entityId: group.id, after: group });
+    return group;
+  }
+
+  async renameGroup(admin: AdminUser, ip: string, id: string, name: string) {
+    const before = await this.findGroup(id);
+    const clean = name.trim();
+    if (!clean) throw new BadRequestException("To'plam nomini yozing");
+    const after = await this.prisma.testGroup.update({ where: { id }, data: { name: clean.slice(0, 200) } });
+    await this.audit.log(admin, ip, { action: "test_group.renamed", entityType: "test_group", entityId: id, before, after });
+    return after;
+  }
+
+  async reorderGroups(admin: AdminUser, ip: string, ids: string[]) {
+    await this.prisma.$transaction(ids.map((id, i) => this.prisma.testGroup.updateMany({ where: { id, deletedAt: null }, data: { sortOrder: i + 1 } })));
+    await this.audit.log(admin, ip, { action: "test_group.reordered", entityType: "test_group", after: { ids } });
+    return this.groups();
+  }
+
+  /** O'chirish: ichida test bo'lsa — faqat `withTests` rozilik bilan (testlar ham o'chiriladi). */
+  async removeGroup(admin: AdminUser, ip: string, id: string, withTests: boolean) {
+    const before = await this.findGroup(id);
+    const tests = await this.prisma.topic.findMany({ where: { groupId: id, kind: COLLECTION, deletedAt: null }, select: { id: true } });
+    if (tests.length > 0 && !withTests) {
+      throw new BadRequestException({ statusCode: 400, code: "GROUP_NOT_EMPTY", message: `To'plamda ${tests.length} ta test bor — ular ham o'chiriladi`, testCount: tests.length });
+    }
+    for (const t of tests) await this.remove(admin, ip, t.id);
+    await this.prisma.testGroup.update({ where: { id }, data: { deletedAt: new Date() } });
+    await this.audit.log(admin, ip, { action: "test_group.deleted", entityType: "test_group", entityId: id, before, after: { deletedTests: tests.length } });
+  }
+
+  // ── Admin: testlar ──
 
   async list() {
     const rows = await this.prisma.topic.findMany({
@@ -40,6 +94,9 @@ export class CollectionsService {
       title: { uz: t.title, cyrl: t.titleCyrl ?? "", ru: t.titleRu ?? "" },
       published: t.published,
       sortOrder: t.sortOrder,
+      groupId: t.groupId,
+      linkedDay: t.linkedDay,
+      linkedTopicSlug: t.linkedTopicSlug,
       questionCount: t._count.questions,
       createdAt: t.createdAt,
       updatedAt: t.updatedAt,
@@ -47,12 +104,14 @@ export class CollectionsService {
   }
 
   async create(admin: AdminUser, ip: string, dto: CreateCollectionDto) {
-    const last = await this.prisma.topic.aggregate({ where: { kind: COLLECTION }, _max: { sortOrder: true } });
+    await this.findGroup(dto.groupId);
+    const last = await this.prisma.topic.aggregate({ where: { kind: COLLECTION, groupId: dto.groupId }, _max: { sortOrder: true } });
     const topic = await this.prisma.topic.create({
       data: {
         slug: `new-${randomBytes(5).toString("hex")}`,
         kind: COLLECTION,
         published: false,
+        groupId: dto.groupId,
         sortOrder: (last._max.sortOrder ?? 0) + 1,
         title: dto.title.uz.trim(),
         titleCyrl: dto.title.cyrl?.trim() || null,
@@ -65,9 +124,16 @@ export class CollectionsService {
 
   async update(admin: AdminUser, ip: string, id: string, dto: UpdateCollectionDto) {
     const before = await this.find(id);
+    let moveTo: { groupId: string; sortOrder: number } | null = null;
+    if (dto.groupId && dto.groupId !== before.groupId) {
+      await this.findGroup(dto.groupId);
+      const last = await this.prisma.topic.aggregate({ where: { kind: COLLECTION, groupId: dto.groupId }, _max: { sortOrder: true } });
+      moveTo = { groupId: dto.groupId, sortOrder: (last._max.sortOrder ?? 0) + 1 };
+    }
     const after = await this.prisma.topic.update({
       where: { id },
       data: {
+        ...(moveTo ?? {}),
         ...(dto.title ? { title: dto.title.uz.trim(), titleCyrl: dto.title.cyrl?.trim() || null, titleRu: dto.title.ru?.trim() || null } : {}),
         ...(dto.published !== undefined ? { published: dto.published } : {}),
       },
@@ -79,7 +145,7 @@ export class CollectionsService {
         throw new BadRequestException("Savolsiz to'plamni nashr qilib bo'lmaydi");
       }
     }
-    const action = dto.published === undefined ? "collection.updated" : dto.published ? "collection.published" : "collection.unpublished";
+    const action = moveTo ? "collection.moved" : dto.published === undefined ? "collection.updated" : dto.published ? "collection.published" : "collection.unpublished";
     await this.audit.log(admin, ip, { action, entityType: "collection", entityId: id, before, after });
     return after;
   }
@@ -160,13 +226,13 @@ export class CollectionsService {
 
   // ── Sayt ──
 
-  /** Nashr qilingan to'plamlar (to'lov qilganlar uchun) — foydalanuvchining eng yaxshi natijasi bilan. */
+  /** Nashr qilingan testlar (to'lov qilganlar uchun) — foydalanuvchining eng yaxshi natijasi bilan. */
   async published(userId: string) {
     const rows = await this.prisma.topic.findMany({
       where: { kind: COLLECTION, published: true, deletedAt: null },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       include: {
-        _count: { select: { questions: { where: { deletedAt: null } } } },
+        _count: { select: { questions: { where: STUDENT_QUESTION_WHERE } } },
         testAttempts: { where: { userId }, select: { percent: true } },
       },
     });
@@ -176,6 +242,7 @@ export class CollectionsService {
         const best = t.testAttempts.length ? Math.max(...t.testAttempts.map((a) => a.percent)) : null;
         return {
           slug: t.slug,
+          groupId: t.groupId,
           title: { ...toLocalizedText(t.titleCyrl ?? t.title, t.titleRu, t.title) },
           questionCount: t._count.questions,
           attempts: t.testAttempts.length,
@@ -183,5 +250,22 @@ export class CollectionsService {
           passed: best !== null && best >= PASS_PERCENT,
         };
       });
+  }
+
+  /**
+   * Sayt: to'plamlar → testlar. Bo'sh (nashr qilingan testi yo'q) to'plamlar
+   * ko'rsatilmaydi; to'plamsiz testlar (bo'lmasligi kerak) — "Umumiy" ostida.
+   */
+  async publishedGroups(userId: string) {
+    const [tests, groups] = await Promise.all([
+      this.published(userId),
+      this.prisma.testGroup.findMany({ where: { deletedAt: null }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] }),
+    ]);
+    const out = groups
+      .map((g) => ({ id: g.id, name: g.name, tests: tests.filter((t) => t.groupId === g.id) }))
+      .filter((g) => g.tests.length > 0);
+    const orphans = tests.filter((t) => !t.groupId || !groups.some((g) => g.id === t.groupId));
+    if (orphans.length) out.push({ id: "general", name: "Umumiy", tests: orphans });
+    return out.map((g) => ({ ...g, testCount: g.tests.length, passedCount: g.tests.filter((t) => t.passed).length }));
   }
 }

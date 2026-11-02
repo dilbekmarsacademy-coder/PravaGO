@@ -217,6 +217,31 @@ export interface Dictionary {
       best: (percent: number) => string;
       notStarted: string;
       empty: string;
+      tests: (n: number) => string;
+      passedOf: (passed: number, total: number) => string;
+      back: string;
+      groupEmpty: string;
+    };
+    insight: {
+      title: string;
+      desc: string;
+      noAttempts: string;
+      generate: string;
+      refresh: string;
+      nextAt: (time: string) => string;
+      upToDate: string;
+      topicsPassed: (passed: number, total: number) => string;
+      average: string;
+      recent: string;
+      accuracy: string;
+      weak: string;
+      strong: string;
+      mostWrong: (n: number) => string;
+      tips: string;
+      updated: (date: string) => string;
+      aiOff: string;
+      error: string;
+      privacy: string;
     };
     randomTest: {
       title: string;
