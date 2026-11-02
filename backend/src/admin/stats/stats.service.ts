@@ -3,14 +3,22 @@ import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
 import { PASS_PERCENT } from "../../common/rules";
 import { loadCourseTopics } from "../progress";
+import { COURSE_PRICES, EXAM_STATUSES } from "../../common/prices";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** "Bugun" — Toshkent vaqti bo'yicha (UTC+5). */
 const TZ_OFFSET_MS = 5 * 60 * 60 * 1000;
 
 export type RangeKey = "today" | "7d" | "30d";
+export const RANGE_KEYS: RangeKey[] = ["today", "7d", "30d"];
 
-function rangeStart(range: RangeKey, now = Date.now()): Date {
+export const TARIFF_LABELS: Record<string, string> = {
+  "first-time": "Birinchi marta topshiruvchi",
+  "failed-before": "Avval yiqilgan",
+  "license-revoked": "Guvohnomasi olingan",
+};
+
+export function rangeStart(range: RangeKey, now = Date.now()): Date {
   if (range === "today") {
     const local = now + TZ_OFFSET_MS;
     return new Date(local - (local % DAY_MS) - TZ_OFFSET_MS);
@@ -160,6 +168,43 @@ export class StatsService {
       abandoned,
       topWrong,
       funnel: await this.funnel(topics),
+      sales: await this.sales(since),
+      passRate: await this.passRate(since),
+    };
+  }
+
+  /** Tasdiqlangan to'lovlar tarif (imtihon toifasi) bo'yicha: soni va daromad (so'm). */
+  async sales(since: Date) {
+    const rows = await this.prisma.$queryRaw<{ tariff: string | null; c: bigint; revenue: bigint | null }[]>`
+      SELECT u."examStatus" AS tariff, COUNT(*) AS c, SUM(p.amount) AS revenue
+      FROM "Payment" p JOIN "User" u ON u.id = p."userId"
+      WHERE p.status = 'CONFIRMED' AND p."confirmedAt" >= ${since}
+      GROUP BY 1`;
+    const key = (t: string | null) => (t && (EXAM_STATUSES as readonly string[]).includes(t) ? t : "first-time");
+    const byTariff = EXAM_STATUSES.map((tariff) => {
+      const own = rows.filter((r) => key(r.tariff) === tariff);
+      return { tariff, label: TARIFF_LABELS[tariff], price: COURSE_PRICES[tariff], count: own.reduce((a, r) => a + n(r.c), 0), revenue: own.reduce((a, r) => a + n(r.revenue), 0) };
+    });
+    return { byTariff, count: byTariff.reduce((a, t) => a + t.count, 0), revenue: byTariff.reduce((a, t) => a + t.revenue, 0) };
+  }
+
+  /** 98% qoidasi: davrdagi urinishlardan nechtasi o'tdi va nechta foydalanuvchi kamida bitta testdan o'tdi. */
+  async passRate(since: Date) {
+    const [attempts, passed, users] = await Promise.all([
+      this.prisma.topicTestAttempt.count({ where: { createdAt: { gte: since } } }),
+      this.prisma.topicTestAttempt.count({ where: { createdAt: { gte: since }, percent: { gte: PASS_PERCENT } } }),
+      this.prisma.$queryRaw<{ total: bigint; passed: bigint }[]>`
+        SELECT COUNT(DISTINCT "userId") AS total, COUNT(DISTINCT "userId") FILTER (WHERE percent >= ${PASS_PERCENT}) AS passed
+        FROM "TopicTestAttempt" WHERE "createdAt" >= ${since}`,
+    ]);
+    const totalUsers = n(users[0]?.total);
+    const passedUsers = n(users[0]?.passed);
+    return {
+      threshold: PASS_PERCENT,
+      attempts,
+      passed,
+      percent: attempts ? Math.round((passed / attempts) * 100) : 0,
+      users: { total: totalUsers, passed: passedUsers, percent: totalUsers ? Math.round((passedUsers / totalUsers) * 100) : 0 },
     };
   }
 

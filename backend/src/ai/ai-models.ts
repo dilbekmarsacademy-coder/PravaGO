@@ -38,10 +38,12 @@ export function modelFor(feature: AiFeature): string {
   switch (feature) {
     case "translate":
       return env("AI_MODEL_TRANSLATE") ?? parseModel();
+    // Rasm muharriridagi watermark — arzon model; import rasmlari (aniqlash va tekshirish) — Sonnet.
     case "watermark":
+      return env("AI_MODEL_WATERMARK") ?? fastModel();
     case "import.watermark":
     case "import.verify":
-      return env("AI_MODEL_WATERMARK") ?? parseModel();
+      return env("AI_MODEL_IMPORT_WATERMARK") ?? parseModel();
     case "report":
     case "ask":
       return env("AI_MODEL_REPORT") ?? fastModel();

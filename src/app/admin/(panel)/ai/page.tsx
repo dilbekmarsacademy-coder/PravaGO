@@ -7,6 +7,8 @@ import { formatDateTime } from "@/lib/admin/format";
 import { Badge } from "@/components/shared/Badge";
 import { Button } from "@/components/shared/Button";
 import { EmptyState, ErrorBlock, LoadingBlock, PageHeader, Panel, Spinner, TextArea } from "@/components/admin/ui";
+import Markdown from "@/components/admin/Markdown";
+import { AiCostsBlock, AiSummaryBlock, AskStatsBlock } from "@/components/admin/ai/AiInsights";
 
 interface ReportSummary {
   id: string;
@@ -18,21 +20,6 @@ interface ReportSummary {
 interface Report extends ReportSummary {
   content: string;
   messages: { id: string; role: "user" | "assistant"; content: string; createdAt: string }[];
-}
-
-/** Oddiy markdown: sarlavhalar, ro'yxatlar, qalin matn (HTML kiritilmaydi). */
-function Markdown({ text }: { text: string }) {
-  return (
-    <div className="flex flex-col gap-2 text-sm leading-relaxed">
-      {text.split("\n").map((line, i) => {
-        const bold = (s: string) => s.split(/\*\*(.+?)\*\*/g).map((part, j) => (j % 2 ? <b key={j}>{part}</b> : part));
-        if (/^#{1,6}\s/.test(line)) return <h3 key={i} className="mt-2 font-display text-base font-bold">{bold(line.replace(/^#+\s/, ""))}</h3>;
-        if (/^\s*[-*]\s/.test(line)) return <p key={i} className="pl-4 before:-ml-3 before:mr-1.5 before:content-['•']">{bold(line.replace(/^\s*[-*]\s/, ""))}</p>;
-        if (/^\s*\d+\.\s/.test(line)) return <p key={i} className="pl-1">{bold(line)}</p>;
-        return line.trim() ? <p key={i}>{bold(line)}</p> : null;
-      })}
-    </div>
-  );
 }
 
 export default function AdminAiPage() {
@@ -101,13 +88,22 @@ export default function AdminAiPage() {
       />
       {list && !list.configured && (
         <Panel className="mb-6">
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
             <Badge tone="muted">sozlanmagan</Badge>
-            AI qismi uchun backend&apos;da <code className="font-mono">ANTHROPIC_API_KEY</code> kerak. Statistika sahifasi kalitsiz ham ishlaydi.
+            AI qismi uchun backend&apos;da <code className="font-mono break-all">ANTHROPIC_API_KEY</code> kerak. Statistika sahifasi kalitsiz ham ishlaydi.
           </div>
         </Panel>
       )}
       {error && <ErrorBlock message={error} />}
+      {list && (
+        <div className="mb-6 flex flex-col gap-6">
+          <AiCostsBlock />
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <AiSummaryBlock configured={list.configured} />
+            <AskStatsBlock configured={list.configured} />
+          </div>
+        </div>
+      )}
       {!list ? (
         <LoadingBlock />
       ) : (
