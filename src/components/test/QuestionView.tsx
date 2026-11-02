@@ -171,6 +171,12 @@ export function QuestionView({
                             {localize(result.keyword, locale)}
                           </p>
                         )}
+                        {result.explanation && (
+                          <p className="mt-3 border-t border-border pt-3" data-testid="explanation">
+                            <span className="font-semibold text-foreground">{t.keywords.page.explanation}: </span>
+                            {localize(result.explanation, locale)}
+                          </p>
+                        )}
                         {videoHref && (
                           <Link
                             href={videoHref}

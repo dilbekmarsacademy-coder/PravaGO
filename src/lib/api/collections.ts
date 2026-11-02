@@ -6,6 +6,7 @@ import { authFetch } from "./session";
 
 export interface CollectionSummary {
   slug: string;
+  groupId: string | null;
   title: LocalizedText;
   questionCount: number;
   attempts: number;
@@ -15,6 +16,19 @@ export interface CollectionSummary {
 
 export function listCollections(): Promise<CollectionSummary[]> {
   return authFetch<CollectionSummary[]>("/collections");
+}
+
+/** "Yangi testlar" to'plami (nomi admin yozgandek). */
+export interface CollectionGroup {
+  id: string;
+  name: string;
+  testCount: number;
+  passedCount: number;
+  tests: CollectionSummary[];
+}
+
+export function listCollectionGroups(): Promise<CollectionGroup[]> {
+  return authFetch<CollectionGroup[]>("/collections/groups");
 }
 
 export function isCollectionSlug(slug: string): boolean {

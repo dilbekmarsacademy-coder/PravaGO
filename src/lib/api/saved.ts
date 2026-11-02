@@ -34,6 +34,8 @@ export interface SavedItem extends SavedRecord {
   keyword?: LocalizedText;
   /** `null` — kalit so'z mavjud emas; `undefined` — javob yopiq yoki eski backend. */
   keywords?: QuestionKeywords | null;
+  /** Faqat admin tasdiqlagan izoh. */
+  explanation?: LocalizedText | null;
 }
 
 export interface SavedPage {

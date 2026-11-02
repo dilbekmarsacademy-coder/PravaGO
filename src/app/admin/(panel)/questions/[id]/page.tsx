@@ -58,7 +58,7 @@ export default function AdminQuestionPage({ params }: { params: Promise<{ id: st
   return (
     <>
       <Link href={back} className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-brand">
-        <ArrowLeftIcon className="size-4" /> {isCollection ? "To'plam" : question.topicSlug}
+        <ArrowLeftIcon className="size-4" /> {isCollection ? "Test" : question.topicSlug}
       </Link>
       <PageHeader title={`Savol #${question.order}`} subtitle={<span className="font-mono">{question.topicSlug}</span>} />
       {question.answerPending && (

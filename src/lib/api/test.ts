@@ -56,6 +56,8 @@ export interface CheckAnswerResult {
   keyword: LocalizedText;
   /** Eski backend'da bo'lmaydi (`undefined`); `null` — kalit so'z mavjud emas. */
   keywords?: QuestionKeywords | null;
+  /** Faqat admin tasdiqlagan izoh; bo'lmasa `null`. */
+  explanation?: LocalizedText | null;
 }
 
 /**

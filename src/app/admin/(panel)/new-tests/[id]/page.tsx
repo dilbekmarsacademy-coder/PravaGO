@@ -52,7 +52,7 @@ export default function AdminCollectionPage({ params }: { params: Promise<{ id: 
 
   async function remove() {
     await adminFetch(`collections/${id}`, { method: "DELETE" });
-    showToast({ message: "To'plam o'chirildi — kabinetdan ham olindi", tone: "success" });
+    showToast({ message: "Test o'chirildi — kabinetdan ham olindi", tone: "success" });
     router.push("/admin/new-tests");
   }
 
@@ -102,7 +102,7 @@ export default function AdminCollectionPage({ params }: { params: Promise<{ id: 
           <Button size="sm" variant="secondary" onClick={() => patch({ title }, "Nom saqlandi")} disabled={!title.uz.trim()}>
             Nomni saqlash
           </Button>
-          <DeleteButton label="To'plamni o'chirish" confirmLabel="Ha, to'plamni o'chirish" onDelete={remove} testId="collection-delete" />
+          <DeleteButton label="Testni o'chirish" confirmLabel="Ha, testni o'chirish" onDelete={remove} testId="collection-delete" />
         </div>
       </Panel>
       <Panel title={`Savollar (${data.items.length})`}>

@@ -306,6 +306,10 @@ export const uzLatn: Dictionary = {
       best: (p) => `Eng yaxshi natija: ${p}%`,
       notStarted: "Hali yechilmagan",
       empty: "Yangi testlar tez orada shu yerda paydo bo'ladi.",
+      tests: (n) => `${n} ta test`,
+      passedOf: (passed, total) => `${passed}/${total} oʻtildi`,
+      back: "Yangi testlar",
+      groupEmpty: "Bu toʻplamda hozircha test yoʻq.",
     },
     randomTest: {
       title: "Tasodifiy test",

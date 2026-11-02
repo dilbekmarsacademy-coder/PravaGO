@@ -306,6 +306,10 @@ export const uzCyrl: Dictionary = {
       best: (p) => `Энг яхши натижа: ${p}%`,
       notStarted: "Ҳали ечилмаган",
       empty: "Янги тестлар тез орада шу ерда пайдо бўлади.",
+      tests: (n) => `${n} та тест`,
+      passedOf: (passed, total) => `${passed}/${total} ўтилди`,
+      back: "Янги тестлар",
+      groupEmpty: "Бу тўпламда ҳозирча тест йўқ.",
     },
     randomTest: {
       title: "Тасодифий тест",

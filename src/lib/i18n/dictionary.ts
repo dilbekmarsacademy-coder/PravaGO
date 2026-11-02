@@ -217,6 +217,10 @@ export interface Dictionary {
       best: (percent: number) => string;
       notStarted: string;
       empty: string;
+      tests: (n: number) => string;
+      passedOf: (passed: number, total: number) => string;
+      back: string;
+      groupEmpty: string;
     };
     randomTest: {
       title: string;
