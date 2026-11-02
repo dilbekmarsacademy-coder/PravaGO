@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import { PrismaService } from "../../prisma/prisma.service";
-import { AI_MODEL, AiService } from "../../ai/ai.service";
+import { AiService } from "../../ai/ai.service";
 import type { AdminUser } from "../admin-request";
 import { AuditService } from "../audit.service";
 import { StatsService } from "./stats.service";
@@ -49,14 +49,19 @@ export class AiAnalysisService {
   async generate(kind: "manual" | "weekly", admin: AdminUser | null, ip: string | null) {
     const range = kind === "weekly" ? "7d" : "30d";
     const stats = await this.stats.dashboard(range);
-    const result = await this.ai.text(SYSTEM, [{ role: "user", content: `${REPORT_PROMPT}\n\nStatistika (${range}):\n${JSON.stringify(stats)}` }]);
+    const result = await this.ai.text({
+      feature: "report",
+      system: SYSTEM,
+      messages: [{ role: "user", content: `${REPORT_PROMPT}\n\nStatistika (${range}):\n${JSON.stringify(stats)}` }],
+      meta: { adminId: admin?.id ?? null },
+    });
     const report = await this.prisma.aiReport.create({
       data: {
         kind,
         periodDays: range === "7d" ? 7 : 30,
         stats: JSON.parse(JSON.stringify(stats)) as Prisma.InputJsonValue,
         content: result.text,
-        model: AI_MODEL,
+        model: result.model,
         inputTokens: result.inputTokens,
         outputTokens: result.outputTokens,
         createdById: admin?.id ?? null,
@@ -71,12 +76,17 @@ export class AiAnalysisService {
     const report = await this.get(reportId);
     if (!question.trim()) throw new BadRequestException("Savol bo'sh");
     const history = report.messages.slice(-10).map((m) => ({ role: m.role === "assistant" ? ("assistant" as const) : ("user" as const), content: m.content }));
-    const result = await this.ai.text(SYSTEM + "\nSavollarga faqat quyidagi statistika va hisobot asosida javob ber.", [
-      { role: "user", content: `Statistika:\n${JSON.stringify(report.stats)}\n\nHisobot:\n${report.content}` },
-      { role: "assistant", content: "Tushunarli. Savolingizni bering." },
-      ...history,
-      { role: "user", content: question.trim() },
-    ]);
+    const result = await this.ai.text({
+      feature: "report",
+      system: SYSTEM + "\nSavollarga faqat quyidagi statistika va hisobot asosida javob ber.",
+      messages: [
+        { role: "user", content: `Statistika:\n${JSON.stringify(report.stats)}\n\nHisobot:\n${report.content}` },
+        { role: "assistant", content: "Tushunarli. Savolingizni bering." },
+        ...history,
+        { role: "user", content: question.trim() },
+      ],
+      meta: { adminId: admin.id },
+    });
     await this.prisma.aiReportMessage.createMany({
       data: [
         { reportId, role: "user", content: question.trim(), adminId: admin.id },

@@ -137,7 +137,7 @@ export class ImagesService {
         if (job.type === "auto") {
           if (this.ai.configured()) {
             try {
-              const boxes = await this.ai.detectWatermarks(await previewJpeg(working));
+              const boxes = await this.ai.detectWatermarks(await previewJpeg(working), { adminId: job.createdById });
               result.detections = boxes;
               rects = boxes;
               steps.push(boxes.length ? `AI ${boxes.length} ta watermark/yozuv topdi` : "AI watermark topmadi");

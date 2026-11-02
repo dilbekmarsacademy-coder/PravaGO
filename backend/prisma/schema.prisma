@@ -8,66 +8,78 @@ datasource db {
 }
 
 model Topic {
-  id             String             @id @default(uuid())
-  slug           String             @unique
-  title          String // o'zbek lotin
-  titleCyrl      String?
-  titleRu        String?
+  id              String             @id @default(uuid())
+  slug            String             @unique
+  title           String // o'zbek lotin
+  titleCyrl       String?
+  titleRu         String?
   /// Kurs kuni (1–6) va kun ichidagi tartib — frontend'dagi src/data/curriculum.ts bilan bir xil.
-  day            Int?
-  dayOrder       Int?
+  day             Int?
+  dayOrder        Int?
   /// "course" — kurs mavzusi (dayN-topicM); "collection" — admin qo'shgan "Yangi testlar" to'plami.
-  kind           String             @default("course") @db.VarChar(20)
+  kind            String             @default("course") @db.VarChar(20)
   /// Faqat "collection" uchun: nashr qilinganmi (qoralama foydalanuvchiga ko'rinmaydi).
-  published      Boolean            @default(true)
-  /// "Yangi testlar" ro'yxatidagi tartib.
-  sortOrder      Int                @default(0)
-  deletedAt      DateTime?          @db.Timestamptz(3)
-  questions      Question[]
-  savedQuestions SavedQuestion[]
-  testAttempts   TopicTestAttempt[]
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
+  published       Boolean            @default(true)
+  /// "Yangi testlar" ro'yxatidagi tartib (to'plam ichida).
+  sortOrder       Int                @default(0)
+  /// Faqat "collection": qaysi to'plamga tegishli ("Yangi testlar" → to'plam → testlar).
+  groupId         String?
+  group           TestGroup?         @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  /// Faqat "collection": kurs kuni va mavzusiga havola (masalan AI importidan). Kun testlariga va 98% qoidasiga ta'sir qilmaydi.
+  linkedDay       Int?
+  linkedTopicSlug String?            @db.VarChar(64)
+  deletedAt       DateTime?          @db.Timestamptz(3)
+  questions       Question[]
+  savedQuestions  SavedQuestion[]
+  testAttempts    TopicTestAttempt[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([groupId])
 }
 
 model Question {
-  id              String           @id @default(uuid())
-  topicId         String
-  topic           Topic            @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  text            String // o'zbek kirill
+  id                  String           @id @default(uuid())
+  topicId             String
+  topic               Topic            @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  text                String // o'zbek kirill
   /// O'zbek lotin (bo'lmasa frontend kirilldan transliteratsiya qiladi).
-  textLatn        String?
-  textRu          String? // ruscha tarjima
+  textLatn            String?
+  textRu              String? // ruscha tarjima
   /// Rasm yo'li (`/images/...` — backend manziliga nisbatan, klient to'liq URL qiladi) yoki to'liq URL.
   /// Rasmsiz savolda null.
-  imageUrl        String?
+  imageUrl            String?
   /// Rasmning asl o'lchamlari — frontend joyni oldindan ajratadi (layout shift bo'lmaydi).
-  imageWidth      Int?
-  imageHeight     Int?
+  imageWidth          Int?
+  imageHeight         Int?
   /// Admin yuklagan (tozalangan, tasdiqlangan) rasm — imageUrl `/media/<id>.webp`.
-  imageAssetId    String?
-  order           Int
+  imageAssetId        String?
+  /// Telefonlar uchun kichik variant (800 px WebP) — srcset; bo'lmasa faqat imageUrl.
+  imageSmallUrl       String?
+  order               Int
   /// Yumshoq o'chirish — o'chirilgan savol hech qayerda chiqmaydi.
-  deletedAt       DateTime?        @db.Timestamptz(3)
+  deletedAt           DateTime?        @db.Timestamptz(3)
   /// Izoh (manbada bo'lsa): kirill / lotin / rus.
-  explanation     String?
-  explanationLatn String?
-  explanationRu   String?
+  explanation         String?
+  explanationLatn     String?
+  explanationRu       String?
+  /// Izoh admin tomonidan tasdiqlangan — faqat shunda o'quvchiga ko'rsatiladi (AI izohlari tasdiqlanmaguncha yashirin).
+  explanationApproved Boolean          @default(false)
   /// Eski format: javob kalit so'zi bitta matn sifatida. Yangi kalit so'zlar — QuestionKeyword.
-  keyword         String
-  keywordRu       String?
-  needsReview     Boolean          @default(false)
+  keyword             String
+  keywordRu           String?
+  needsReview         Boolean          @default(false)
   /// To'g'ri javob manbada belgilanmagan — admin belgilab "Tugatdim" bosmaguncha o'quvchiga ko'rinmaydi.
-  answerPending   Boolean          @default(false)
+  answerPending       Boolean          @default(false)
   /// Ruscha tarjima qo'lda tekshirilmagan (mashina/AI tarjimasi).
-  ruNeedsReview   Boolean          @default(false)
-  options         Option[]
-  keywords        QuestionKeyword?
-  savedBy         SavedQuestion[]
-  keywordReviews  KeywordReview[]
-  answerLogs      AnswerLog[]
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  ruNeedsReview       Boolean          @default(false)
+  options             Option[]
+  keywords            QuestionKeyword?
+  savedBy             SavedQuestion[]
+  keywordReviews      KeywordReview[]
+  answerLogs          AnswerLog[]
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
 
   @@unique([topicId, order])
 }
@@ -525,4 +537,214 @@ model AiReportMessage {
   createdAt DateTime @default(now()) @db.Timestamptz(3)
 
   @@index([reportId, createdAt])
+}
+
+// ───────────────────────── "Yangi testlar" to'plamlari ─────────────────────────
+
+/// "Yangi testlar" bo'limidagi to'plam (admin yaratadi). Ichida testlar — Topic (kind = "collection").
+model TestGroup {
+  id          String        @id @default(uuid())
+  name        String        @db.VarChar(200)
+  sortOrder   Int           @default(0)
+  createdById String?
+  deletedAt   DateTime?     @db.Timestamptz(3)
+  topics      Topic[]
+  imports     ImportBatch[]
+  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @db.Timestamptz(3)
+}
+
+// ───────────────────────── AI: xarajat, kesh, sozlamalar ─────────────────────────
+
+/// Har bir AI chaqiruvi: model, tokenlar va taxminiy narx (budjet nazorati shu jadvaldan).
+model AiUsage {
+  id               String   @id @default(uuid())
+  /// import.classify | import.analyze | import.match | import.watermark | import.verify | translate | watermark | report | ask | student
+  feature          String   @db.VarChar(40)
+  model            String   @db.VarChar(60)
+  inputTokens      Int      @default(0)
+  outputTokens     Int      @default(0)
+  cacheReadTokens  Int      @default(0)
+  cacheWriteTokens Int      @default(0)
+  costUsd          Float    @default(0)
+  ok               Boolean  @default(true)
+  error            String?  @db.VarChar(500)
+  batchId          String?
+  adminId          String?
+  userId           String?
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([createdAt])
+  @@index([feature, createdAt])
+  @@index([batchId])
+}
+
+/// O'quvchining "Mening tahlilim" xulosasi (kuniga ko'pi bilan 1 marta yangilanadi).
+model AiStudentInsight {
+  userId           String    @id
+  locale           String    @db.VarChar(10)
+  /// { summary: string, tips: string[] }
+  content          Json
+  /// Xulosa qaysi oxirgi urinishga asoslangan (yangi urinish bo'lsa — yangilanadi).
+  basedOnAttemptAt DateTime? @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @db.Timestamptz(3)
+}
+
+/// Kalit-qiymat sozlamalar (masalan watermark namunasi).
+model AppSetting {
+  key       String   @id @db.VarChar(80)
+  value     Json
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+// ───────────────────────── AI bilan fayllardan import ─────────────────────────
+
+/// Bitta yuklash (bir nechta fayl). Holat Postgres'da — jarayon bosqichma-bosqich, qayta tiklanadi.
+model ImportBatch {
+  id               String           @id @default(uuid())
+  groupId          String?
+  group            TestGroup?       @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  /// uploading | processing | review | approved | partial_error | failed
+  status           String           @default("uploading") @db.VarChar(20)
+  /// extract | classify | group | analyze | match | images | done
+  stage            String           @default("extract") @db.VarChar(20)
+  removeWatermarks Boolean          @default(true)
+  hintDay          Int?
+  hintTopicSlug    String?          @db.VarChar(64)
+  estimatedCostUsd Float            @default(0)
+  /// Progress va xulosa raqamlari (fayllar, savollar, rasmlar, dublikatlar, ziddiyatlar).
+  stats            Json             @default("{}")
+  error            String?          @db.VarChar(1000)
+  createdById      String?
+  files            ImportFile[]
+  tests            ImportTest[]
+  questions        ImportQuestion[]
+  images           ImportImage[]
+  createdAt        DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime         @updatedAt @db.Timestamptz(3)
+
+  @@index([createdAt(sort: Desc)])
+}
+
+/// Yuklangan fayl (.zip ichidagilar ham alohida yozuv, parentId bilan).
+model ImportFile {
+  id             String      @id @default(uuid())
+  batchId        String
+  batch          ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  parentId       String?
+  name           String      @db.VarChar(300)
+  mime           String?     @db.VarChar(120)
+  size           Int         @default(0)
+  sha256         String?     @db.VarChar(64)
+  storageKey     String?     @db.VarChar(400)
+  /// pending | extracted | classified | skipped | error
+  status         String      @default("pending") @db.VarChar(20)
+  /// questions_full | questions_only | keys_only | mixed | unrelated
+  kind           String?     @db.VarChar(30)
+  skipReason     String?     @db.VarChar(500)
+  /// Deterministik parser natijasi (oraliq JSON).
+  extracted      Json?
+  /// AI tasnifi: kunlar/mavzular, savollar soni, yozuv, til.
+  classification Json?
+  error          String?     @db.VarChar(1000)
+  attempts       Int         @default(0)
+  createdAt      DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime    @updatedAt @db.Timestamptz(3)
+
+  @@index([batchId])
+}
+
+/// Test qoralamasi (kun + mavzu guruhi). Tasdiqlangach "Yangi testlar"ga test bo'lib yoziladi.
+model ImportTest {
+  id               String           @id @default(uuid())
+  batchId          String
+  batch            ImportBatch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  groupId          String?
+  title            String           @db.VarChar(300)
+  day              Int?
+  topicNumber      Int?
+  topicTitle       String?          @db.VarChar(300)
+  /// Bazadagi kurs mavzusi (masalan day2-topic1); aniq mos kelmasa — null va takliflar.
+  linkedTopicSlug  String?          @db.VarChar(64)
+  suggestions      Json             @default("[]")
+  sourceFileIds    Json             @default("[]")
+  /// draft | approved
+  status           String           @default("draft") @db.VarChar(20)
+  sortOrder        Int              @default(0)
+  publishedTopicId String?
+  approvedById     String?
+  approvedAt       DateTime?        @db.Timestamptz(3)
+  questions        ImportQuestion[]
+  createdAt        DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime         @updatedAt @db.Timestamptz(3)
+
+  @@index([batchId])
+}
+
+/// Savol qoralamasi. `data` — matnlar, variantlar, to'g'ri javob, kalitlar, izoh va ularning manbalari.
+model ImportQuestion {
+  id                 String      @id @default(uuid())
+  batchId            String
+  batch              ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  testId             String?
+  test               ImportTest? @relation(fields: [testId], references: [id], onDelete: SetNull)
+  sourceFileId       String?
+  order              Int         @default(0)
+  /// Manbadagi savol raqami.
+  number             Int?
+  day                Int?
+  topicNumber        Int?
+  data               Json
+  /// same_file | matched | ai_matched | unmatched
+  matchStatus        String      @default("unmatched") @db.VarChar(20)
+  conflict           Json?
+  duplicateOfId      String?
+  existingQuestionId String?
+  analyzed           Boolean     @default(false)
+  approved           Boolean     @default(false)
+  deleted            Boolean     @default(false)
+  imageId            String?
+  createdAt          DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime    @updatedAt @db.Timestamptz(3)
+
+  @@index([batchId])
+  @@index([testId])
+}
+
+/// Importdagi rasm: asl, tozalangan va crop variantlari (storage'da), tasdiqlangach WebP variantlar — MediaAsset.
+model ImportImage {
+  id           String      @id @default(uuid())
+  batchId      String
+  batch        ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  sha256       String      @db.VarChar(64)
+  sourceFileId String?
+  originalKey  String      @db.VarChar(400)
+  masterKey    String?     @db.VarChar(400)
+  cleanedKey   String?     @db.VarChar(400)
+  cropKey      String?     @db.VarChar(400)
+  /// original | cleaned | crop
+  selected     String      @default("cleaned") @db.VarChar(20)
+  /// Watermark joylari (0..1) va fon turi: [{ x, y, w, h, background }]
+  boxes        Json        @default("[]")
+  /// pending | done | needs_review | error
+  status       String      @default("pending") @db.VarChar(20)
+  needsReview  Boolean     @default(false)
+  width        Int?
+  height       Int?
+  error        String?     @db.VarChar(1000)
+  createdAt    DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime    @updatedAt @db.Timestamptz(3)
+
+  @@unique([batchId, sha256])
+  @@index([batchId, status])
+}
+
+/// Storage "db" drayveri: R2 sozlanmaguncha Vercel'da import fayllari va rasmlar shu yerda (har biri ≤ 4 MB).
+model StorageObject {
+  key         String   @id @db.VarChar(400)
+  contentType String   @db.VarChar(120)
+  size        Int
+  data        Bytes
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
 }

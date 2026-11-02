@@ -18,6 +18,7 @@ let prisma: PrismaService;
 let admin: Record<string, string>;
 let collectionId: string;
 let slug: string;
+let groupId: string;
 
 function http() {
   return request(app.getHttpServer());
@@ -52,10 +53,12 @@ beforeAll(async () => {
   prisma = app.get(PrismaService);
   await createTestAdmin(prisma, ADMIN, PASSWORD);
   admin = await adminHeaders(app, ADMIN, PASSWORD, "10.40.0.1");
+  groupId = (await http().post("/admin/test-groups").set(admin).send({ name: "E2E to'plam" }).expect(201)).body.id;
 });
 
 afterAll(async () => {
   await prisma.topic.deleteMany({ where: { kind: "collection", title: { startsWith: "E2E" } } });
+  await prisma.testGroup.deleteMany({ where: { name: { startsWith: "E2E" } } });
   await prisma.admin.deleteMany({ where: { login: ADMIN } });
   await app.close();
 });
@@ -67,7 +70,7 @@ describe("yangi testlar", () => {
   });
 
   it("to'plam, rasm bilan savol, nashr va foydalanuvchi yechishi", async () => {
-    const col = await http().post("/admin/collections").set(admin).send({ title: { uz: "E2E to'plam", cyrl: "E2E тўплам", ru: "E2E набор" } }).expect(201);
+    const col = await http().post("/admin/collections").set(admin).send({ title: { uz: "E2E to'plam", cyrl: "E2E тўплам", ru: "E2E набор" }, groupId }).expect(201);
     collectionId = col.body.id;
     slug = col.body.slug;
     expect(slug).toMatch(/^new-/);
@@ -135,7 +138,7 @@ describe("yangi testlar", () => {
   });
 
   it("to'plamni o'chirish — foydalanuvchining ro'yxati va saqlanganlaridan ham yo'qoladi", async () => {
-    const col = await http().post("/admin/collections").set(admin).send({ title: { uz: "E2E o'chiriladigan" } }).expect(201);
+    const col = await http().post("/admin/collections").set(admin).send({ title: { uz: "E2E o'chiriladigan" }, groupId }).expect(201);
     const q = await http().post(`/admin/collections/${col.body.id}/questions`).set(admin).send(question()).expect(201);
     await http().patch(`/admin/collections/${col.body.id}`).set(admin).send({ published: true }).expect(200);
 

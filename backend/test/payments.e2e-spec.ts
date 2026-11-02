@@ -127,7 +127,13 @@ describe("to'lov va kirish huquqi", () => {
     const open = await http().get(`/topics/${TOPIC}/questions`).set(auth).expect(200);
     expect(JSON.stringify(open.body)).not.toContain("isCorrect");
     await http().post(`/questions/${questionId}/check-answer`).set(auth).send({ optionId }).expect(200);
-    expect(await prisma.answerLog.count({ where: { userId: user.id, questionId } })).toBe(1);
+    // Javob logi fonda yoziladi (javobni sekinlatmaydi) — yozilishini kutamiz.
+    let logged = 0;
+    for (let i = 0; i < 20 && logged === 0; i++) {
+      logged = await prisma.answerLog.count({ where: { userId: user.id, questionId } });
+      if (!logged) await new Promise((r) => setTimeout(r, 50));
+    }
+    expect(logged).toBe(1);
 
     await http().post(`/admin/payments/${row!.id}/cancel`).set(admin).send({}).expect(200);
     await http().get(`/topics/${TOPIC}/questions`).set(auth).expect(403);
