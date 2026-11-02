@@ -66,7 +66,7 @@ describe("Mening tahlilim", () => {
     for (const slug of ["day97-topic1", "day97-topic2"]) {
       await prisma.topic.deleteMany({ where: { slug } });
       const t = await prisma.topic.create({ data: { slug, title: slug } });
-      await prisma.question.create({ data: { topicId: t.id, order: 1, text: "Savol?" } });
+      await prisma.question.create({ data: { topicId: t.id, order: 1, text: "Savol?", keyword: "savol" } });
       topics.push(t);
     }
     await prisma.topicTestAttempt.createMany({

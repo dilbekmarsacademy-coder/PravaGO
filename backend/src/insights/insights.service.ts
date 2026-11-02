@@ -64,7 +64,9 @@ export class InsightsService {
 
   async stats(userId: string, locale: InsightLocale = "uz-latn"): Promise<InsightStats> {
     const topics = await loadCourseTopics(this.prisma);
-    const title = (t: { title: string; titleCyrl: string | null }) => (locale === "uz-cyrl" && t.titleCyrl ? t.titleCyrl : t.title);
+    const ru = new Map((await this.prisma.topic.findMany({ where: { titleRu: { not: null } }, select: { id: true, titleRu: true } })).map((t) => [t.id, t.titleRu!]));
+    const title = (t: { id: string; title: string; titleCyrl: string | null }) =>
+      locale === "ru" && ru.get(t.id) ? ru.get(t.id)! : locale === "uz-cyrl" && t.titleCyrl ? t.titleCyrl : t.title;
     const [byTopic, last, recent, answers, wrongByTopic] = await Promise.all([
       this.prisma.topicTestAttempt.groupBy({ by: ["topicId"], where: { userId }, _max: { percent: true }, _count: { _all: true } }),
       this.prisma.topicTestAttempt.findFirst({ where: { userId }, orderBy: { createdAt: "desc" }, select: { createdAt: true } }),

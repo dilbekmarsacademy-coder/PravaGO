@@ -25,7 +25,7 @@ export class InsightsController {
 
   @Post()
   @HttpCode(200)
-  @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   refresh(@CurrentUser() user: SessionUser, @Query() query: LocaleQuery): Promise<InsightDto> {
     return this.insights.refresh(user.id, query.locale);
   }
