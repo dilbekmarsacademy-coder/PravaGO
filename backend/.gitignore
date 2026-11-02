@@ -7,3 +7,4 @@ public/images/
 .env*
 !.env.example
 .storage/
+test/output/
