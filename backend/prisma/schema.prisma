@@ -617,6 +617,8 @@ model ImportBatch {
   stats            Json             @default("{}")
   error            String?          @db.VarChar(1000)
   createdById      String?
+  /// Qadam qulfi: bir vaqtda faqat bitta qadam (ikki tab / qayta urinish).
+  lockedUntil      DateTime?      @db.Timestamptz(3)
   files            ImportFile[]
   tests            ImportTest[]
   questions        ImportQuestion[]

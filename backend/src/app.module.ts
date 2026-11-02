@@ -15,6 +15,7 @@ import { AccessModule } from "./access/access.module";
 import { AccountModule } from "./account/account.module";
 import { AiModule } from "./ai/ai.module";
 import { StorageModule } from "./storage/storage.module";
+import { AiImportModule } from "./ai-import/import.module";
 import { ImagesModule } from "./images/images.module";
 import { CollectionsModule } from "./collections/collections.module";
 import { EventsModule } from "./events/events.module";
@@ -41,6 +42,7 @@ import { EventsModule } from "./events/events.module";
     AccountModule,
     AiModule,
     StorageModule,
+    AiImportModule,
     ImagesModule,
     CollectionsModule,
     EventsModule,
