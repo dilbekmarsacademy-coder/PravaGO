@@ -769,7 +769,7 @@ export class ImportService {
         needsReview = true;
         notes.push(check.note ?? (check.residue ? "Watermark qoldig'i qoldi" : "Ko'zga tashlanadigan dog' qoldi"));
       }
-    } else needsReview = true;
+    } else needsReview = !manualBoxes; // AI'siz: avtomatik tozalashni admin ko'radi; qo'lda chizganini — o'zi ko'rgan
     await this.prisma.importImage.update({
       where: { id: img.id },
       data: { ...data, cleanedKey, cropKey, selected: "cleaned", status: needsReview ? "needs_review" : "done", needsReview, error: notes.join("; ") || null },

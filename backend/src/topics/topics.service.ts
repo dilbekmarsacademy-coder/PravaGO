@@ -29,6 +29,7 @@ export class TopicsService {
           id: q.id,
           text: questionText(q),
           imageUrl: q.imageUrl,
+          imageSmallUrl: q.imageSmallUrl,
           imageWidth: q.imageWidth,
           imageHeight: q.imageHeight,
           options: q.options.map((o) => new PublicOptionDto(o.id, optionText(o))),

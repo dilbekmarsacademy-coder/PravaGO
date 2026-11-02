@@ -9,6 +9,8 @@ import { useLocale } from "@/lib/i18n/useLocale";
 
 interface QuestionImageProps {
   src: string;
+  /** 800 px variant: bo'lsa — srcset (telefon kichigini yuklaydi, lightbox — kattasini). */
+  smallSrc?: string | null;
   alt: string;
   width?: number | null;
   height?: number | null;
@@ -28,7 +30,7 @@ const FALLBACK_HEIGHT = 506;
  * ekranning ~42%, ikki ustunda header'dan qolgan joy). Ramka rasm nisbatiga
  * qarab torayadi — rasm doim ramkani to'liq to'ldiradi, bo'sh polosa qolmaydi.
  */
-export function QuestionImage({ src, alt, width, height, variant = "test" }: QuestionImageProps) {
+export function QuestionImage({ src, smallSrc, alt, width, height, variant = "test" }: QuestionImageProps) {
   const { t } = useLocale();
   const [loaded, setLoaded] = useState(false);
   const [open, setOpen] = useState(false);
@@ -50,19 +52,39 @@ export function QuestionImage({ src, alt, width, height, variant = "test" }: Que
         )}
       >
         {!loaded && <span className="skeleton-shimmer absolute inset-0" aria-hidden="true" />}
-        <Image
-          src={src}
-          alt={alt}
-          width={w}
-          height={h}
-          // Asl fayl uzatiladi: rasmlar kichik (≤900px), qayta siqish (standart
-          // 75% sifat) ularni xiralashtirib yuboradi.
-          unoptimized
-          loading={variant === "test" ? "eager" : "lazy"}
-          fetchPriority={variant === "test" ? "high" : "auto"}
-          onLoad={() => setLoaded(true)}
-          className={cn("block h-auto w-full transition-opacity duration-300", loaded ? "opacity-100" : "opacity-0")}
-        />
+        {smallSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            // Keshdan darhol yuklangan rasmda onLoad kelmasligi mumkin.
+            ref={(el) => {
+              if (el?.complete && el.naturalWidth) setLoaded(true);
+            }}
+            src={src}
+            srcSet={`${smallSrc} 800w, ${src} 1600w`}
+            sizes="(min-width: 1024px) 50vw, 100vw"
+            alt={alt}
+            width={w}
+            height={h}
+            loading={variant === "test" ? "eager" : "lazy"}
+            fetchPriority={variant === "test" ? "high" : "auto"}
+            onLoad={() => setLoaded(true)}
+            className={cn("block h-auto w-full transition-opacity duration-300", loaded ? "opacity-100" : "opacity-0")}
+          />
+        ) : (
+          <Image
+            src={src}
+            alt={alt}
+            width={w}
+            height={h}
+            // Asl fayl uzatiladi: rasmlar kichik (≤900px), qayta siqish (standart
+            // 75% sifat) ularni xiralashtirib yuboradi.
+            unoptimized
+            loading={variant === "test" ? "eager" : "lazy"}
+            fetchPriority={variant === "test" ? "high" : "auto"}
+            onLoad={() => setLoaded(true)}
+            className={cn("block h-auto w-full transition-opacity duration-300", loaded ? "opacity-100" : "opacity-0")}
+          />
+        )}
         <span
           aria-hidden="true"
           className="pointer-events-none absolute right-3 bottom-3 flex size-9 items-center justify-center rounded-full bg-background/75 text-foreground backdrop-blur transition-opacity pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-visible:opacity-100"

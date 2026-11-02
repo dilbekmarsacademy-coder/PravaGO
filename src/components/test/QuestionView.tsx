@@ -103,6 +103,7 @@ export function QuestionView({
         <div className="self-start [grid-area:image]">
           <QuestionImage
             src={question.imageUrl}
+            smallSrc={question.imageSmallUrl}
             alt={text || t.testSession.imageAlt}
             width={question.imageWidth}
             height={question.imageHeight}
