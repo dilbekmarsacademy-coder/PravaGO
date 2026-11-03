@@ -281,6 +281,10 @@ export interface Dictionary {
     finishModalResult: string;
     finishModalResultValue: (correct: number, total: number, percent: number) => string;
     finishConfirm: string;
+    /** Javobni tasdiqlash paneli (tasodifan bosib yuborishdan himoya). */
+    confirmAnswerPrompt: (label: string) => string;
+    confirmAnswerYes: string;
+    confirmAnswerNo: string;
     nextTopic: string;
     nextDay: string;
     completeTitle: string;

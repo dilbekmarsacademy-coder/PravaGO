@@ -195,6 +195,8 @@ export const STATUS_LABEL: Record<string, string> = {
   review: "Tekshirish kutilmoqda",
   partial_error: "Qisman xato",
   done: "Tugagan",
+  approved: "Chiqarilgan",
+  failed: "Xato",
 };
 
 export const STAGE_LABEL: Record<string, string> = {

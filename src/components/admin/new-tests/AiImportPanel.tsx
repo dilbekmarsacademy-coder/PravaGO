@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FileUpIcon, SparklesIcon, UploadCloudIcon, XIcon } from "lucide-react";
+import { FileUpIcon, SparklesIcon, Trash2Icon, UploadCloudIcon, XIcon } from "lucide-react";
 import { adminFetch, AdminApiError } from "@/lib/admin/api";
 import type { TestGroup } from "@/lib/admin/collections";
 import {
@@ -22,6 +22,7 @@ import {
 import { formatDateTime } from "@/lib/admin/format";
 import { Badge } from "@/components/shared/Badge";
 import { Button } from "@/components/shared/Button";
+import { Modal } from "@/components/shared/Modal";
 import { showToast } from "@/components/shared/Toast";
 import { EmptyState, Field, Panel, Select, Spinner, Table, Td, TextInput, Th } from "@/components/admin/ui";
 import WatermarkSampleSetting from "./WatermarkSampleSetting";
@@ -31,7 +32,7 @@ const NEW_GROUP = "__new__";
 type FileState = "uploading" | "done" | "error";
 
 export function statusTone(status: string): "success" | "warning" | "danger" | "brand" | "muted" {
-  if (status === "done") return "success";
+  if (status === "done" || status === "approved") return "success";
   if (status === "review") return "brand";
   if (status === "partial_error" || status === "paused") return "danger";
   if (status === "ready") return "warning";
@@ -55,6 +56,8 @@ export default function AiImportPanel() {
   const [busy, setBusy] = useState(false);
   const [limitError, setLimitError] = useState<string | null>(null);
   const [imports, setImports] = useState<ImportListItem[] | null>(null);
+  const [toDelete, setToDelete] = useState<ImportListItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -96,6 +99,21 @@ export default function AiImportPanel() {
 
   const groupOk = groupId === NEW_GROUP ? newGroup.trim().length > 0 : Boolean(groupId);
   const topicSlug = day && topic ? `day${day}-topic${topic}` : undefined;
+
+  async function removeImport() {
+    if (!toDelete) return;
+    setDeleting(true);
+    try {
+      await adminFetch(`ai-imports/${toDelete.id}/delete`, { method: "POST" });
+      setImports((cur) => cur?.filter((x) => x.id !== toDelete.id) ?? cur);
+      showToast({ message: "Import o'chirildi", tone: "success" });
+      setToDelete(null);
+    } catch (err) {
+      showToast({ message: err instanceof Error ? err.message : "Xatolik", tone: "danger" });
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   async function submit() {
     if (!files.length || !groupOk) return;
@@ -257,6 +275,7 @@ export default function AiImportPanel() {
                 <Th>Savollar</Th>
                 <Th>Holat</Th>
                 <Th>Kim</Th>
+                <Th>{""}</Th>
               </tr>
             </thead>
             <tbody>
@@ -274,6 +293,11 @@ export default function AiImportPanel() {
                     <Badge tone={statusTone(r.status)}>{STATUS_LABEL[r.status] ?? r.status}</Badge>
                   </Td>
                   <Td>{r.createdBy ?? "—"}</Td>
+                  <Td>
+                    <button type="button" aria-label="Importni o'chirish" title="Ro'yxatdan o'chirish" className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger" onClick={() => setToDelete(r)} data-testid="ai-import-delete">
+                      <Trash2Icon className="size-4" />
+                    </button>
+                  </Td>
                 </tr>
               ))}
             </tbody>
@@ -282,6 +306,22 @@ export default function AiImportPanel() {
       </Panel>
 
       <WatermarkSampleSetting />
+
+      <Modal
+        open={Boolean(toDelete)}
+        onOpenChange={(open) => !open && setToDelete(null)}
+        title="Importni o'chirish"
+        description="Import ro'yxatdan o'chadi. Chiqarilgan testlar va ularning savollari saytda qoladi; chiqarilmagan qoralamalar o'chib ketadi."
+      >
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="secondary" onClick={() => setToDelete(null)}>
+            Bekor qilish
+          </Button>
+          <Button variant="danger" onClick={removeImport} disabled={deleting} data-testid="ai-import-delete-confirm">
+            {deleting ? <Spinner className="size-4" /> : <Trash2Icon className="size-4" />} O&apos;chirish
+          </Button>
+        </div>
+      </Modal>
     </>
   );
 }

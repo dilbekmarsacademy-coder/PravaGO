@@ -1004,6 +1004,18 @@ export class ImportService {
     return this.detail(batchId);
   }
 
+  /**
+   * Importni ro'yxatdan o'chirish. Chiqarilgan testlar va ularning rasmlari (MediaAsset)
+   * saqlanib qoladi — faqat import qoralamalari va jarayon yozuvlari o'chadi.
+   */
+  async remove(admin: AdminUser, ip: string, batchId: string): Promise<void> {
+    const batch = await this.batchOrThrow(batchId);
+    if (batch.lockedUntil && batch.lockedUntil > new Date()) throw new BadRequestException("Import hozir ishlayapti — biroz kutib qayta urinib ko'ring");
+    const tests = await this.prisma.importTest.findMany({ where: { batchId }, select: { title: true, status: true } });
+    await this.prisma.importBatch.delete({ where: { id: batchId } });
+    await this.audit.log(admin, ip, { action: "ai_import.deleted", entityType: "ai_import", entityId: batchId, before: { status: batch.status, groupId: batch.groupId, tests } });
+  }
+
   /** Xato bo'lgan rasmlarni qayta urinish. */
   async retryImages(batchId: string) {
     await this.prisma.importImage.updateMany({ where: { batchId, status: "error" }, data: { status: "pending", error: null } });
