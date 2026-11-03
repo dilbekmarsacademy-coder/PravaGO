@@ -37,6 +37,7 @@ function http() {
 }
 
 let screenCall = 0;
+const SITE_TOPIC = "day96-topic1";
 function mockReply(body: { system: { text: string }[]; messages: { content: { type: string; text?: string }[] }[] }) {
   const system = body.system[0].text;
   const lastText = [...body.messages[0].content].reverse().find((b) => b.type === "text")?.text ?? "";
@@ -94,6 +95,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  await prisma.topic.deleteMany({ where: { slug: SITE_TOPIC } });
   await prisma.importBatch.deleteMany({ where: { group: { name: GROUP } } });
   await prisma.testGroup.deleteMany({ where: { name: GROUP } });
   await prisma.admin.deleteMany({ where: { login: ADMIN } });
@@ -125,7 +127,41 @@ describe("Ekran rasmlaridan import", () => {
     expect(q.doubt ?? null).toBeNull();
   });
 
+  it("saytda bor savol chetga olinadi; \"Bu testga ham qo'shish\" bilan qaytadi va tahlil qilinadi", async () => {
+    screenCall = 0;
+    const s = SCREENS[2];
+    await prisma.topic.deleteMany({ where: { slug: SITE_TOPIC } });
+    const topic = await prisma.topic.create({ data: { slug: SITE_TOPIC, title: SITE_TOPIC } });
+    await prisma.question.create({ data: { topicId: topic.id, order: 1, text: s.question, keyword: "усули", options: { create: s.options.map((text, i) => ({ text, order: i + 1, isCorrect: i === 1 })) } } });
+
+    const images: Record<string, Buffer> = {};
+    for (let i = 1; i <= 3; i++) images[`image${i}.png`] = await makeImage({ width: 1000, height: 400, seed: i + 10 });
+    const docx = await makeDocx(["5. билет", { image: "image1.png" }, "1.тротуарда ёки йўл ёқасида", { image: "image2.png" }, "2.А ва Б", { image: "image3.png" }, "3.усули"], images);
+    const name = "5билет.docx";
+    const created = (await http().post("/admin/ai-imports").set(admin).send({ newGroupName: GROUP, removeWatermarks: false, files: [{ name, size: docx.length }] }).expect(201)).body;
+    await http().post(`/admin/ai-imports/${created.batchId}/files/${created.uploads[0].fileId}/upload`).set(admin).attach("file", docx, name).expect(204);
+    await stepUntil(created.batchId, (st) => st === "ready");
+    await http().post(`/admin/ai-imports/${created.batchId}/start`).set(admin).expect(200);
+    await stepUntil(created.batchId, (st) => st === "review");
+
+    let detail = (await http().get(`/admin/ai-imports/${created.batchId}`).set(admin).expect(200)).body;
+    expect(detail.tests[0]).toMatchObject({ questionCount: 2, existingCount: 1 });
+    expect(detail.stats.questions.existing).toBe(1);
+
+    const after = (await http().post(`/admin/ai-imports/${created.batchId}/tests/${detail.tests[0].id}/include-existing`).set(admin).expect(200)).body;
+    expect(after.status).toBe("processing");
+    await stepUntil(created.batchId, (st) => st === "review");
+    detail = (await http().get(`/admin/ai-imports/${created.batchId}`).set(admin).expect(200)).body;
+    expect(detail.tests[0]).toMatchObject({ questionCount: 3, existingCount: 0 });
+    expect(detail.stats.questions.existing).toBe(0);
+    const qs = (await http().get(`/admin/ai-imports/${created.batchId}/tests/${detail.tests[0].id}/questions`).set(admin).expect(200)).body.items as { data: { text: { ru: string }; explanation: unknown } }[];
+    // Qo'shilgan savol ham tahlil qilingan (ruscha matn va izoh).
+    expect(qs.every((q) => q.data.text.ru && q.data.explanation)).toBe(true);
+    await prisma.topic.deleteMany({ where: { slug: SITE_TOPIC } });
+  });
+
   it("ekranlar → AI o'qiydi → bilet testi; yashil javob, fayldagi javob bilan solishtirish, kesilgan rasm", async () => {
+    create.mockClear();
     const images: Record<string, Buffer> = {};
     for (let i = 1; i <= 3; i++) images[`image${i}.png`] = await makeImage({ width: 1000, height: 400, seed: i });
     const docx = await makeDocx(["4. билет", { image: "image1.png" }, "1.тротуарда ёки йўл ёқасида", { image: "image2.png" }, "2.А ва Б", { image: "image3.png" }, "3.усули"], images);

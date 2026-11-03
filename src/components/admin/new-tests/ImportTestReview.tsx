@@ -4,7 +4,7 @@
 // "Fayldagi javoblarni tasdiqlash" (faqat xavfsizlari) va "Tasdiqlash va chiqarish".
 
 import { useCallback, useEffect, useState } from "react";
-import { CheckCheckIcon, RocketIcon, SaveIcon } from "lucide-react";
+import { CheckCheckIcon, CopyPlusIcon, RocketIcon, SaveIcon } from "lucide-react";
 import { adminFetch, AdminApiError } from "@/lib/admin/api";
 import type { TestGroup } from "@/lib/admin/collections";
 import type { ImportTestRow, ReviewQuestion } from "@/lib/admin/ai-import";
@@ -108,6 +108,19 @@ export default function ImportTestReview({ batchId, test, tests, onChanged }: { 
 
   const allApproved = test.questionCount > 0 && test.approvedCount === test.questionCount;
 
+  async function includeExisting() {
+    setBusy(true);
+    try {
+      await adminFetch(`ai-imports/${batchId}/tests/${test.id}/include-existing`, { method: "POST" });
+      showToast({ message: `${test.existingCount} ta savol qo'shildi — AI tahlili davom etmoqda`, tone: "success" });
+      refresh();
+    } catch (err) {
+      showToast({ message: err instanceof Error ? err.message : "Xatolik", tone: "danger" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <Panel
       title={
@@ -145,6 +158,17 @@ export default function ImportTestReview({ batchId, test, tests, onChanged }: { 
           </Field>
           <Button variant="secondary" className="md:mb-5" disabled={busy || !title.trim()} onClick={saveMeta}>
             <SaveIcon className="size-4" /> Saqlash
+          </Button>
+        </div>
+      )}
+
+      {!locked && test.existingCount > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm" data-testid="ai-existing-notice">
+          <p className="min-w-0 flex-1">
+            Fayldagi yana <b>{test.existingCount} ta</b> savol saytda (kurs mavzularida) allaqachon bor, shuning uchun bu testga qo&apos;shilmadi. Bilet yoki to&apos;liq to&apos;plam bo&apos;lsa — ularni ham qo&apos;shing.
+          </p>
+          <Button size="sm" variant="secondary" disabled={busy} onClick={includeExisting} data-testid="ai-include-existing">
+            <CopyPlusIcon className="size-4" /> Bu testga ham qo&apos;shish
           </Button>
         </div>
       )}

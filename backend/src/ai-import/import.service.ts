@@ -33,6 +33,9 @@ const MAX_ATTEMPTS = 2;
 
 export const WATERMARK_SAMPLE_KEY = "import.watermark_sample";
 
+/** Saytda bor bo'lgani uchun chetga olingan (dublikat emas) savollar. */
+const EXISTING_HIDDEN = { deleted: true, existingQuestionId: { not: null }, duplicateOfId: null } satisfies Prisma.ImportQuestionWhereInput;
+
 export type Stage = "extract" | "ready" | "classify" | "screens" | "group" | "match" | "analyze" | "images" | "done";
 
 function emptyTexts(): Texts {
@@ -911,7 +914,7 @@ export class ImportService {
         analyzed: live.filter((q) => q.analyzed).length,
         duplicates: questions.filter((q) => q.duplicateOfId).length,
         conflicts: live.filter((q) => q.conflict !== null).length,
-        existing: questions.filter((q) => q.existingQuestionId).length,
+        existing: questions.filter((q) => q.existingQuestionId && q.deleted && !q.duplicateOfId).length,
         reviewNeeded: live.filter((q) => needsReview(q.data as unknown as QDraft, q.matchStatus, q.conflict !== null)).length,
       },
       images: { total: images.reduce((n, i) => n + i._count._all, 0), done: ic("done") + ic("needs_review"), needsReview: ic("needs_review"), error: ic("error") },
@@ -951,6 +954,7 @@ export class ImportService {
     });
     if (!batch) throw new NotFoundException("Import topilmadi");
     const counts = await this.prisma.importQuestion.findMany({ where: { batchId, deleted: false, testId: { not: null } }, select: { testId: true, approved: true, data: true, matchStatus: true, conflict: true, imageId: true } });
+    const existing = await this.prisma.importQuestion.groupBy({ by: ["testId"], where: { batchId, ...EXISTING_HIDDEN }, _count: { _all: true } });
     const imageReview = new Set((await this.prisma.importImage.findMany({ where: { batchId, OR: [{ needsReview: true }, { status: "error" }] }, select: { id: true } })).map((i) => i.id));
     const budget = await this.ai.budget();
     return {
@@ -960,6 +964,7 @@ export class ImportService {
         return {
           ...t,
           questionCount: qs.length,
+          existingCount: existing.find((e) => e.testId === t.id)?._count._all ?? 0,
           approvedCount: qs.filter((q) => q.approved).length,
           reviewCount: qs.filter((q) => needsReview(q.data as unknown as QDraft, q.matchStatus, q.conflict !== null) || (q.imageId && imageReview.has(q.imageId))).length,
         };
@@ -978,6 +983,24 @@ export class ImportService {
     const batch = await this.batchOrThrow(batchId);
     // Ochish bosqichi tugagan bo'lsa — qayta ochib, keyin qolgan bosqichlar.
     if (batch.stage !== "extract") await this.prisma.importBatch.update({ where: { id: batchId }, data: { stage: "extract", status: "uploading" } });
+    return this.detail(batchId);
+  }
+
+  /**
+   * "Saytda bor" deb chetga olingan savollarni shu testga qo'shish (masalan, bilet to'plami
+   * kurs mavzularidagi savollardan iborat bo'lsa). Ular hali tahlil qilinmagan — jarayon
+   * tahlil bosqichidan davom etadi (tarjima, izoh, rasmlar).
+   */
+  async includeExisting(admin: AdminUser, ip: string, batchId: string, testId: string) {
+    const test = await this.prisma.importTest.findFirst({ where: { id: testId, batchId } });
+    if (!test) throw new NotFoundException("Test topilmadi");
+    if (test.status === "approved") throw new BadRequestException("Test allaqachon chiqarilgan");
+    const { count } = await this.prisma.importQuestion.updateMany({ where: { batchId, testId, ...EXISTING_HIDDEN }, data: { deleted: false, approved: false } });
+    if (count) {
+      if (this.ai.configured()) await this.ai.assertBudget();
+      await this.prisma.importBatch.update({ where: { id: batchId }, data: { status: "processing", stage: "analyze", error: null } });
+    }
+    await this.audit.log(admin, ip, { action: "ai_import.existing_included", entityType: "ai_import_test", entityId: testId, after: { count } });
     return this.detail(batchId);
   }
 
