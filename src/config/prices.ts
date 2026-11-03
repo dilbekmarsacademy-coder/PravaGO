@@ -13,7 +13,7 @@ export const CATEGORY_PRICES: Record<ExamStatus, CategoryPriceInfo> = {
   "license-revoked": { categoryNumber: 3, label: "Pravasi bekor qilingan", amount: 450_000 },
 };
 
-export const COURSE_NAME = "PravaTayyor — 7 kunlik tayyorgarlik kursi";
+export const COURSE_NAME = "PravaIshonch — 7 kunlik tayyorgarlik kursi";
 
 export const COURSE_FEATURES = [
   "6 kunlik video darslar + kalit so'zlar PDF",

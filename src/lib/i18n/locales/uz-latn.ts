@@ -5,13 +5,13 @@ const num = (value: number) => formatNumber(value, "uz-latn");
 
 export const uzLatn: Dictionary = {
   meta: {
-    title: "PravaTayyor — Haydovchilik imtihoniga tayyorgarlik",
+    title: "PravaIshonch — Haydovchilik imtihoniga tayyorgarlik",
     description:
       "Respublika miqyosidagi onlayn haydovchilik (prava) imtihoniga tayyorgarlik platformasi.",
   },
 
   header: {
-    brand: "PravaTayyor",
+    brand: "PravaIshonch",
     nav: {
       boshSahifa: "Bosh sahifa",
       dastur: "Dastur",
@@ -178,7 +178,7 @@ export const uzLatn: Dictionary = {
 
   footer: {
     tagline: "Onlayn haydovchilik imtihoniga tayyorgarlik platformasi",
-    copyright: "© 2026 PravaTayyor. Barcha huquqlar himoyalangan.",
+    copyright: "© 2026 PravaIshonch. Barcha huquqlar himoyalangan.",
   },
 
   registerModal: {

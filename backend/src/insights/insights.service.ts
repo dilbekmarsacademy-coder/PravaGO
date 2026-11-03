@@ -18,7 +18,7 @@ const LANGUAGE: Record<InsightLocale, string> = {
   ru: "на русском языке",
 };
 
-const SYSTEM = `Sen haydovchilik guvohnomasi imtihoniga tayyorlov kursi (PravaTayyor, "6+1 kun") o'quvchisiga shaxsiy murabbiy sifatida qisqa tahlil yozasan.
+const SYSTEM = `Sen haydovchilik guvohnomasi imtihoniga tayyorlov kursi (PravaIshonch, "6+1 kun") o'quvchisiga shaxsiy murabbiy sifatida qisqa tahlil yozasan.
 Senga faqat o'quvchining test natijalari (raqamlar va mavzu nomlari) beriladi — ism, telefon yo'q. Faqat shu raqamlarga tayan, o'ylab topma.
 Mavzu testidan o'tish uchun ${PASS_PERCENT}% kerak. Ohang: iliq, rag'batlantiruvchi, aniq. Murojaat "siz".
 summary — 2–3 jumla: umumiy holat, kuchli tomon, eng zaif joy. tips — aynan 3 ta qisqa, amalga oshirsa bo'ladigan maslahat (qaysi mavzuni qayta ko'rish, qanday mashq qilish).`;

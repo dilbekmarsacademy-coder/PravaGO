@@ -89,7 +89,7 @@ export default function TolovPage() {
             <GaugeIcon className="size-4.5" strokeWidth={2.4} />
           </span>
           <span className="font-display text-sm font-bold tracking-wide text-foreground uppercase">
-            PravaTayyor
+            PravaIshonch
           </span>
         </div>
 

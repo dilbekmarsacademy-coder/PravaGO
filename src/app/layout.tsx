@@ -45,7 +45,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PravaTayyor — Haydovchilik imtihoniga tayyorgarlik",
+  title: "PravaIshonch — Haydovchilik imtihoniga tayyorgarlik",
   description:
     "Respublika miqyosidagi onlayn haydovchilik (prava) imtihoniga tayyorgarlik platformasi.",
   // Brauzer tarjimasi (Chrome/Google Translate) DOM'dagi matnlarni o'zgartiradi

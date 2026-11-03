@@ -5,13 +5,13 @@ const num = (value: number) => formatNumber(value, "uz-cyrl");
 
 export const uzCyrl: Dictionary = {
   meta: {
-    title: "PravaTayyor — Ҳайдовчилик имтиҳонига тайёргарлик",
+    title: "PravaIshonch — Ҳайдовчилик имтиҳонига тайёргарлик",
     description:
       "Республика миқёсидаги онлайн ҳайдовчилик (права) имтиҳонига тайёргарлик платформаси.",
   },
 
   header: {
-    brand: "PravaTayyor",
+    brand: "PravaIshonch",
     nav: {
       boshSahifa: "Бош саҳифа",
       dastur: "Дастур",
@@ -178,7 +178,7 @@ export const uzCyrl: Dictionary = {
 
   footer: {
     tagline: "Онлайн ҳайдовчилик имтиҳонига тайёргарлик платформаси",
-    copyright: "© 2026 PravaTayyor. Барча ҳуқуқлар ҳимояланган.",
+    copyright: "© 2026 PravaIshonch. Барча ҳуқуқлар ҳимояланган.",
   },
 
   registerModal: {

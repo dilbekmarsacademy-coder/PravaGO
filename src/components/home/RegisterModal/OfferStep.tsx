@@ -32,7 +32,7 @@ export default function OfferStep({ stepLabel, onAccept, onCenterLogin }: OfferS
         {/* TODO: real oferta matni bilan almashtiriladi */}
         <p className="mb-3">
           Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ushbu
-          hujjat PravaTayyor platformasidan foydalanish shartlarini
+          hujjat PravaIshonch platformasidan foydalanish shartlarini
           belgilaydi. Foydalanuvchi ro&rsquo;yxatdan o&rsquo;tish orqali quyida
           keltirilgan shartlarga rozilik bildiradi.
         </p>

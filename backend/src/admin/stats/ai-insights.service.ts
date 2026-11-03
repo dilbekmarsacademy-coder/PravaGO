@@ -7,12 +7,12 @@ import type { AdminUser } from "../admin-request";
 import { AuditService } from "../audit.service";
 import { RANGE_KEYS, rangeStart, StatsService, type RangeKey } from "./stats.service";
 
-const SUMMARY_SYSTEM = `Sen PravaTayyor (haydovchilik guvohnomasi imtihoniga tayyorlov kursi) admini uchun qisqa xulosa yozasan.
+const SUMMARY_SYSTEM = `Sen PravaIshonch (haydovchilik guvohnomasi imtihoniga tayyorlov kursi) admini uchun qisqa xulosa yozasan.
 Senga faqat YIG'MA statistika (JSON) beriladi — shaxsiy ma'lumot yo'q. O'zbek tilida (lotin), markdown ro'yxat bilan yoz.
 5–7 ta qisqa band: eng muhim o'zgarishlar, sotuv (tarif bo'yicha), 98% qoidasi bo'yicha o'tish, qayerda tashlab ketishyapti,
 eng qiyin mavzu/savollar va 2 ta aniq taklif. Faqat berilgan raqamlarga tayan; ma'lumot bo'lmasa — shuni ayt.`;
 
-const ASK_SYSTEM = `Sen PravaTayyor admin panelidagi statistika yordamchisisan. Savolga javob berish uchun faqat berilgan funksiyalarni chaqir
+const ASK_SYSTEM = `Sen PravaIshonch admin panelidagi statistika yordamchisisan. Savolga javob berish uchun faqat berilgan funksiyalarni chaqir
 (ular faqat yig'ma raqamlarni o'qiydi; shaxsiy ma'lumot yo'q). Raqamlarni o'zing o'ylab topma — faqat funksiya natijalariga tayan.
 Davr: "today" — bugun, "7d" — 7 kun, "30d" — 30 kun. Javobni o'zbek tilida (lotin), qisqa va aniq yoz; oxirida qaysi davr ishlatilganini ayt.
 Savol statistikaga aloqasiz bo'lsa yoki ma'lumot yo'q bo'lsa — shuni ochiq ayt.`;

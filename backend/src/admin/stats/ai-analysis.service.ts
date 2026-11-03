@@ -6,7 +6,7 @@ import type { AdminUser } from "../admin-request";
 import { AuditService } from "../audit.service";
 import { StatsService } from "./stats.service";
 
-const SYSTEM = `Sen PravaTayyor (haydovchilik guvohnomasi imtihoniga tayyorlov kursi, "6+1 kun") platformasining tahlilchisisan.
+const SYSTEM = `Sen PravaIshonch (haydovchilik guvohnomasi imtihoniga tayyorlov kursi, "6+1 kun") platformasining tahlilchisisan.
 Senga faqat YIG'MA statistika (JSON) beriladi — shaxsiy ma'lumot yo'q. Javobni o'zbek tilida (lotin yozuvi), qisqa va aniq yoz.
 Faqat berilgan statistikaga tayan: unda yo'q raqam yoki faktni o'ylab topma; ma'lumot yetarli bo'lmasa, shuni ochiq ayt.
 Markdown ishlat: qisqa sarlavhalar va ro'yxatlar.`;

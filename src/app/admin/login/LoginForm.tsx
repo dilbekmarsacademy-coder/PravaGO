@@ -40,7 +40,7 @@ export default function LoginForm({ next }: { next?: string }) {
           <GaugeIcon className="size-5" strokeWidth={2.4} />
         </span>
         <div>
-          <p className="font-display text-sm font-bold tracking-wide uppercase">PravaTayyor</p>
+          <p className="font-display text-sm font-bold tracking-wide uppercase">PravaIshonch</p>
           <p className="text-xs text-muted-foreground">Boshqaruv paneli</p>
         </div>
       </div>

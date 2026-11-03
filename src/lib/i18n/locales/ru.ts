@@ -23,13 +23,13 @@ function questionWord(count: number): string {
 
 export const ru: Dictionary = {
   meta: {
-    title: "PravaTayyor — Подготовка к экзамену на права",
+    title: "PravaIshonch — Подготовка к экзамену на права",
     description:
       "Республиканская онлайн-платформа подготовки к экзамену на водительские права.",
   },
 
   header: {
-    brand: "PravaTayyor",
+    brand: "PravaIshonch",
     nav: {
       boshSahifa: "Главная",
       dastur: "Программа",
@@ -196,7 +196,7 @@ export const ru: Dictionary = {
 
   footer: {
     tagline: "Онлайн-платформа подготовки к экзамену на водительские права",
-    copyright: "© 2026 PravaTayyor. Все права защищены.",
+    copyright: "© 2026 PravaIshonch. Все права защищены.",
   },
 
   registerModal: {
