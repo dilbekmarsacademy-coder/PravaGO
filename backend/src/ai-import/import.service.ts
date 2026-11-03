@@ -8,16 +8,18 @@ import { parseCourseSlug } from "../common/rules";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
 import { MAX_IMPORT_FILE_BYTES } from "../storage/storage";
-import { analyzeQuestions, classifyFile, confirmMatches, detectWatermarkBoxes, estimateCostUsd, verifyCleaned, type AnalyzeInput } from "./ai-steps";
+import { analyzeQuestions, classifyFile, confirmMatches, detectWatermarkBoxes, estimateCostUsd, transcribeScreen, verifyCleaned, type AnalyzeInput } from "./ai-steps";
 import { aiJpeg, cropRgb, edgeCrop, inpaintBest, rgbToPng, sha256, templateMatch, toRgb, type Box } from "./image-ops";
-import { applyEntry, findDuplicates, findExisting, matchQuestion, prepareSite, type KeySource, type MatchResult, type RawQuestion } from "./matching";
+import { applyEntry, findDuplicates, findExisting, matchQuestion, optionByText, prepareSite, type KeySource, type MatchResult, type RawQuestion } from "./matching";
 import { detectScript, findPhraseRange, textSimilarity } from "./normalize";
 import { extractFile, fileType, SUPPORTED_EXTENSIONS, unzip } from "./parse";
-import type { BatchStats, ExtractedJson, FileClassification, QDraft, Texts } from "./types";
+import { documentImageRefs, looksLikeScreens, numberedAnswers, ticketNumber } from "./parse/screens";
+import type { ExtractedQuestion } from "./parse/structure";
+import type { BatchStats, ExtractedJson, FileClassification, QDraft, ScreenItem, Texts } from "./types";
 
 // AI bilan fayllardan import — bosqichma-bosqich, qayta tiklanadigan va idempotent jarayon.
 // Holat Postgres'da; admin sahifasi `step` ni qayta-qayta chaqiradi, har bir qadam bitta
-// so'rovda ≤ 40 s: fayl ochish → tasnif → guruhlash va moslashtirish → shubhali juftliklar →
+// so'rovda ≤ 40 s: fayl ochish → tasnif → ekran rasmlarini o'qish → guruhlash va moslashtirish → shubhali juftliklar →
 // savollar tahlili (4–6 tadan) → rasmlar (3 tadan). Bitta faylda xato bo'lsa qolganlari davom etadi.
 
 const STEP_BUDGET_MS = 30_000;
@@ -26,11 +28,12 @@ const ANALYZE_BATCH = 6;
 const ANALYZE_BATCH_WITH_IMAGES = 4;
 const MATCH_BATCH = 8;
 const IMAGE_BATCH = 3;
+const SCREEN_BATCH = 3;
 const MAX_ATTEMPTS = 2;
 
 export const WATERMARK_SAMPLE_KEY = "import.watermark_sample";
 
-export type Stage = "extract" | "ready" | "classify" | "group" | "match" | "analyze" | "images" | "done";
+export type Stage = "extract" | "ready" | "classify" | "screens" | "group" | "match" | "analyze" | "images" | "done";
 
 function emptyTexts(): Texts {
   return { cyrl: "", latn: "", ru: "" };
@@ -229,6 +232,8 @@ export class ImportService {
         return this.stageExtract(batch);
       case "classify":
         return this.stageClassify(batch);
+      case "screens":
+        return this.stageScreens(batch);
       case "group":
         await this.buildDrafts(batch);
         return this.setStage(batch.id, "match");
@@ -283,6 +288,11 @@ export class ImportService {
         assets: file.parentId ? await this.zipAssets(batch.id, file.parentId) : undefined,
       });
       const images: Record<string, string> = {};
+      const docRefs = documentImageRefs(result.read.lines);
+      if (looksLikeScreens(result.structure, docRefs.length)) {
+        await this.saveScreens(batch, file, result, docRefs);
+        return;
+      }
       const refs = new Set(result.structure.questions.flatMap((q) => q.imageRefs));
       for (const ref of refs) {
         const raw = await result.read.readImage(ref);
@@ -325,22 +335,38 @@ export class ImportService {
     const files = await this.prisma.importFile.findMany({ where: { batchId, status: "extracted" }, select: { extracted: true } });
     let questions = 0;
     let withImage = 0;
+    let screens = 0;
     for (const f of files) {
       const ex = f.extracted as unknown as ExtractedJson | null;
+      screens += ex?.screens?.length ?? 0;
       for (const q of ex?.structure.questions ?? []) {
         questions++;
         if (q.imageRefs.length) withImage++;
       }
     }
     const images = await this.prisma.importImage.count({ where: { batchId } });
-    return { usd: estimateCostUsd({ files: files.length, questions, questionsWithImage: withImage, images, watermarks }), questions, images, files: files.length };
+    return { usd: estimateCostUsd({ files: files.length, questions, questionsWithImage: withImage, images, watermarks, screens }), questions: questions + screens, images: images + screens, files: files.length };
   }
 
   // 2. Fayl turini aniqlash
   private async stageClassify(batch: ImportBatch): Promise<void> {
     const file = await this.prisma.importFile.findFirst({ where: { batchId: batch.id, status: "extracted" }, orderBy: { createdAt: "asc" } });
-    if (!file) return this.setStage(batch.id, "group");
+    if (!file) return this.setStage(batch.id, "screens");
     const ex = file.extracted as unknown as ExtractedJson;
+    if (ex.screens?.length) {
+      // Ekran rasmlari — tasnif aniq, AI kerak emas (savollarni keyingi bosqichda AI o'qiydi).
+      const cls: FileClassification = {
+        kind: "screenshots",
+        topics: [{ day: null, topicNumber: null, title: ex.ticket ? `${ex.ticket}-bilet` : null }],
+        questionCount: ex.screens.length,
+        script: ex.script === "cyrl" || ex.script === "latn" ? ex.script : "mixed",
+        language: "uz",
+        reason: `${ex.screens.length} ta ekran rasmi — savollar rasmdan o'qiladi`,
+        source: "rules",
+      };
+      await this.prisma.importFile.update({ where: { id: file.id }, data: { status: "classified", kind: cls.kind, classification: cls as unknown as Prisma.InputJsonValue } });
+      return;
+    }
     const s = ex.structure;
     const summary = {
       questions: s.questions.length,
@@ -372,6 +398,90 @@ export class ImportService {
         skipReason: skipped ? (cls.reason ?? "Testga aloqasi yo'q") : null,
       },
     });
+  }
+
+  /** Ekran rasmi fayli: asl ekranlar storage'ga, matndagi javoblar va bilet raqami — extracted'ga. */
+  private async saveScreens(batch: ImportBatch, file: ImportFile, result: Awaited<ReturnType<typeof extractFile>>, refs: string[]): Promise<void> {
+    const screens: ScreenItem[] = [];
+    for (const ref of refs) {
+      const raw = await result.read.readImage(ref);
+      if (!raw || raw.data.length < 2000) continue;
+      const key = `imports/${batch.id}/screens/${file.id}/${sha256(raw.data)}${raw.ext ? `.${raw.ext}` : ""}`;
+      await this.storage.put(key, raw.data, `image/${raw.ext === "jpg" ? "jpeg" : raw.ext || "png"}`);
+      screens.push({ ref, key, result: null, imageId: null, attempts: 0, error: null });
+    }
+    const answers = Object.fromEntries([...numberedAnswers(result.read.lines)].map(([n, a]) => [String(n), a]));
+    const ticket = ticketNumber(result.read.lines.map((l) => l.text).join("\n")) ?? ticketNumber(file.name);
+    // Matndagi qisqa javoblar savol bilan ekranlardan keyin bog'lanadi — umumiy kalit/javob ro'yxati sifatida ishlatilmaydi.
+    const structure = { ...result.structure, questions: [], answerKeys: [], keywords: [] };
+    const extracted: ExtractedJson = { structure, preview: result.preview, script: result.script, title: ticket ? `${ticket}-bilet` : result.title, images: {}, screens, screenAnswers: answers, ticket };
+    await this.prisma.importFile.update({
+      where: { id: file.id },
+      data: { status: "extracted", extracted: extracted as unknown as Prisma.InputJsonValue, error: null, attempts: { increment: 1 } },
+    });
+  }
+
+  // 2b. Ekran rasmlarini o'qish (Sonnet vision): 3 tadan parallel; hammasi tugagach — savollar tuziladi.
+  private async stageScreens(batch: ImportBatch): Promise<void> {
+    const files = (await this.prisma.importFile.findMany({ where: { batchId: batch.id, status: "classified", kind: "screenshots" }, orderBy: { createdAt: "asc" } })).filter(
+      (f) => !(f.extracted as unknown as ExtractedJson).screensBuilt,
+    );
+    if (!files.length) return this.setStage(batch.id, "group");
+    const file = files[0];
+    const ex = file.extracted as unknown as ExtractedJson;
+    const screens = ex.screens ?? [];
+    const pending = screens.map((s, i) => ({ s, i })).filter(({ s }) => !s.result && s.attempts < MAX_ATTEMPTS);
+    if (pending.length && this.ai.configured()) {
+      const take = pending.slice(0, SCREEN_BATCH);
+      const settled = await Promise.allSettled(
+        take.map(async ({ s }) => {
+          const jpeg = await aiJpeg(await this.storage.get(s.key));
+          return transcribeScreen(this.ai, jpeg, this.meta(batch));
+        }),
+      );
+      for (const [k, res] of settled.entries()) {
+        const item = screens[take[k].i];
+        item.attempts += 1;
+        if (res.status === "fulfilled") {
+          item.result = res.value;
+          item.error = null;
+          if (res.value.isQuestion && res.value.picture) item.imageId = await this.saveScreenCrop(batch, file, item);
+        } else {
+          const code = (res.reason as { response?: { code?: string } }).response?.code;
+          if (code === "AI_BUDGET_EXCEEDED" || code === "AI_BILLING" || code === "AI_AUTH") {
+            item.attempts -= 1;
+            await this.saveExtracted(file.id, { ...ex, screens });
+            throw res.reason;
+          }
+          item.error = (res.reason instanceof Error ? res.reason.message : String(res.reason)).slice(0, 300);
+        }
+      }
+      await this.saveExtracted(file.id, { ...ex, screens });
+      return;
+    }
+    // Hammasi o'qildi (yoki AI yo'q) — savollar tuziladi.
+    const questions = screensToQuestions(ex, screens, this.ai.configured());
+    const images = Object.fromEntries(screens.flatMap((s, i) => (s.imageId ? [[`screen:${i}`, s.imageId]] : [])));
+    await this.saveExtracted(file.id, { ...ex, screens, images, structure: { ...ex.structure, questions }, screensBuilt: true });
+  }
+
+  private async saveExtracted(fileId: string, ex: ExtractedJson): Promise<void> {
+    await this.prisma.importFile.update({ where: { id: fileId }, data: { extracted: ex as unknown as Prisma.InputJsonValue } });
+  }
+
+  /** Ekrandan savol rasmini kesib olish → ImportImage (keyin oddiy rasm bosqichi: watermark, variantlar). */
+  private async saveScreenCrop(batch: ImportBatch, file: ImportFile, item: ScreenItem): Promise<string | null> {
+    const box = item.result?.picture;
+    if (!box) return null;
+    const img = await toRgb(await this.storage.get(item.key));
+    const png = await rgbToPng(await cropRgb(img, { x: Math.min(box.x, 0.95), y: Math.min(box.y, 0.95), w: Math.min(box.w, 1 - box.x), h: Math.min(box.h, 1 - box.y) }));
+    const hash = sha256(png);
+    const existing = await this.prisma.importImage.findUnique({ where: { batchId_sha256: { batchId: batch.id, sha256: hash } } });
+    if (existing) return existing.id;
+    const key = `imports/${batch.id}/images/${hash}.png`;
+    await this.storage.put(key, png, "image/png");
+    const created = await this.prisma.importImage.create({ data: { batchId: batch.id, sha256: hash, sourceFileId: file.id, originalKey: key, status: "pending" } });
+    return created.id;
   }
 
   // 3. Guruhlash, moslashtirish, dublikat va mavjudlar (AI'siz)
@@ -507,7 +617,7 @@ export class ImportService {
         correctIndex: m.correctIndex,
         correctSource: m.correctIndex !== null ? "file" : null,
         correctBy: m.correctBy,
-        aiDoubt: null,
+        aiDoubt: r.q.doubt ?? null,
         aiReason: null,
         keywords: { question: m.questionKey, answer: m.answerKey, source: m.keySource },
         explanation: r.q.explanation ? { ...bothScripts(r.q.explanation), ru: "" } : null,
@@ -953,3 +1063,82 @@ export function needsReview(d: QDraft, matchStatus: string, conflict: boolean): 
 }
 
 export { emptyTexts };
+
+/**
+ * O'qilgan ekranlar → savollar. To'g'ri javob — ekrandagi yashil variant; matndagi qisqa javob
+ * bilan solishtiriladi: zid bo'lsa savol "tekshirish kerak" (doubt), ekranda belgi bo'lmasa —
+ * matndagi javob ishlatiladi. Kalit so'z — matndagi javob, agar u to'g'ri variant matnida bo'lsa.
+ */
+export function screensToQuestions(ex: ExtractedJson, screens: ScreenItem[], aiConfigured: boolean): ExtractedQuestion[] {
+  const answers = ex.screenAnswers ?? {};
+  const ticket = ex.ticket ?? screens.find((s) => s.result?.ticket)?.result?.ticket ?? null;
+  const out: ExtractedQuestion[] = [];
+  screens.forEach((s, i) => {
+    const r = s.result;
+    if (!r) {
+      if (aiConfigured) out.push(emptyScreenQuestion(i, ticket, s.error ? `Ekran rasmi o'qilmadi: ${s.error}` : "Ekran rasmi o'qilmadi"));
+      return;
+    }
+    if (!r.isQuestion || !r.question.trim()) return;
+    const number = r.number ?? i + 1;
+    const options = r.options.map(cleanScreenText).filter(Boolean);
+    const fileAnswer = answers[String(number)] ?? null;
+    const byText = fileAnswer ? optionByText(options, fileAnswer) : null;
+    let correctIndex = r.correctIndex !== null && r.correctIndex >= 0 && r.correctIndex < options.length ? r.correctIndex : null;
+    let correctBy: ExtractedQuestion["correctBy"] = correctIndex !== null ? "highlight" : null;
+    let doubt: string | null = null;
+    if (correctIndex === null && byText !== null) {
+      correctIndex = byText;
+      correctBy = "line";
+    } else if (correctIndex !== null && byText !== null && byText !== correctIndex) {
+      doubt = `Ekranda yashil F${correctIndex + 1}, fayldagi javob («${fileAnswer}») esa F${byText + 1} ga mos`;
+    }
+    const answerText = correctIndex !== null ? options[correctIndex] : "";
+    const range = fileAnswer && answerText ? findPhraseRange(answerText, fileAnswer) : null;
+    out.push({
+      number,
+      text: cleanScreenText(r.question),
+      options,
+      correctIndex,
+      correctBy,
+      imageRefs: s.imageId ? [`screen:${i}`] : [],
+      day: null,
+      topicNumber: null,
+      topicTitle: ticket ? `${ticket}-bilet` : null,
+      questionKey: null,
+      answerKey: range ? keyFromRange(answerText, range) : null,
+      explanation: null,
+      notes: [...r.problems],
+      doubt,
+    });
+  });
+  return out.sort((a, b) => (a.number ?? 0) - (b.number ?? 0));
+}
+
+/** Yashirin defis (U+00AD), nol kenglikdagi belgilar va ortiqcha bo'shliqlar. */
+function cleanScreenText(t: string): string {
+  return t.replace(/[\u00AD\u200B-\u200D\uFEFF]/g, "").replace(/\s+/g, " ").trim();
+}
+
+/** Kalit so'z: topilgan bo'lak qo'shtirnoqni yarim kesib qolsa («А » ва « Б») — tashqi qo'shtirnoqlar bilan. */
+function keyFromRange(text: string, [start, end]: [number, number]): string {
+  let a = start;
+  let b = end;
+  const piece = text.slice(a, b);
+  const firstClose = piece.indexOf("»");
+  const firstOpen = piece.indexOf("«");
+  if (firstClose >= 0 && (firstOpen < 0 || firstClose < firstOpen)) {
+    const o = text.lastIndexOf("«", a - 1);
+    if (o >= 0 && a - o <= 3) a = o;
+  }
+  const lastOpen = piece.lastIndexOf("«");
+  if (lastOpen >= 0 && lastOpen > piece.lastIndexOf("»")) {
+    const c = text.indexOf("»", b);
+    if (c >= 0 && c - b <= 2) b = c + 1;
+  }
+  return text.slice(a, b).trim();
+}
+
+function emptyScreenQuestion(i: number, ticket: number | null, note: string): ExtractedQuestion {
+  return { number: i + 1, text: `(${i + 1}-ekran o'qilmadi — matnni qo'lda kiriting)`, options: [], correctIndex: null, correctBy: null, imageRefs: [], day: null, topicNumber: null, topicTitle: ticket ? `${ticket}-bilet` : null, questionKey: null, answerKey: null, explanation: null, notes: [note], doubt: null };
+}

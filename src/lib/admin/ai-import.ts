@@ -199,6 +199,7 @@ export const STAGE_LABEL: Record<string, string> = {
   extract: "Fayllarni ochish",
   ready: "Taxminiy narx",
   classify: "Fayllarni tasniflash",
+  screens: "Ekran rasmlarini o'qish",
   group: "Testlarga ajratish",
   match: "Fayllararo moslashtirish",
   analyze: "Savollarni tahlil qilish",
@@ -221,6 +222,7 @@ export const FILE_KIND_LABEL: Record<string, string> = {
   questions_only: "Faqat savollar",
   keys_only: "Faqat javob/kalitlar",
   mixed: "Aralash",
+  screenshots: "Ekran rasmlari",
   unrelated: "Aloqasiz",
 };
 
