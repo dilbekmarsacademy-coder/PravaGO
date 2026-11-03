@@ -201,4 +201,13 @@ describe("Ekran rasmlaridan import", () => {
     const img = await prisma.importImage.findMany({ where: { batchId: created.batchId } });
     expect(img).toHaveLength(2);
   });
+
+  it("import ro'yxatdan o'chiriladi (qoralamalari bilan)", async () => {
+    const list = (await http().get("/admin/ai-imports").set(admin).expect(200)).body as { id: string; groupName: string | null }[];
+    const target = list.find((b) => b.groupName === GROUP)!;
+    await http().post(`/admin/ai-imports/${target.id}/delete`).set(admin).expect(204);
+    await http().get(`/admin/ai-imports/${target.id}`).set(admin).expect(404);
+    expect(await prisma.importQuestion.count({ where: { batchId: target.id } })).toBe(0);
+    expect(await prisma.auditLog.count({ where: { action: "ai_import.deleted", entityId: target.id } })).toBe(1);
+  });
 });

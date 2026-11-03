@@ -307,6 +307,12 @@ export class AiImportController {
     return this.imports.detail(id);
   }
 
+  @Post(":id/delete")
+  @HttpCode(204)
+  async remove(@Param("id", ParseUUIDPipe) id: string, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    await this.imports.remove(admin, ip, id);
+  }
+
   @Post(":id/files/:fileId/upload")
   @HttpCode(204)
   @UseInterceptors(FileInterceptor("file", { limits: { fileSize: MAX_IMPORT_FILE_BYTES, files: 1 } }))

@@ -13,6 +13,7 @@ import { ApiError } from "@/lib/api/session";
 import { nextCourseTopic, topicDayNumber, topicHref, topicPageHref } from "@/data/curriculum";
 import { Button, buttonClasses } from "@/components/shared/Button";
 import { Card } from "@/components/shared/Card";
+import { AnswerConfirmBar } from "@/components/test/AnswerConfirmBar";
 import { FinishModal } from "@/components/test/FinishModal";
 import { CompletionModal } from "@/components/test/CompletionModal";
 import { BottomSheet, MobileNavBar } from "@/components/test/MobileNavBar";
@@ -105,6 +106,8 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
   const [direction, setDirection] = useState<1 | -1>(1);
   const [answers, setAnswers] = useState<Record<number, QuestionAnswer>>({});
   const [checking, setChecking] = useState(false);
+  // Tanlangan, lekin hali tasdiqlanmagan javob ("Qabul qilaymi?" paneli).
+  const [pending, setPending] = useState<{ index: number; optionId: string } | null>(null);
   const [finishModalOpen, setFinishModalOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [finishReason, setFinishReason] = useState<FinishReason | null>(null);
@@ -123,6 +126,7 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
   const sessionKey = source.kind === "topic" ? source.topicSlug : `saved:${source.topicSlug ?? "all"}`;
 
   const finish = useCallback((reason: FinishReason) => {
+    setPending(null);
     setFinishReason((prev) => prev ?? reason);
     setFinishedAt((prev) => prev ?? Date.now());
     if (reason !== "timeout") setCompletionOpen(true);
@@ -263,6 +267,7 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
       if (index < 0 || index >= questions.length) return;
       setDirection(index >= currentIndex ? 1 : -1);
       setCurrentIndex(index);
+      setPending(null);
     },
     [questions, currentIndex],
   );
@@ -272,31 +277,42 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
     toggleSavedWithFeedback(currentQuestion.id, { topicSlug: currentQuestion.topicSlug, sourceMode: MODE }, t);
   }, [currentQuestion, t]);
 
-  // Haqiqiy imtihondagidek: variantni tanlash — javobni darhol tekshirish.
+  // Variantni tanlash — avval "Qabul qilaymi?" (tasodifan bosib yuborishdan himoya);
+  // boshqa variant bosilsa tanlov almashadi.
   const handleAnswer = useCallback(
     (optionId: string) => {
       if (!currentQuestion || checking || currentAnswer.result) return;
-      const index = currentIndex;
-      setAnswers((prev) => ({ ...prev, [index]: { selectedOptionId: optionId, result: null } }));
-      setChecking(true);
-      checkAnswer(currentQuestion.id, optionId)
-        .then((res) => {
-          setAnswers((prev) => ({ ...prev, [index]: { selectedOptionId: optionId, result: res } }));
-          if (res.correct && questions && index + 1 < questions.length) {
-            setTimeout(() => {
-              setDirection(1);
-              setCurrentIndex(index + 1);
-            }, 1300);
-          }
-        })
-        .catch(() => {
-          setAnswers((prev) => ({ ...prev, [index]: { selectedOptionId: null, result: null } }));
-          setError("checkError");
-        })
-        .finally(() => setChecking(false));
+      setPending({ index: currentIndex, optionId });
     },
-    [currentQuestion, checking, currentAnswer.result, currentIndex, questions],
+    [currentQuestion, checking, currentAnswer.result, currentIndex],
   );
+
+  // "Ha" — javob qabul qilinadi va tekshiriladi.
+  const confirmAnswer = useCallback(() => {
+    if (!pending || pending.index !== currentIndex || !currentQuestion || checking || currentAnswer.result) return;
+    const { index, optionId } = pending;
+    setPending(null);
+    setAnswers((prev) => ({ ...prev, [index]: { selectedOptionId: optionId, result: null } }));
+    setChecking(true);
+    checkAnswer(currentQuestion.id, optionId)
+      .then((res) => {
+        setAnswers((prev) => ({ ...prev, [index]: { selectedOptionId: optionId, result: res } }));
+        if (res.correct && questions && index + 1 < questions.length) {
+          setTimeout(() => {
+            setDirection(1);
+            setCurrentIndex(index + 1);
+          }, 1300);
+        }
+      })
+      .catch(() => {
+        setAnswers((prev) => ({ ...prev, [index]: { selectedOptionId: null, result: null } }));
+        setError("checkError");
+      })
+      .finally(() => setChecking(false));
+  }, [pending, currentQuestion, checking, currentAnswer.result, currentIndex, questions]);
+
+  const pendingOptionId = pending && pending.index === currentIndex && !currentAnswer.result ? pending.optionId : null;
+  const pendingLabel = pendingOptionId && currentQuestion ? `F${currentQuestion.options.findIndex((o) => o.id === pendingOptionId) + 1}` : null;
 
   // Klaviatura: F1–F9 yoki 1–9 — variant tanlash, ←/→ — savollar orasida yurish,
   // S — joriy savolni saqlash/olib tashlash.
@@ -311,6 +327,14 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
       if (document.querySelector('[aria-modal="true"]')) return;
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
+      // Enter — "Ha", Escape — "Yo'q" (fokus tugmada bo'lsa, tugmaning o'zi ishlaydi).
+      if (pendingOptionId && (event.key === "Enter" || event.key === "Escape")) {
+        if (event.key === "Enter" && target?.closest("button")) return;
+        event.preventDefault();
+        if (event.key === "Enter") confirmAnswer();
+        else setPending(null);
+        return;
+      }
       const match = fMatch ?? /^([1-9])$/.exec(event.key);
       if (match) {
         const option = currentQuestion?.options[Number(match[1]) - 1];
@@ -330,7 +354,7 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [currentQuestion, finished, handleAnswer, goTo, currentIndex, toggleCurrentSaved]);
+  }, [currentQuestion, finished, handleAnswer, goTo, currentIndex, toggleCurrentSaved, pendingOptionId, confirmAnswer]);
 
   const elapsedSec =
     startedAt !== null && finishedAt !== null
@@ -429,7 +453,7 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
                   index={currentIndex}
                   total={questions.length}
                   mode={MODE}
-                  selectedOptionId={currentAnswer.selectedOptionId}
+                  selectedOptionId={currentAnswer.selectedOptionId ?? pendingOptionId}
                   result={currentAnswer.result}
                   checking={checking}
                   bookmarked={savedIds.has(currentQuestion.id)}
@@ -439,6 +463,8 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
                 />
               </motion.div>
             </AnimatePresence>
+
+            <AnswerConfirmBar label={pendingLabel} onConfirm={confirmAnswer} onCancel={() => setPending(null)} />
 
             <Card className="hidden p-4 sm:p-5 md:block">
               <QuestionNavigator
