@@ -13,7 +13,7 @@
 // ko'rilmaguncha qulflanadi. Video manbai bu yerda EMAS — faqat serverda.
 //
 // Video ID'si bu yerda yo'q: `lessonId` ga mos video backend xaritasida
-// bo'lmasa (masalan day1-topic7), mavzu sahifasida "video hali olinmagan"
+// bo'lmasa, mavzu sahifasida "video hali olinmagan"
 // holat-ekrani chiqadi — video qo'shish uchun faqat backend'ga bitta qator.
 //
 // Ikkalasi ham bo'lmagan mavzu "Tez orada" holatida ko'rinadi va keyingi

@@ -10,7 +10,7 @@
 //     klient aytgan davomiylikka emas, shu qiymatga qarab hisoblanadi;
 //   - `topicSlug` (ixtiyoriy, standart — lessonId) — shu darsdan keyin
 //     ochiladigan test banki (savollar endpointi dars ko'rilmaguncha 403).
-// Ro'yxatda yo'q dars (masalan day1-topic7) — "video hali olinmagan" holati.
+// Ro'yxatda yo'q dars — "video hali olinmagan" holati.
 //
 // Admin panel (Kontent → mavzu → "Video dars") mavjud darsning videosi va
 // davomiyligini almashtira oladi: qiymat LessonVideo jadvaliga yoziladi va shu
@@ -30,6 +30,7 @@ export const LESSONS: Readonly<Record<string, LessonConfig>> = {
   "day1-topic4": { videoId: "5jjEzVv7Pws", durationSec: 942 },
   "day1-topic5": { videoId: "lrpcduEhtLo", durationSec: 1313 },
   "day1-topic6": { videoId: "O1mZdoWf2Bs", durationSec: 1250 },
+  "day1-topic7": { videoId: "uTcTOfjJT-I", durationSec: 833 },
   "day2-topic1": { videoId: "MnJMdy-EbLc", durationSec: 887 },
   "day2-topic2": { videoId: "ehWyIPbcAOQ", durationSec: 529 },
   "day2-topic3": { videoId: "_eKoTVCDzlQ", durationSec: 1394 },

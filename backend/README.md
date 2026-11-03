@@ -105,7 +105,7 @@ Rasmlar WebP qilib `prisma/seed-data/images/` ga yoziladi (`npm run seed` ularni
   "ko'rildi" holati shunga qarab serverda hisoblanadi.
 - `topicSlug` ixtiyoriy (standart — kalitning o'zi): shu dars ochadigan test banki.
 - 1-kun mavzularida frontend'da `lessonId` allaqachon yozilgan — ular uchun
-  yuqoridagi qatorning o'zi yetarli (masalan day1-topic7). Boshqa kunlarda
+  yuqoridagi qatorning o'zi yetarli. Boshqa kunlarda
   `src/data/curriculum.ts` dagi mavzuga `lessonId: "dayN-topicM"` ham qo'shing.
 - Video ID frontend kodiga hech qachon yozilmaydi: klient uni sessiya bilan
   `GET /lessons/:lessonId/video` orqali oladi.
