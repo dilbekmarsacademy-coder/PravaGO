@@ -82,7 +82,7 @@ export class ImportService {
         throw new BadRequestException({
           statusCode: 400,
           code: "FILE_TOO_LARGE_FOR_STORAGE",
-          message: `"${f.name}" (${(f.size / 1024 / 1024).toFixed(1)} MB): hozir har bir fayl ${(limit / 1024 / 1024).toFixed(0)} MB gacha. Katta fayllar (50 MB gacha) uchun Cloudflare R2 storage sozlanishi kerak (STORAGE_DRIVER=s3). Faylni bo'lib yoki zip qilib yuklang.`,
+          message: `"${f.name}" (${(f.size / 1024 / 1024).toFixed(1)} MB): hozir har bir fayl ${(limit / 1024 / 1024).toFixed(0)} MB gacha. Katta fayllar (50 MB gacha) uchun Cloudflare R2 storage sozlanishi kerak (STORAGE_DRIVER=s3). Word'da rasmlarni siqing (rasmni tanlang → Picture Format → Compress Pictures → 150 ppi, «faqat shu rasmga» belgisini olib tashlang) yoki faylni bir necha qismga bo'lib yuklang.`,
         });
       }
     }
