@@ -56,7 +56,7 @@ export function KeywordCard({ item, position, hideAnswers, onToggleReviewed }: K
             >
               {item.reviewed && <CheckIcon className="size-3.5" strokeWidth={3} />}
             </span>
-            <span className="hidden sm:inline">{labels.reviewed}</span>
+            <span>{labels.reviewed}</span>
           </button>
         </div>
 

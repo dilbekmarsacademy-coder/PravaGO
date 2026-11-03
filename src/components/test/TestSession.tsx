@@ -9,8 +9,9 @@ import { cn } from "@/lib/utils";
 import { checkAnswer, getTopicQuestions, submitTestAttempt, type ApiQuestion, type CheckAnswerResult } from "@/lib/api/test";
 import { getSavedPracticeQuestions } from "@/lib/api/saved";
 import { LESSON_LOCKED_CODE } from "@/lib/api/lessons";
+import { KEYWORDS_LOCKED_CODE } from "@/lib/api/keywords";
 import { ApiError } from "@/lib/api/session";
-import { nextCourseTopic, topicDayNumber, topicHref, topicPageHref } from "@/data/curriculum";
+import { keywordsHref, nextCourseTopic, topicDayNumber, topicHref, topicPageHref } from "@/data/curriculum";
 import { Button, buttonClasses } from "@/components/shared/Button";
 import { Card } from "@/components/shared/Card";
 import { AnswerConfirmBar } from "@/components/test/AnswerConfirmBar";
@@ -31,6 +32,7 @@ import type { LocalizedText } from "@/lib/i18n/localized";
 import { loadSavedIds, setSaved, useSavedState } from "@/lib/saved/store";
 import { clearSession, loadSession, saveSession, takeLegacyBookmarks } from "@/lib/test/storage";
 import { getTimeUrgency } from "@/lib/test/timer";
+import { reshuffle } from "@/lib/test/shuffle";
 
 /**
  * Savollar manbai: bitta mavzu testi yoki saqlangan savollar (ixtiyoriy —
@@ -108,6 +110,9 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
   const [checking, setChecking] = useState(false);
   // Tanlangan, lekin hali tasdiqlanmagan javob ("Qabul qilaymi?" paneli).
   const [pending, setPending] = useState<{ index: number; optionId: string } | null>(null);
+  // Savol id → ko'rsatiladigan variantlar tartibi (id'lar). Javob berilmay
+  // tashlab ketilgan savolga qaytilganda variantlar boshqa joylarga o'tadi.
+  const [optionOrder, setOptionOrder] = useState<Record<string, string[]>>({});
   const [finishModalOpen, setFinishModalOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [finishReason, setFinishReason] = useState<FinishReason | null>(null);
@@ -179,6 +184,12 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
           router.replace(lockedTopic ? topicPageHref(lockedTopic) : "/kabinet");
           return;
         }
+        // Savollar bilan hali tanishilmagan — "Kalit so'zlar" bo'limiga.
+        if (err instanceof ApiError && err.status === 403 && err.code === KEYWORDS_LOCKED_CODE) {
+          const lockedTopic = sourceSlug ? topicBySlug(sourceSlug) : undefined;
+          router.replace(lockedTopic ? keywordsHref(lockedTopic) : "/kabinet");
+          return;
+        }
         setError("loadError");
       });
     return () => {
@@ -229,7 +240,13 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
     });
   }, [persist, questions, startedAt, finished, answers, currentIndex, sessionKey]);
 
-  const currentQuestion = questions?.[currentIndex] ?? null;
+  const rawQuestion = questions?.[currentIndex] ?? null;
+  const currentOrder = rawQuestion ? optionOrder[rawQuestion.id] : undefined;
+  const currentQuestion = useMemo(() => {
+    if (!rawQuestion || !currentOrder) return rawQuestion;
+    const byId = new Map(rawQuestion.options.map((o) => [o.id, o]));
+    return { ...rawQuestion, options: currentOrder.flatMap((id) => byId.get(id) ?? []) };
+  }, [rawQuestion, currentOrder]);
   const currentAnswer = answers[currentIndex] ?? { selectedOptionId: null, result: null };
   const currentTopic = currentQuestion ? topicBySlug(currentQuestion.topicSlug) : undefined;
 
@@ -265,11 +282,21 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
     (index: number) => {
       if (!questions) return;
       if (index < 0 || index >= questions.length) return;
+      if (index === currentIndex) return;
+      // Javob berilmay (va tekshirilmay) tashlab ketilyapti — qaytganda variantlar boshqa joyda bo'ladi.
+      const leaving = questions[currentIndex];
+      const leavingAnswer = answers[currentIndex];
+      if (leaving && !leavingAnswer?.result && !leavingAnswer?.selectedOptionId) {
+        setOptionOrder((prev) => ({
+          ...prev,
+          [leaving.id]: reshuffle(prev[leaving.id] ?? leaving.options.map((o) => o.id)),
+        }));
+      }
       setDirection(index >= currentIndex ? 1 : -1);
       setCurrentIndex(index);
       setPending(null);
     },
-    [questions, currentIndex],
+    [questions, currentIndex, answers],
   );
 
   const toggleCurrentSaved = useCallback(() => {
@@ -312,7 +339,11 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
   }, [pending, currentQuestion, checking, currentAnswer.result, currentIndex, questions]);
 
   const pendingOptionId = pending && pending.index === currentIndex && !currentAnswer.result ? pending.optionId : null;
-  const pendingLabel = pendingOptionId && currentQuestion ? `F${currentQuestion.options.findIndex((o) => o.id === pendingOptionId) + 1}` : null;
+  const pendingIndex = pendingOptionId && currentQuestion ? currentQuestion.options.findIndex((o) => o.id === pendingOptionId) : -1;
+  const pendingChoice =
+    currentQuestion && pendingIndex >= 0
+      ? { label: `F${pendingIndex + 1}`, text: localize(currentQuestion.options[pendingIndex].text, locale) }
+      : null;
 
   // Klaviatura: F1–F9 yoki 1–9 — variant tanlash, ←/→ — savollar orasida yurish,
   // S — joriy savolni saqlash/olib tashlash.
@@ -464,7 +495,7 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
               </motion.div>
             </AnimatePresence>
 
-            <AnswerConfirmBar label={pendingLabel} onConfirm={confirmAnswer} onCancel={() => setPending(null)} />
+            <AnswerConfirmBar choice={pendingChoice} onConfirm={confirmAnswer} onCancel={() => setPending(null)} />
 
             <Card className="hidden p-4 sm:p-5 md:block">
               <QuestionNavigator

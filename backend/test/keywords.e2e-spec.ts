@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AppModule } from "../src/app.module";
 import { AuthService, hashToken } from "../src/auth/auth.service";
 import { PrismaService } from "../src/prisma/prisma.service";
+import { reviewAllKeywords } from "./helpers/keywords";
 import { LESSONS, type LessonConfig } from "../src/lessons/lessons.config";
 
 // Kalit so'zli test banki: test API faqat savol/variantlarni beradi, javob
@@ -128,6 +129,7 @@ describe("test API", () => {
 
   it("savollar ro'yxatida to'g'ri javob va kalit so'z yo'q, variantlar manba tartibida", async () => {
     const { auth } = await newUser();
+    await reviewAllKeywords(app, auth, TOPIC);
     const res = await http().get(`/topics/${TOPIC}/questions`).set(auth).expect(200);
     const json = JSON.stringify(res.body);
     for (const leaked of ["isCorrect", "correctOptionId", "keyword", "TAQIQLANADI", "highlight"]) {
@@ -272,5 +274,30 @@ describe("Test natijalari (98% qoidasi uchun)", () => {
     await http().post(`/topics/${TOPIC}/attempts`).set(auth).send({ answers: [{ questionId: "x", optionId: "y" }] }).expect(400);
     await http().post(`/topics/${TOPIC}/attempts`).set(auth).send({ answers: [], percent: 100 }).expect(400);
     await http().post(`/topics/${LOCKED_TOPIC}/attempts`).set(auth).send({ answers: [] }).expect(403);
+  });
+});
+
+describe("test darvozasi: barcha savollar bilan tanishish", () => {
+  it("tanishilmaguncha savollar 403 KEYWORDS_NOT_REVIEWED; progress sanaydi; hammasidan keyin ochiladi", async () => {
+    const { auth } = await newUser();
+    const locked = await http().get(`/topics/${TOPIC}/questions`).set(auth).expect(403);
+    expect(locked.body).toMatchObject({ code: "KEYWORDS_NOT_REVIEWED", total: 2, reviewedCount: 0 });
+    expect((await http().get(`/topics/${TOPIC}/keywords/progress`).set(auth).expect(200)).body).toEqual({ total: 2, reviewedCount: 0 });
+
+    await http().put(`/topics/${TOPIC}/keywords/${withKeywords.id}/review`).set(auth).send({ reviewed: true }).expect(200);
+    expect((await http().get(`/topics/${TOPIC}/keywords/progress`).set(auth).expect(200)).body).toEqual({ total: 2, reviewedCount: 1 });
+    await http().get(`/topics/${TOPIC}/questions`).set(auth).expect(403);
+
+    await http().put(`/topics/${TOPIC}/keywords/${withoutKeywords.id}/review`).set(auth).send({ reviewed: true }).expect(200);
+    await http().get(`/topics/${TOPIC}/questions`).set(auth).expect(200);
+
+    // Belgi olib tashlansa — test yana yopiladi.
+    await http().put(`/topics/${TOPIC}/keywords/${withoutKeywords.id}/review`).set(auth).send({ reviewed: false }).expect(200);
+    await http().get(`/topics/${TOPIC}/questions`).set(auth).expect(403);
+  });
+
+  it("progress ham video sharti bilan yopiq", async () => {
+    const { auth } = await newUser();
+    await http().get(`/topics/${LOCKED_TOPIC}/keywords/progress`).set(auth).expect(403);
   });
 });

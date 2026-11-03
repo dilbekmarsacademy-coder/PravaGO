@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AppModule } from "../src/app.module";
 import { AuthService } from "../src/auth/auth.service";
 import { PrismaService } from "../src/prisma/prisma.service";
+import { reviewAllKeywords } from "./helpers/keywords";
 import { adminHeaders, configureAdminEnv, createTestAdmin } from "./helpers/admin";
 
 // To'g'ri javobi belgilanmagan savol (javobsiz import qilingan, answerPending):
@@ -59,6 +60,7 @@ afterAll(async () => {
 
 describe("javobi belgilanmagan savollar", () => {
   it("test savollari ro'yxatida yo'q", async () => {
+    await reviewAllKeywords(app, auth, SLUG);
     const res = await http().get(`/topics/${SLUG}/questions`).set(auth).expect(200);
     expect((res.body as { id: string }[]).map((q) => q.id)).toEqual([answered.id]);
   });
@@ -97,6 +99,7 @@ describe("javobi belgilanmagan savollar", () => {
 
     const pub = await http().post("/admin/content/pending/publish").set(admin).expect(200);
     expect((pub.body as { published: number }).published).toBeGreaterThanOrEqual(1);
+    await reviewAllKeywords(app, auth, SLUG);
     res = await http().get(`/topics/${SLUG}/questions`).set(auth).expect(200);
     expect((res.body as { id: string }[]).map((q) => q.id)).toEqual([answered.id, unanswered.id]);
     const counts = await http().get("/topics/ready-counts").set(auth).expect(200);

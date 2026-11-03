@@ -1,6 +1,7 @@
 import { Controller, Get, Param, UseGuards } from "@nestjs/common";
 import { AuthGuard, CurrentUser } from "../auth/auth.guard";
 import type { SessionUser } from "../auth/auth.service";
+import { KeywordsService } from "../keywords/keywords.service";
 import { LessonsService } from "../lessons/lessons.service";
 import { TopicsService } from "./topics.service";
 import { PublicQuestionDto } from "./dto/public-question.dto";
@@ -11,6 +12,7 @@ export class TopicsController {
   constructor(
     private readonly topicsService: TopicsService,
     private readonly lessons: LessonsService,
+    private readonly keywords: KeywordsService,
   ) {}
 
   /** Kurs mavzulari: testdagi (javobi belgilangan) savollar soni — faqat sonlar. */
@@ -19,10 +21,14 @@ export class TopicsController {
     return this.topicsService.readyCounts();
   }
 
-  /** Video darsi bor mavzu — dars ko'rilmaguncha 403 (LESSON_NOT_COMPLETED). */
+  /**
+   * Video darsi bor mavzu — dars ko'rilmaguncha 403 (LESSON_NOT_COMPLETED);
+   * keyin barcha savollar bilan tanishilmaguncha 403 (KEYWORDS_NOT_REVIEWED).
+   */
   @Get(":slug/questions")
   async getQuestions(@Param("slug") slug: string, @CurrentUser() user: SessionUser): Promise<PublicQuestionDto[]> {
     await this.lessons.assertTopicUnlocked(slug, user.id);
+    await this.keywords.assertReviewed(user.id, slug);
     return this.topicsService.getPublicQuestions(slug);
   }
 }

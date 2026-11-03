@@ -2,14 +2,15 @@
 
 // Mavzuning "Kalit so'zlar" bo'limi: barcha test savollari kalit so'zlari
 // (savol kaliti — sariq, javob kaliti — yashil) bilan, qidiruv, "Javoblarni
-// berkitish" rejimi va har savolga "ko'rib chiqdim" belgisi. Ma'lumotlar va
-// progress — faqat backend'dan; kirish huquqi mavzu testi bilan bir xil.
+// berkitish" rejimi va har savolga "Tanishdim" belgisi. Test barcha savollar
+// bilan tanishilgach ochiladi (backend: 403 KEYWORDS_NOT_REVIEWED). Ma'lumotlar
+// va progress — faqat backend'dan; kirish huquqi video sharti bilan bir xil.
 
 import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
 import { MotionConfig } from "framer-motion";
-import { ArrowLeftIcon, KeyRoundIcon, ListChecksIcon, LockIcon, RotateCcwIcon, SearchIcon, SearchXIcon, TriangleAlertIcon, XIcon } from "lucide-react";
+import { ArrowLeftIcon, CheckCircle2Icon, KeyRoundIcon, ListChecksIcon, LockIcon, RotateCcwIcon, SearchIcon, SearchXIcon, TriangleAlertIcon, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { COURSE_TOPICS, testHref, topicDayNumber, topicPageHref } from "@/data/curriculum";
 import { AppHeader } from "@/components/shared/AppHeader";
@@ -111,13 +112,18 @@ export default function KeywordsPage({ params }: KeywordsPageProps) {
     const apply = (value: boolean) =>
       setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, reviewed: value } : i)));
     apply(next);
-    setKeywordReviewed(testSlug, item.id, next).catch(() => {
-      apply(!next);
-      showToast({ tone: "danger", message: labels.reviewError });
-    });
+    setKeywordReviewed(testSlug, item.id, next)
+      .then((res) => {
+        if (next && res.total > 0 && res.reviewedCount === res.total) showToast({ tone: "success", message: labels.allReviewed });
+      })
+      .catch(() => {
+        apply(!next);
+        showToast({ tone: "danger", message: labels.reviewError });
+      });
   }
 
   const percent = items.length ? Math.round((reviewedCount / items.length) * 100) : 0;
+  const allReviewed = reviewedCount === items.length;
   // Mavzuda savollar bor, lekin birortasida kalit so'z yo'q (masalan, 2-kun 6-mavzu).
   const topicHasNoKeywords = items.length > 0 && items.every((item) => !item.keywords);
   const title = localize(topic.title, locale);
@@ -152,6 +158,9 @@ export default function KeywordsPage({ params }: KeywordsPageProps) {
             {labels.eyebrow}
           </p>
           <h1 className="mt-1.5 font-display text-xl font-bold text-foreground sm:text-2xl">{title}</h1>
+          {status === "ready" && items.length > 0 && (
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{labels.intro}</p>
+          )}
         </div>
 
         {status === "locked" && (
@@ -320,13 +329,38 @@ export default function KeywordsPage({ params }: KeywordsPageProps) {
               </section>
             )}
 
-            <Link
-              href={testHref(testSlug)}
-              className={buttonClasses({ variant: "primary", size: "lg", className: "self-center" })}
-            >
-              <ListChecksIcon className="size-4.5" />
-              {labels.startTest}
-            </Link>
+            {allReviewed ? (
+              <div className="flex flex-col items-center gap-3 text-center">
+                <p role="status" className="flex items-center gap-2 text-sm font-semibold text-success">
+                  <CheckCircle2Icon className="size-4.5" aria-hidden="true" />
+                  {labels.allReviewed}
+                </p>
+                <Link
+                  href={testHref(testSlug)}
+                  className={buttonClasses({ variant: "primary", size: "lg" })}
+                  data-testid="keywords-start-test"
+                >
+                  <ListChecksIcon className="size-4.5" />
+                  {labels.startTest}
+                </Link>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-3 text-center">
+                <p role="status" className="text-sm font-medium text-muted-foreground">
+                  {labels.startLocked(items.length - reviewedCount)}
+                </p>
+                <button
+                  type="button"
+                  disabled
+                  aria-disabled="true"
+                  className={buttonClasses({ variant: "secondary", size: "lg" })}
+                  data-testid="keywords-start-test"
+                >
+                  <LockIcon className="size-4.5" />
+                  {labels.startTest}
+                </button>
+              </div>
+            )}
           </>
         )}
       </main>

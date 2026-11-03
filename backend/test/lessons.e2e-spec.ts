@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AppModule } from "../src/app.module";
 import { AuthService, hashToken } from "../src/auth/auth.service";
 import { PrismaService } from "../src/prisma/prisma.service";
+import { reviewAllKeywords } from "./helpers/keywords";
 import { LESSONS, type LessonConfig } from "../src/lessons/lessons.config";
 
 // Real video xaritasi kontentga bog'liq (bo'sh bo'lishi ham mumkin) — test
@@ -156,6 +157,7 @@ describe("progress va test qulfi", () => {
     const body = await watchHonestly(auth, userId, LESSON.durationSec);
     expect(body).toMatchObject({ completed: true, watchedPercent: 100 });
 
+    await reviewAllKeywords(app, auth, LESSON.topicSlug!);
     const questions = await request(app.getHttpServer())
       .get(`/topics/${LESSON.topicSlug}/questions`)
       .set(auth)

@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AppModule } from "../src/app.module";
 import { AuthService } from "../src/auth/auth.service";
 import { PrismaService } from "../src/prisma/prisma.service";
+import { reviewAllKeywords } from "./helpers/keywords";
 import { adminHeaders, configureAdminEnv, createTestAdmin } from "./helpers/admin";
 
 // 6-kun savolini tahrirlash: validatsiya, kalit so'z diapazonlari, audit va
@@ -123,6 +124,7 @@ describe("admin kontent", () => {
     expect((audit.after as { correctIndex: number }).correctIndex).toBe(0);
 
     const { token } = await app.get(AuthService).createAnonymousSession();
+    await reviewAllKeywords(app, { Authorization: `Bearer ${token}` }, SLUG);
     const list = await http().get(`/topics/${SLUG}/questions`).set("Authorization", `Bearer ${token}`).expect(200);
     const json = JSON.stringify(list.body);
     expect(json).not.toMatch(/isCorrect|correctOptionId|keyword|highlight/i);

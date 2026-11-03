@@ -1,6 +1,7 @@
 "use client";
 
-// Video darsli mavzu sahifasi: video → (oxirigacha ko'rilgach) test.
+// Video darsli mavzu sahifasi: video → (oxirigacha ko'rilgach) savollar va
+// kalit so'zlar bilan tanishish → (hammasi bilan tanishilgach) test.
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -11,6 +12,7 @@ import { keywordsHref, testHref, topicDayNumber } from "@/data/curriculum";
 import { LESSON_NOT_FOUND_CODE, getLessonStatus, type LessonStatus } from "@/lib/api/lessons";
 import { ApiError } from "@/lib/api/session";
 import { getReadyCounts } from "@/lib/api/ready";
+import { getKeywordProgress, type KeywordProgress } from "@/lib/api/keywords";
 import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { getRegistration } from "@/lib/registration-store";
@@ -43,6 +45,21 @@ export function LessonView({ topic }: LessonViewProps) {
       .catch(() => undefined);
   }, [testSlug]);
   const hasTest = Boolean(testSlug) && testReady !== false;
+  // Video ko'rilgach — nechta savol bilan tanishilgani (test shunga qarab ochiladi).
+  const [keywordProgress, setKeywordProgress] = useState<KeywordProgress | null>(null);
+  const videoCompleted = Boolean(status?.completed);
+  useEffect(() => {
+    if (!testSlug || !videoCompleted) return;
+    let cancelled = false;
+    getKeywordProgress(testSlug)
+      .then((next) => {
+        if (!cancelled) setKeywordProgress(next);
+      })
+      .catch(() => undefined); // noma'lum bo'lsa test tugmasi ochiq; backend baribir tekshiradi
+    return () => {
+      cancelled = true;
+    };
+  }, [testSlug, videoCompleted]);
   const title = localize(topic.title, locale);
 
   // Kabinet bilan bir xil: ro'yxatdan o'tmagan / to'lovi faol bo'lmagan foydalanuvchi kirmaydi.
@@ -103,7 +120,7 @@ export function LessonView({ topic }: LessonViewProps) {
           title={title}
           onProgress={setStatus}
           onUnavailable={() => setUnavailable(true)}
-          onCompleted={() => showToast({ tone: "success", message: t.lesson.gate.unlocked })}
+          onCompleted={() => showToast({ tone: "success", message: hasTest ? t.lesson.gate.videoDone : t.lesson.gate.unlocked })}
         />
 
         {!unavailable && (
@@ -118,6 +135,7 @@ export function LessonView({ topic }: LessonViewProps) {
           unavailable={unavailable}
           testHref={hasTest && testSlug ? testHref(testSlug) : null}
           keywordsHref={hasTest ? keywordsHref(topic) : null}
+          keywordProgress={keywordProgress}
         />
       </main>
     </>

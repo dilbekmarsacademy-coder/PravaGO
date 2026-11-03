@@ -8,6 +8,7 @@ import {
   SetReviewedDto,
   TopicSlugParamDto,
   type KeywordListDto,
+  type KeywordProgressDto,
   type ReviewResultDto,
 } from "./dto/keywords.dto";
 import { KeywordsService } from "./keywords.service";
@@ -28,7 +29,14 @@ export class KeywordsController {
     return this.keywords.list(user.id, params.slug);
   }
 
-  /** "Ko'rib chiqdim" belgisi — foydalanuvchiga bog'lab serverda saqlanadi. */
+  /** "Tanishdim" belgilari soni — video ostidagi test darvozasi uchun. */
+  @Get("progress")
+  async progress(@CurrentUser() user: SessionUser, @Param() params: TopicSlugParamDto): Promise<KeywordProgressDto> {
+    await this.lessons.assertTopicUnlocked(params.slug, user.id);
+    return this.keywords.progress(user.id, params.slug);
+  }
+
+  /** "Tanishdim" belgisi — foydalanuvchiga bog'lab serverda saqlanadi. */
   @Put(":questionId/review")
   @Throttle({ default: { limit: 120, ttl: 60_000 } })
   async setReviewed(

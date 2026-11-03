@@ -1,6 +1,8 @@
 // "Kalit so'zlar" bo'limi API qatlami. Kirish huquqi mavzu testi bilan bir xil:
 // video ko'rilmagan bo'lsa backend `ApiError(403, "LESSON_NOT_COMPLETED")` qaytaradi.
-// "Ko'rib chiqdim" belgisi serverda foydalanuvchiga bog'lab saqlanadi.
+// "Tanishdim" belgisi serverda foydalanuvchiga bog'lab saqlanadi. Kun mavzusi
+// testi barcha savollar bilan tanishilgach ochiladi — aks holda savollar
+// endpointi `ApiError(403, "KEYWORDS_NOT_REVIEWED")` qaytaradi.
 
 import type { LocalizedText } from "@/lib/i18n/localized";
 import { authFetch } from "./session";
@@ -27,6 +29,13 @@ export interface KeywordList {
   items: KeywordCard[];
 }
 
+export const KEYWORDS_LOCKED_CODE = "KEYWORDS_NOT_REVIEWED";
+
+export interface KeywordProgress {
+  total: number;
+  reviewedCount: number;
+}
+
 export interface ReviewResult {
   questionId: string;
   reviewed: boolean;
@@ -44,4 +53,8 @@ export function setKeywordReviewed(topicSlug: string, questionId: string, review
     method: "PUT",
     body: JSON.stringify({ reviewed }),
   });
+}
+
+export function getKeywordProgress(topicSlug: string): Promise<KeywordProgress> {
+  return authFetch<KeywordProgress>(`/topics/${topicSlug}/keywords/progress`);
 }

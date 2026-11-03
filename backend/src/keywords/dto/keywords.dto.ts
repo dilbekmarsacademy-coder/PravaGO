@@ -40,6 +40,11 @@ export interface KeywordListDto {
   items: KeywordCardDto[];
 }
 
+export interface KeywordProgressDto {
+  total: number;
+  reviewedCount: number;
+}
+
 export interface ReviewResultDto {
   questionId: string;
   reviewed: boolean;

@@ -282,7 +282,9 @@ export interface Dictionary {
     finishModalResultValue: (correct: number, total: number, percent: number) => string;
     finishConfirm: string;
     /** Javobni tasdiqlash paneli (tasodifan bosib yuborishdan himoya). */
-    confirmAnswerPrompt: (label: string) => string;
+    /** Javobni tasdiqlash oynasi: sarlavha, savol (variant belgisi va to'liq matni alohida ko'rsatiladi). */
+    confirmAnswerTitle: string;
+    confirmAnswerQuestion: string;
     confirmAnswerYes: string;
     confirmAnswerNo: string;
     nextTopic: string;
@@ -384,6 +386,13 @@ export interface Dictionary {
       lockedTitle: string;
       progress: (percent: number) => string;
       unlocked: string;
+      /** Video ko'rildi, test esa savollar bilan tanishilgach ochiladi. */
+      videoDone: string;
+      keywordsTitle: string;
+      keywordsProgress: (done: number, total: number) => string;
+      keywordsButton: string;
+      testLockedHint: string;
+      testUnlocked: string;
       startTest: string;
       checking: string;
       /** Test sahifasi hali ulanmagan — modal. */
@@ -496,6 +505,10 @@ export interface Dictionary {
       explanation: string;
       reviewed: string;
       markReviewed: (order: number) => string;
+      /** Sahifa boshidagi tushuntirish: hammasi bilan tanishilgach test ochiladi. */
+      intro: string;
+      startLocked: (left: number) => string;
+      allReviewed: string;
       reviewError: string;
       noResultsTitle: string;
       noResultsDesc: string;

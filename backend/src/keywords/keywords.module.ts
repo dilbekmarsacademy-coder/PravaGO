@@ -7,5 +7,6 @@ import { KeywordsService } from "./keywords.service";
   imports: [LessonsModule],
   controllers: [KeywordsController],
   providers: [KeywordsService],
+  exports: [KeywordsService],
 })
 export class KeywordsModule {}

@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AppModule } from "../src/app.module";
 import { AuthService } from "../src/auth/auth.service";
 import { PrismaService } from "../src/prisma/prisma.service";
+import { reviewAllKeywords } from "./helpers/keywords";
 import { adminHeaders, configureAdminEnv, createTestAdmin } from "./helpers/admin";
 
 // Ro'yxatdan o'tish → to'lov so'rovi → admin tasdiqlaydi → kurs ochiladi.
@@ -124,6 +125,7 @@ describe("to'lov va kirish huquqi", () => {
 
     await http().post(`/admin/payments/${row!.id}/confirm`).set(admin).send({ note: "Click orqali" }).expect(200);
     expect((await http().get("/me").set(auth).expect(200)).body).toMatchObject({ access: true, payment: { status: "PAID" } });
+    await reviewAllKeywords(app, auth, TOPIC);
     const open = await http().get(`/topics/${TOPIC}/questions`).set(auth).expect(200);
     expect(JSON.stringify(open.body)).not.toContain("isCorrect");
     await http().post(`/questions/${questionId}/check-answer`).set(auth).send({ optionId }).expect(200);
