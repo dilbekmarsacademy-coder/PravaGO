@@ -159,7 +159,8 @@ export class AiService {
       throw new ServiceUnavailableException({ statusCode: 503, code: "AI_NOT_CONFIGURED", message: "AI sozlanmagan (ANTHROPIC_API_KEY yo'q)" });
     }
     // Retry o'zimizda — har bir urinish ai_usage'ga yoziladi.
-    this.client ??= new Anthropic({ maxRetries: 0 });
+    // Vercel env qiymati oxirida bo'sh joy yoki yangi qator bo'lsa ham kalit buzilmasin.
+    this.client ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY?.trim(), maxRetries: 0 });
     return this.client;
   }
 
