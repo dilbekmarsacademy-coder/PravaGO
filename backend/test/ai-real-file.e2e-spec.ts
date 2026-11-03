@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { readFileSync } from "fs";
+import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import { basename } from "path";
 import { INestApplication, ValidationPipe } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
@@ -11,7 +11,7 @@ import { adminHeaders, configureAdminEnv, createTestAdmin } from "./helpers/admi
 
 // HAQIQIY Claude API bilan istalgan bitta fayl (lokal test bazasida). Faqat qo'lda:
 //   REAL_AI=1 REAL_FILE=/yo'l/fayl.docx ANTHROPIC_API_KEY=... npx vitest run test/ai-real-file.e2e-spec.ts
-// Natija: har bir savol (raqam, javob, manba, rasm, ogohlantirish) va xarajat. Kalit chiqarilmaydi.
+// Natija (test/output/real-file-report.txt): har bir savol (raqam, javob, manba, rasm, ogohlantirish) va xarajat. Kalit chiqarilmaydi.
 const file = process.env.REAL_FILE;
 const enabled = process.env.REAL_AI === "1" && Boolean(process.env.ANTHROPIC_API_KEY) && Boolean(file);
 const ADMIN = "e2e-airealfile";
@@ -71,7 +71,8 @@ describe.skipIf(!enabled)("Haqiqiy AI: berilgan fayl", () => {
     }
     const usage = await prisma.aiUsage.groupBy({ by: ["feature"], where: { batchId: created.batchId }, _sum: { costUsd: true }, _count: { _all: true } });
     lines.push(`\nXarajat: ${usage.map((u) => `${u.feature} ${u._count._all} ta $${(u._sum.costUsd ?? 0).toFixed(4)}`).join(", ")}; jami $${usage.reduce((s, u) => s + (u._sum.costUsd ?? 0), 0).toFixed(4)}`);
-    console.log(lines.join("\n"));
+    mkdirSync(`${process.cwd()}/test/output`, { recursive: true });
+    writeFileSync(`${process.cwd()}/test/output/real-file-report.txt`, lines.join("\n") + "\n");
     expect(detail.status).toBe("review");
   });
 });
