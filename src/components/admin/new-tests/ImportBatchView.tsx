@@ -89,6 +89,12 @@ export default function ImportBatchView({ batchId }: { batchId: string }) {
     }
   }, [batchId, load]);
 
+  /** Tekshiruvdagi o'zgarishdan keyin: jarayon qayta boshlangan bo'lsa (masalan, savollar qo'shildi) — qadamlar davom etadi. */
+  const reload = useCallback(async () => {
+    const d = await load();
+    if (d && RUNNING.has(d.status)) run();
+  }, [load, run]);
+
   useEffect(() => {
     alive.current = true;
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -253,7 +259,7 @@ export default function ImportBatchView({ batchId }: { batchId: string }) {
         </Panel>
       )}
 
-      {selected && <ImportTestReview key={selected.id} batchId={batchId} test={selected} tests={detail.tests} onChanged={load} />}
+      {selected && <ImportTestReview key={selected.id} batchId={batchId} test={selected} tests={detail.tests} onChanged={reload} />}
 
       <Panel title="Fayllar" className="mb-6">
         <Table>

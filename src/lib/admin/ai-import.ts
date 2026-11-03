@@ -63,6 +63,8 @@ export interface ImportTestRow {
   status: "draft" | "approved";
   publishedTopicId: string | null;
   questionCount: number;
+  /** Saytda bor bo'lgani uchun qo'shilmagan savollar (shu testga qo'shish mumkin). */
+  existingCount: number;
   approvedCount: number;
   reviewCount: number;
 }

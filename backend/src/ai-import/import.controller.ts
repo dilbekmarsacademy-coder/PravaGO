@@ -385,6 +385,12 @@ export class AiImportController {
     return this.review.approveFileAnswers(admin, ip, testId);
   }
 
+  @Post(":id/tests/:testId/include-existing")
+  @HttpCode(200)
+  includeExisting(@Param("id", ParseUUIDPipe) id: string, @Param("testId", ParseUUIDPipe) testId: string, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    return this.imports.includeExisting(admin, ip, id, testId);
+  }
+
   @Post(":id/tests/:testId/publish")
   @HttpCode(200)
   publish(@Param("id", ParseUUIDPipe) id: string, @Param("testId", ParseUUIDPipe) testId: string, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
