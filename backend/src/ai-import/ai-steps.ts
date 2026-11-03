@@ -166,9 +166,9 @@ Return:
 - isQuestion: false if the image is not an exam question screen (then other fields may be empty).
 - number: the current question number if visible (e.g. the highlighted number in the question navigator), else null; ticket: the ticket (bilet) number if visible, else null.
 - question, options (in the shown order).
-- correctIndex: 0-based index of the highlighted (green) option; null if no option is highlighted.
-- picture: the bounding box in PIXELS of the given image (x, y = top-left) of the question illustration ONLY — exclude the app UI (buttons, timer, header bar, option list, navigator). null if the question has no illustration.
-- problems: short list (Uzbek Latin) of reading problems (text cut off, unreadable, several options highlighted ...). Empty if none.`;
+- correctIndex: 0-based index of the GREEN option; null if no option is green. A red option is a previous wrong pick of the test taker — ignore it.
+- picture: the bounding box in PIXELS of the given image (x, y = top-left) of the question illustration ONLY — exclude the app UI (buttons, timer, header bar, option list, navigator). null if the question has no illustration, or if that area shows an advertisement, the app's logo/placeholder or any picture that does not depict the question situation.
+- problems: short list, in Uzbek LATIN script, ONLY of problems that affect publishing the question (text cut off or unreadable, no or several green options, illustration needed but missing). Do not mention the red pick, punctuation or layout. Empty if none.`;
 
 const SCREEN_SCHEMA = {
   type: "object",

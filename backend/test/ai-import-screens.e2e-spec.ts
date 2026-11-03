@@ -5,7 +5,9 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { AppModule } from "../src/app.module";
 import { AiService } from "../src/ai/ai.service";
+import { screensToQuestions } from "../src/ai-import/import.service";
 import { numberedAnswers } from "../src/ai-import/parse/screens";
+import type { ExtractedJson, ScreenItem } from "../src/ai-import/types";
 import { plainLine } from "../src/ai-import/parse/types";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { adminHeaders, configureAdminEnv, createTestAdmin } from "./helpers/admin";
@@ -112,6 +114,15 @@ describe("Ekran rasmlaridan import", () => {
     const full = numberedAnswers([plainLine("1.a 2.b 3.c 4.d 5.мотоцикл6.мотциклга7.Фаққат чапга8.берилмаса 9.4м10.тақиқланади")]);
     expect(full.get(9)).toBe("4м");
     expect(full.get(10)).toBe("тақиқланади");
+  });
+
+  it("kalit so'z qo'shtirnoqlari butun, yashirin defis olib tashlanadi", () => {
+    const screen = (question: string, options: string[], correctIndex: number): ScreenItem => ({ ref: "r", key: "k", imageId: null, attempts: 1, error: null, result: { isQuestion: true, number: 1, ticket: 4, question, options, correctIndex, picture: null, problems: [] } });
+    const ex = { screenAnswers: { "1": "А ва Б" }, ticket: 4 } as unknown as ExtractedJson;
+    const [q] = screensToQuestions(ex, [screen("Рухсат берила\u00ADдими?", ["« А »", "« А » ва « Б »"], 1)], true);
+    expect(q.text).toBe("Рухсат бериладими?");
+    expect(q.answerKey).toBe("« А » ва « Б »");
+    expect(q.doubt ?? null).toBeNull();
   });
 
   it("ekranlar → AI o'qiydi → bilet testi; yashil javob, fayldagi javob bilan solishtirish, kesilgan rasm", async () => {

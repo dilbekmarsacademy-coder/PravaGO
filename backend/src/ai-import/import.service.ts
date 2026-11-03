@@ -1081,7 +1081,7 @@ export function screensToQuestions(ex: ExtractedJson, screens: ScreenItem[], aiC
     }
     if (!r.isQuestion || !r.question.trim()) return;
     const number = r.number ?? i + 1;
-    const options = r.options.map((o) => o.trim()).filter(Boolean);
+    const options = r.options.map(cleanScreenText).filter(Boolean);
     const fileAnswer = answers[String(number)] ?? null;
     const byText = fileAnswer ? optionByText(options, fileAnswer) : null;
     let correctIndex = r.correctIndex !== null && r.correctIndex >= 0 && r.correctIndex < options.length ? r.correctIndex : null;
@@ -1097,7 +1097,7 @@ export function screensToQuestions(ex: ExtractedJson, screens: ScreenItem[], aiC
     const range = fileAnswer && answerText ? findPhraseRange(answerText, fileAnswer) : null;
     out.push({
       number,
-      text: r.question.trim(),
+      text: cleanScreenText(r.question),
       options,
       correctIndex,
       correctBy,
@@ -1106,13 +1106,37 @@ export function screensToQuestions(ex: ExtractedJson, screens: ScreenItem[], aiC
       topicNumber: null,
       topicTitle: ticket ? `${ticket}-bilet` : null,
       questionKey: null,
-      answerKey: range ? answerText.slice(range[0], range[1]) : null,
+      answerKey: range ? keyFromRange(answerText, range) : null,
       explanation: null,
       notes: [...r.problems],
       doubt,
     });
   });
   return out.sort((a, b) => (a.number ?? 0) - (b.number ?? 0));
+}
+
+/** Yashirin defis (U+00AD), nol kenglikdagi belgilar va ortiqcha bo'shliqlar. */
+function cleanScreenText(t: string): string {
+  return t.replace(/[\u00AD\u200B-\u200D\uFEFF]/g, "").replace(/\s+/g, " ").trim();
+}
+
+/** Kalit so'z: topilgan bo'lak qo'shtirnoqni yarim kesib qolsa («А » ва « Б») — tashqi qo'shtirnoqlar bilan. */
+function keyFromRange(text: string, [start, end]: [number, number]): string {
+  let a = start;
+  let b = end;
+  const piece = text.slice(a, b);
+  const firstClose = piece.indexOf("»");
+  const firstOpen = piece.indexOf("«");
+  if (firstClose >= 0 && (firstOpen < 0 || firstClose < firstOpen)) {
+    const o = text.lastIndexOf("«", a - 1);
+    if (o >= 0 && a - o <= 3) a = o;
+  }
+  const lastOpen = piece.lastIndexOf("«");
+  if (lastOpen >= 0 && lastOpen > piece.lastIndexOf("»")) {
+    const c = text.indexOf("»", b);
+    if (c >= 0 && c - b <= 2) b = c + 1;
+  }
+  return text.slice(a, b).trim();
 }
 
 function emptyScreenQuestion(i: number, ticket: number | null, note: string): ExtractedQuestion {
