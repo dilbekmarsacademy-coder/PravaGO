@@ -15,7 +15,7 @@ import { statusTone } from "./AiImportPanel";
 import ImportTestReview from "./ImportTestReview";
 
 const RUNNING = new Set(["uploading", "processing"]);
-const STAGES = ["extract", "classify", "group", "match", "analyze", "images"];
+const STAGES = ["extract", "classify", "screens", "group", "match", "analyze", "images"];
 
 function Progress({ value, max, label }: { value: number; max: number; label: string }) {
   const pct = max ? Math.min(100, Math.round((value / max) * 100)) : 0;

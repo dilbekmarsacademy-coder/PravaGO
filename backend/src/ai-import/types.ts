@@ -1,5 +1,6 @@
 // AI import qoralamalari: ImportQuestion.data va ImportFile.extracted shakllari.
 
+import type { ScreenResult } from "./ai-steps";
 import type { CorrectBy, ExtractedStructure } from "./parse/structure";
 
 export interface Texts {
@@ -57,11 +58,29 @@ export interface ExtractedJson {
   title: string | null;
   /** Fayl ichidagi rasm havolasi → ImportImage.id */
   images: Record<string, string>;
+  /** Ekran rasmi fayli: hujjat tartibidagi ekranlar (AI o'qiydi — stageScreens). */
+  screens?: ScreenItem[];
+  /** Matndagi raqamlangan qisqa javoblar (raqam → javob). */
+  screenAnswers?: Record<string, string>;
+  ticket?: number | null;
+  /** Ekranlardan savollar tuzildi (structure.questions to'ldirildi). */
+  screensBuilt?: boolean;
+}
+
+export interface ScreenItem {
+  ref: string;
+  /** Asl ekran rasmi storage'da. */
+  key: string;
+  result: ScreenResult | null;
+  /** Kesib olingan rasm (ImportImage.id). */
+  imageId: string | null;
+  attempts: number;
+  error: string | null;
 }
 
 /** ImportFile.classification */
 export interface FileClassification {
-  kind: "questions_full" | "questions_only" | "keys_only" | "mixed" | "unrelated";
+  kind: "questions_full" | "questions_only" | "keys_only" | "mixed" | "screenshots" | "unrelated";
   topics: { day: number | null; topicNumber: number | null; title: string | null }[];
   questionCount: number;
   script: "cyrl" | "latn" | "mixed";

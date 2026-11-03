@@ -158,6 +158,78 @@ export async function analyzeQuestions(ai: AiService, items: AnalyzeInput[], met
   return result.results;
 }
 
+// ── 2b. Ekran rasmidan savolni o'qish (AI_MODEL_PARSE, vision) ──
+
+const SCREEN_SYSTEM = `You read screenshots of a driving-licence exam application (Uzbekistan). A screenshot shows one exam question: the question text (usually on a coloured bar at the top), an illustration (road scene, sign, diagram) — sometimes none — and the answer options (labelled F1, F2 ... or similar). The correct option is highlighted (usually a green background).
+Transcribe EXACTLY what is written: same script (Uzbek Cyrillic/Latin or Russian), same spelling and punctuation (keep «», quotes, numbers, sign numbers). Do not translate, do not fix typos, do not add the "F1" labels to option texts.
+Return:
+- isQuestion: false if the image is not an exam question screen (then other fields may be empty).
+- number: the current question number if visible (e.g. the highlighted number in the question navigator), else null; ticket: the ticket (bilet) number if visible, else null.
+- question, options (in the shown order).
+- correctIndex: 0-based index of the highlighted (green) option; null if no option is highlighted.
+- picture: the bounding box in PIXELS of the given image (x, y = top-left) of the question illustration ONLY — exclude the app UI (buttons, timer, header bar, option list, navigator). null if the question has no illustration.
+- problems: short list (Uzbek Latin) of reading problems (text cut off, unreadable, several options highlighted ...). Empty if none.`;
+
+const SCREEN_SCHEMA = {
+  type: "object",
+  properties: {
+    isQuestion: { type: "boolean" },
+    number: { anyOf: [{ type: "integer" }, { type: "null" }] },
+    ticket: { anyOf: [{ type: "integer" }, { type: "null" }] },
+    question: { type: "string" },
+    options: { type: "array", items: { type: "string" } },
+    correctIndex: { anyOf: [{ type: "integer" }, { type: "null" }] },
+    picture: {
+      anyOf: [
+        { type: "object", properties: { x: { type: "number" }, y: { type: "number" }, w: { type: "number" }, h: { type: "number" } }, required: ["x", "y", "w", "h"], additionalProperties: false },
+        { type: "null" },
+      ],
+    },
+    problems: { type: "array", items: { type: "string" } },
+  },
+  required: ["isQuestion", "number", "ticket", "question", "options", "correctIndex", "picture", "problems"],
+  additionalProperties: false,
+} as const;
+
+const ScreenZ = z.object({
+  isQuestion: z.boolean(),
+  number: z.number().int().nullable(),
+  ticket: z.number().int().nullable(),
+  question: z.string(),
+  options: z.array(z.string()),
+  correctIndex: z.number().int().nullable(),
+  picture: z.object({ x: z.number(), y: z.number(), w: z.number(), h: z.number() }).nullable(),
+  problems: z.array(z.string()),
+});
+
+/** Ekran rasmidan o'qilgan savol; `picture` — 0..1 nisbatda. */
+export type ScreenResult = z.infer<typeof ScreenZ>;
+
+export async function transcribeScreen(ai: AiService, jpeg: { data: Buffer; width: number; height: number }, meta: UsageMeta): Promise<ScreenResult> {
+  const r = await ai.json({
+    feature: "import.screens",
+    system: SCREEN_SYSTEM,
+    content: [
+      { type: "image", source: { type: "base64", media_type: "image/jpeg", data: jpeg.data.toString("base64") } },
+      { type: "text", text: `Image size: ${jpeg.width}×${jpeg.height} px. Transcribe this exam question screen.` },
+    ],
+    schema: SCREEN_SCHEMA,
+    validate: ScreenZ,
+    effort: "low",
+    maxTokens: 3000,
+    meta,
+    timeoutMs: 38_000,
+    attempts: 2,
+  });
+  const p = r.picture;
+  const picture =
+    p && p.w > 0 && p.h > 0
+      ? { x: Math.max(0, p.x / jpeg.width), y: Math.max(0, p.y / jpeg.height), w: Math.min(1, p.w / jpeg.width), h: Math.min(1, p.h / jpeg.height) }
+      : null;
+  // Juda kichik "rasm" — ehtimol UI bo'lagi.
+  return { ...r, picture: picture && picture.w > 0.08 && picture.h > 0.08 ? picture : null };
+}
+
 // ── 3. Shubhali juftliklarni tasdiqlash (AI_MODEL_PARSE) ──
 
 const MATCH_SYSTEM = `You compare pairs of driving-licence exam questions taken from different files (Uzbek Cyrillic/Latin, maybe Russian). For each pair decide whether they are THE SAME question (same meaning, possibly different script, numbering or small wording differences). Answer only same: true/false per pair id.`;
@@ -265,12 +337,15 @@ export async function verifyCleaned(ai: AiService, jpeg: Buffer, meta: UsageMeta
 }
 
 /** Taxminiy narx (boshlashdan oldin): Sonnet tahlili, rasmlar (aniqlash + tekshirish), Haiku tasnifi. */
-export function estimateCostUsd(input: { files: number; questions: number; questionsWithImage: number; images: number; watermarks: boolean }): number {
+export function estimateCostUsd(input: { files: number; questions: number; questionsWithImage: number; images: number; watermarks: boolean; screens?: number }): number {
   const sonnet = (inTok: number, outTok: number) => (inTok * 2 + outTok * 10) / 1_000_000;
   const haiku = (inTok: number, outTok: number) => (inTok * 0.1 + outTok * 0.5) / 1_000_000;
   const classify = input.files * haiku(3000, 300);
   const analyze = input.questions * sonnet(450, 380) + input.questionsWithImage * sonnet(1100, 0);
   const images = input.watermarks ? input.images * (sonnet(1300, 150) * 2) : 0;
   const matching = Math.ceil(input.questions / 10) * sonnet(600, 100);
-  return Math.round((classify + analyze + images + matching) * 1.15 * 1000) / 1000;
+  // Ekran rasmlari: o'qish (vision) + keyingi tahlil va kesilgan rasm.
+  const n = input.screens ?? 0;
+  const screens = n * sonnet(1700, 450) + n * (sonnet(450, 380) + sonnet(800, 0)) + (input.watermarks ? n * sonnet(900, 150) * 2 : 0);
+  return Math.round((classify + analyze + images + matching + screens) * 1.15 * 1000) / 1000;
 }

@@ -4,6 +4,7 @@
 export type AiFeature =
   | "import.classify"
   | "import.analyze"
+  | "import.screens"
   | "import.match"
   | "import.watermark"
   | "import.verify"
@@ -52,6 +53,7 @@ export function modelFor(feature: AiFeature): string {
     case "import.classify":
       return fastModel();
     case "import.analyze":
+    case "import.screens":
     case "import.match":
       return parseModel();
   }

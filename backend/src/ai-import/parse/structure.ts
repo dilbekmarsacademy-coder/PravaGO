@@ -36,6 +36,8 @@ export interface ExtractedQuestion {
   explanation: string | null;
   /** Bir nechta variant belgilangan, hammasi belgilangan va h.k. */
   notes: string[];
+  /** Manbalar bir-biriga zid (masalan, ekrandagi yashil javob va matndagi javob) — tekshirish kerak. */
+  doubt?: string | null;
 }
 
 export interface AnswerKeyEntry {
