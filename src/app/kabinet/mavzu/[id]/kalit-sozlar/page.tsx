@@ -215,80 +215,84 @@ export default function KeywordsPage({ params }: KeywordsPageProps) {
 
         {status === "ready" && items.length > 0 && (
           <>
-            <Card className="flex flex-col gap-4 p-4 sm:p-5 md:sticky md:top-20 md:z-10">
-              <div className="flex items-center gap-3">
-                <div
-                  role="progressbar"
-                  aria-valuemin={0}
-                  aria-valuemax={items.length}
-                  aria-valuenow={reviewedCount}
-                  aria-label={labels.progressAria}
-                  className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2"
-                >
+            {/* Kompyuterda: sarlavha ostiga yopishgan TO'Q (shaffof emas) chiziq — pastdagi kartalar
+                uning ostiga to'liq kirib yo'qoladi, oradan ko'rinib xalaqit bermaydi. */}
+            <div className="md:sticky md:top-[calc(4rem+env(safe-area-inset-top,0px))] md:z-20 md:-mx-6 md:-mt-3 md:bg-background md:px-6 md:py-3 md:after:pointer-events-none md:after:absolute md:after:inset-x-0 md:after:top-full md:after:h-5 md:after:bg-gradient-to-b md:after:from-background md:after:to-transparent">
+              <Card className="flex flex-col gap-4 p-4 sm:p-5">
+                <div className="flex items-center gap-3">
                   <div
-                    className={cn(
-                      "h-full rounded-full transition-[width] duration-500",
-                      reviewedCount === items.length ? "bg-success" : "bg-gradient-to-r from-brand to-brand-2",
-                    )}
-                    style={{ width: `${percent}%` }}
-                  />
-                </div>
-                <span className="shrink-0 font-mono text-xs font-semibold text-muted-foreground tabular-nums sm:text-sm" aria-live="polite">
-                  {labels.progress(reviewedCount, items.length)}
-                </span>
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <label className="relative block flex-1">
-                  <span className="sr-only">{labels.searchLabel}</span>
-                  <SearchIcon
-                    className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                  <input
-                    type="search"
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder={labels.searchPlaceholder}
-                    maxLength={100}
-                    className="h-11 w-full rounded-full border border-border bg-surface pr-10 pl-10 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 sm:text-sm [&::-webkit-search-cancel-button]:hidden"
-                  />
-                  {search && (
-                    <button
-                      type="button"
-                      onClick={() => setSearch("")}
-                      aria-label={labels.clearSearch}
-                      className="absolute top-1/2 right-1 flex size-9 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand"
-                    >
-                      <XIcon className="size-4" />
-                    </button>
-                  )}
-                </label>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={hideAnswers}
-                  onClick={() => setHideAnswers((v) => !v)}
-                  className="inline-flex min-h-11 items-center justify-between gap-3 rounded-full border border-border px-4 text-sm font-semibold text-foreground outline-none transition-colors hover:border-border-strong focus-visible:ring-2 focus-visible:ring-brand sm:justify-start"
-                >
-                  {labels.hideAnswers}
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      "relative h-6 w-10 shrink-0 rounded-full transition-colors",
-                      hideAnswers ? "bg-brand" : "bg-foreground/15",
-                    )}
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={items.length}
+                    aria-valuenow={reviewedCount}
+                    aria-label={labels.progressAria}
+                    className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2"
                   >
-                    <span
+                    <div
                       className={cn(
-                        "absolute top-0.5 left-0.5 size-5 rounded-full bg-background shadow transition-transform",
-                        hideAnswers && "translate-x-4",
+                        "h-full rounded-full transition-[width] duration-500",
+                        reviewedCount === items.length ? "bg-success" : "bg-gradient-to-r from-brand to-brand-2",
                       )}
+                      style={{ width: `${percent}%` }}
                     />
+                  </div>
+                  <span className="shrink-0 font-mono text-xs font-semibold text-muted-foreground tabular-nums sm:text-sm" aria-live="polite">
+                    {labels.progress(reviewedCount, items.length)}
                   </span>
-                </button>
-              </div>
-            </Card>
+                </div>
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <label className="relative block flex-1">
+                    <span className="sr-only">{labels.searchLabel}</span>
+                    <SearchIcon
+                      className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                    <input
+                      type="search"
+                      value={search}
+                      onChange={(event) => setSearch(event.target.value)}
+                      placeholder={labels.searchPlaceholder}
+                      maxLength={100}
+                      className="h-11 w-full rounded-full border border-border bg-surface pr-10 pl-10 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30 sm:text-sm [&::-webkit-search-cancel-button]:hidden"
+                    />
+                    {search && (
+                      <button
+                        type="button"
+                        onClick={() => setSearch("")}
+                        aria-label={labels.clearSearch}
+                        className="absolute top-1/2 right-1 flex size-9 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand"
+                      >
+                        <XIcon className="size-4" />
+                      </button>
+                    )}
+                  </label>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={hideAnswers}
+                    onClick={() => setHideAnswers((v) => !v)}
+                    className="inline-flex min-h-11 items-center justify-between gap-3 rounded-full border border-border px-4 text-sm font-semibold text-foreground outline-none transition-colors hover:border-border-strong focus-visible:ring-2 focus-visible:ring-brand sm:justify-start"
+                  >
+                    {labels.hideAnswers}
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "relative h-6 w-10 shrink-0 rounded-full transition-colors",
+                        hideAnswers ? "bg-brand" : "bg-foreground/15",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "absolute top-0.5 left-0.5 size-5 rounded-full bg-background shadow transition-transform",
+                          hideAnswers && "translate-x-4",
+                        )}
+                      />
+                    </span>
+                  </button>
+                </div>
+              </Card>
+            </div>
 
             {topicHasNoKeywords && (
               <p
