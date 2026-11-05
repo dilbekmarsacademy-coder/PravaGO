@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { Toaster } from "@/components/shared/Toast";
 import AnalyticsTracker from "@/components/shared/AnalyticsTracker";
 import CenterSessionWatcher from "@/components/shared/CenterSessionWatcher";
+import { BRAND_NAME, SITE_DESCRIPTION, SITE_KEYWORDS, SITE_TITLE, SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
 const THEME_INIT_SCRIPT = `(function () {
@@ -45,9 +46,21 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PravaIshonch — Haydovchilik imtihoniga tayyorgarlik",
-  description:
-    "Respublika miqyosidagi onlayn haydovchilik (prava) imtihoniga tayyorgarlik platformasi.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: SITE_TITLE, template: `%s — ${BRAND_NAME}` },
+  description: SITE_DESCRIPTION,
+  applicationName: BRAND_NAME,
+  keywords: SITE_KEYWORDS,
+  openGraph: {
+    type: "website",
+    url: SITE_URL,
+    siteName: BRAND_NAME,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    locale: "uz_UZ",
+    alternateLocale: ["ru_RU"],
+  },
+  twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESCRIPTION },
   // Brauzer tarjimasi (Chrome/Google Translate) DOM'dagi matnlarni o'zgartiradi
   // va React birinchi yangilanishda qulaydi — oq ekran. Sayt o'zi 3 tilda.
   other: { google: "notranslate" },

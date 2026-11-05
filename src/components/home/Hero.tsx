@@ -62,6 +62,9 @@ export default function Hero({ onStart, onCenterLogin }: HeroProps) {
           variants={item}
           className="mt-6 max-w-3xl font-display text-4xl leading-[1.08] font-extrabold tracking-tight text-foreground sm:text-6xl"
         >
+          <span className="mb-3 block font-display text-base font-bold tracking-[0.18em] text-neon-orange uppercase sm:text-lg">
+            {t.header.brand}
+          </span>
           {t.hero.titlePre}
           <span className="text-gradient-speed">{t.hero.titleHighlight}</span>
           {t.hero.titlePost}

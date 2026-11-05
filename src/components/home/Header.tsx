@@ -29,7 +29,7 @@ export default function Header({ onRegisterClick }: HeaderProps) {
     <header className="fixed inset-x-0 top-0 z-40 border-b border-border bg-background/95 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-5 sm:px-8">
         <a href="#bosh-sahifa" className="flex shrink-0 items-center gap-2.5">
-          <span className="glow-orange flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-neon-orange to-neon-orange-2 text-background">
+          <span aria-hidden="true" className="glow-orange flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-neon-orange to-neon-orange-2 text-background">
             <GaugeIcon className="size-4.5" strokeWidth={2.4} />
           </span>
           <span className="font-display text-sm font-bold tracking-wide text-foreground uppercase">

@@ -105,6 +105,8 @@ export interface Dictionary {
   footer: {
     tagline: string;
     copyright: string;
+    /** "Biz haqimizda": brend nomi ikkala shaklda (PravaIshonch / Prava Ishonch). */
+    about: string;
   };
 
   registerModal: {

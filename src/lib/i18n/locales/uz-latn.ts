@@ -179,6 +179,7 @@ export const uzLatn: Dictionary = {
   footer: {
     tagline: "Onlayn haydovchilik imtihoniga tayyorgarlik platformasi",
     copyright: "© 2026 PravaIshonch. Barcha huquqlar himoyalangan.",
+    about: "PravaIshonch (Prava Ishonch) — haydovchilik guvohnomasi imtihoniga onlayn tayyorlov platformasi. Prava Ishonch kursida video darslar, kalit soʻzlar va rasmiy biletlar asosidagi testlar bilan 7 kunda imtihonga tayyorlanasiz.",
   },
 
   registerModal: {

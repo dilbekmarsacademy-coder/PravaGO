@@ -25,6 +25,17 @@ if (apiUrl) {
 
 const nextConfig: NextConfig = {
   agentRules: false,
+  // *.vercel.app (pravatayyor.vercel.app va preview'lar) — qidiruvga yopiq;
+  // faqat asosiy domen (https://www.pravaishonch.uz) indekslanadi.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "(?<host>.+)\\.vercel\\.app" }],
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
+    ];
+  },
   images: {
     remotePatterns: imageHosts,
     // Lokal ishlab chiqishda backend localhost'da — faqat dev'da ruxsat.

@@ -21,7 +21,7 @@ export default function Footer() {
     >
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 text-center sm:flex-row sm:justify-between sm:text-left">
         <div className="flex items-center gap-2.5">
-          <span className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-neon-orange to-neon-orange-2 text-background">
+          <span aria-hidden="true" className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-neon-orange to-neon-orange-2 text-background">
             <GaugeIcon className="size-4.5" strokeWidth={2.4} />
           </span>
           <div>
@@ -45,7 +45,11 @@ export default function Footer() {
         </nav>
       </div>
 
-      <p className="mt-8 text-center font-mono text-xs text-muted-foreground/70">
+      <p className="mx-auto mt-8 max-w-3xl text-center text-sm leading-relaxed text-muted-foreground">
+        {t.footer.about}
+      </p>
+
+      <p className="mt-6 text-center font-mono text-xs text-muted-foreground/70">
         {t.footer.copyright}
       </p>
     </footer>
