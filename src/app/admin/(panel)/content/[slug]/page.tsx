@@ -60,7 +60,7 @@ export default function AdminTopicPage({ params }: { params: Promise<{ slug: str
         ]}
       />
       {error && <ErrorBlock message={error} onRetry={load} />}
-      <Panel>{!data ? <LoadingBlock /> : <QuestionList items={data.items} hrefFor={(id) => `/admin/questions/${id}`} />}</Panel>
+      <Panel>{!data ? <LoadingBlock /> : <QuestionList items={data.items} hrefFor={(id) => `/admin/questions/${id}${filter !== "all" ? `?filter=${filter}` : ""}`} />}</Panel>
     </>
   );
 }
