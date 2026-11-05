@@ -3,7 +3,7 @@ import { randomBytes } from "crypto";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditService } from "../admin/audit.service";
 import type { AdminUser } from "../admin/admin-request";
-import { QuestionEditorService, normalizeQuestionInput, toEditable } from "../admin/content/question-editor.service";
+import { QuestionEditorService, toEditable } from "../admin/content/question-editor.service";
 import type { QuestionInputDto } from "../admin/content/question-input.dto";
 import { toLocalizedText } from "../common/localized-text";
 import { PASS_PERCENT } from "../common/rules";
@@ -183,18 +183,7 @@ export class CollectionsService {
 
   async createQuestion(admin: AdminUser, ip: string, collectionId: string, input: QuestionInputDto) {
     await this.find(collectionId);
-    const data = normalizeQuestionInput(input);
-    const id = await this.prisma.$transaction(async (tx) => {
-      const last = await tx.question.aggregate({ where: { topicId: collectionId }, _max: { order: true } });
-      const q = await tx.question.create({
-        data: { topicId: collectionId, order: (last._max.order ?? 0) + 1, text: data.text.cyrl, keyword: "", ruNeedsReview: input.ruNeedsReview ?? true },
-      });
-      await this.editor.write(tx, q.id, input, data);
-      return q.id;
-    });
-    const after = await this.editor.get(id);
-    await this.audit.log(admin, ip, { action: "question.created", entityType: "question", entityId: id, after });
-    return after;
+    return this.editor.create(admin, ip, collectionId, input, { ruNeedsReview: true });
   }
 
   /** Yumshoq o'chirish — faqat "Yangi testlar" savollari. Foydalanuvchilarning saqlanganlaridan ham olinadi. */

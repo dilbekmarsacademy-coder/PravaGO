@@ -1,11 +1,13 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query, UseGuards } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { IsIn, IsInt, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min } from "class-validator";
 import { AdminGuard, CurrentAdmin, RequestIp, RequirePermission } from "../admin.guard";
 import type { AdminUser } from "../admin-request";
 import { ContentService, type QuestionFilter } from "./content.service";
 import { LessonEditorService } from "./lesson-editor.service";
 import { QuestionEditorService } from "./question-editor.service";
-import { QuestionInputDto } from "./question-input.dto";
+import { QuestionCreateService } from "./question-create.service";
+import { PrepareQuestionDto, QuestionInputDto } from "./question-input.dto";
 
 class SlugParam {
   @Matches(/^[a-z0-9-]{1,120}$/)
@@ -43,6 +45,7 @@ export class AdminContentController {
     private readonly content: ContentService,
     private readonly editor: QuestionEditorService,
     private readonly lessons: LessonEditorService,
+    private readonly creator: QuestionCreateService,
   ) {}
 
   /** Javobi kutilayotgan savollar (admin panel ogohlantirishi). */
@@ -66,6 +69,20 @@ export class AdminContentController {
   @Get("content/topics/:slug/questions")
   topicQuestions(@Param() params: SlugParam, @Query() query: FilterQuery) {
     return this.content.topicQuestions(params.slug, query.filter);
+  }
+
+  /** Yangi savol (lotin) → AI kirill, ruscha va kalit so'zlar. Saqlanmaydi — admin tasdiqlaydi. */
+  @Post("content/topics/:slug/questions/prepare")
+  @HttpCode(200)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  prepareQuestion(@Param() params: SlugParam, @Body() body: PrepareQuestionDto, @CurrentAdmin() admin: AdminUser) {
+    return this.creator.prepare(admin, params.slug, body);
+  }
+
+  /** Tasdiqlangan yangi savol kun mavzusi testiga qo'shiladi. */
+  @Post("content/topics/:slug/questions")
+  createQuestion(@Param() params: SlugParam, @Body() body: QuestionInputDto, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    return this.creator.create(admin, ip, params.slug, body);
   }
 
   @Get("content/topics/:slug/lesson")

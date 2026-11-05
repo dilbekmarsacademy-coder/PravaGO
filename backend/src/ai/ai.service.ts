@@ -70,8 +70,68 @@ const TRANSLATION_SCHEMA = {
   additionalProperties: false,
 } as const;
 
+const TEXTS_SCHEMA = {
+  type: "object",
+  properties: { text: { type: "string" }, options: { type: "array", items: { type: "string" } }, explanation: { type: "string" } },
+  required: ["text", "options", "explanation"],
+  additionalProperties: false,
+} as const;
+
+const PHRASES_SCHEMA = {
+  type: "object",
+  properties: {
+    uz: { type: "array", items: { type: "string" } },
+    cyrl: { type: "array", items: { type: "string" } },
+    ru: { type: "array", items: { type: "string" } },
+  },
+  required: ["uz", "cyrl", "ru"],
+  additionalProperties: false,
+} as const;
+
+const PREPARED_SCHEMA = {
+  type: "object",
+  properties: {
+    cyrl: TEXTS_SCHEMA,
+    ru: TEXTS_SCHEMA,
+    keywords: {
+      type: "object",
+      properties: { question: PHRASES_SCHEMA, answer: PHRASES_SCHEMA },
+      required: ["question", "answer"],
+      additionalProperties: false,
+    },
+  },
+  required: ["cyrl", "ru", "keywords"],
+  additionalProperties: false,
+} as const;
+
 const BoxesZ = z.object({ boxes: z.array(z.object({ x: z.number(), y: z.number(), w: z.number(), h: z.number(), label: z.string() })) });
 const TranslationZ = z.object({ text: z.string(), options: z.array(z.string()), explanation: z.string() });
+const PhrasesZ = z.object({ uz: z.array(z.string()), cyrl: z.array(z.string()), ru: z.array(z.string()) });
+const PreparedZ = z.object({ cyrl: TranslationZ, ru: TranslationZ, keywords: z.object({ question: PhrasesZ, answer: PhrasesZ }) });
+
+/** Lotincha savolning AI tayyorlagan kirill va ruscha matni hamda kalit so'z iboralari (har tilda matndan aynan ko'chirilgan). */
+export type PreparedQuestion = z.infer<typeof PreparedZ>;
+
+export interface PrepareQuestionInput {
+  text: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+  /** Admin belgilagan lotincha kalit bo'laklar; `null` — kalit so'zni AI tanlaydi. */
+  keywords: { question: string[]; answer: string[] } | null;
+}
+
+export const PREPARE_SYSTEM =
+  "You prepare Uzbek driving-licence exam questions (traffic rules of Uzbekistan) that an admin typed in Uzbek Latin script. Return:\n" +
+  "1) cyrl — the same text in Uzbek Cyrillic script using official orthography: oʻ/o' → ў, gʻ/g' → ғ, sh → ш, ch → ч, yo → ё, yu → ю, ya → я, ye/word-initial e → е/э as correct, ' (tutuq belgisi) → ъ, " +
+  "Russian loanwords keep their Russian spelling (sentabr → сентябрь, tsirk → цирк, avtomobil → автомобиль). Do not translate, only change the script.\n" +
+  "2) ru — a Russian translation in the wording of the official Russian-language traffic rules (ПДД) of Uzbekistan.\n" +
+  "In both: preserve the exact meaning; keep every number, sign number (e.g. 3.24, 5.15.1), unit, letter label (А, В, C) unchanged; return the same number of options in the same order; empty explanation stays empty.\n" +
+  "3) keywords — key phrases that help a student remember the correct answer: `question` from the question text, `answer` from the correct option text (correctIndex, 0-based). " +
+  "Each phrase must be copied EXACTLY (same letters, same case) from the corresponding text in that language: uz from the Latin input, cyrl from your cyrl text, ru from your ru text. " +
+  "If keywords are given in the input (Latin fragments), return them unchanged as uz and give the matching fragments of the cyrl and ru texts in the same order. " +
+  "If keywords is null, choose them yourself: 1–4 words each, the decisive words of the question and of the correct answer; uz, cyrl and ru must mean the same thing. " +
+  "Use empty arrays when there is no sensible key phrase.";
 
 /** Standart: bitta so'rov Vercel'dagi bitta qadamga (40 s) sig'ishi uchun. */
 const DEFAULT_TIMEOUT_MS = 35_000;
@@ -367,6 +427,24 @@ export class AiService {
       meta,
     });
     if (result.options.length !== input.options.length) throw new Error("Tarjimada variantlar soni mos emas");
+    return result;
+  }
+
+  /** Admin lotinda yozgan yangi savol: kirill yozuvi, ruscha tarjima va kalit so'z iboralari bitta so'rovda. */
+  async prepareQuestion(input: PrepareQuestionInput, meta?: UsageMeta): Promise<PreparedQuestion> {
+    const result = await this.json({
+      feature: "translate",
+      system: PREPARE_SYSTEM,
+      content: [{ type: "text", text: JSON.stringify(input) }],
+      schema: PREPARED_SCHEMA,
+      validate: PreparedZ,
+      effort: "medium",
+      maxTokens: 8000,
+      meta,
+    });
+    if (result.cyrl.options.length !== input.options.length || result.ru.options.length !== input.options.length) {
+      throw new ServiceUnavailableException({ statusCode: 503, code: "AI_BAD_RESPONSE", message: "AI javobida variantlar soni mos emas — qaytadan urinib ko'ring" });
+    }
     return result;
   }
 }

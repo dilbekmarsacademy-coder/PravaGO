@@ -4,6 +4,7 @@ import {
   ArrayMinSize,
   IsArray,
   IsBoolean,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -120,4 +121,49 @@ export class QuestionInputDto {
   @IsOptional()
   @IsBoolean()
   ruNeedsReview?: boolean;
+}
+
+export class PrepareKeywordsDto {
+  /** ai — kalit so'zni AI tanlaydi, manual — admin lotin matnda belgilagan, none — kalit so'z yo'q. */
+  @IsIn(["ai", "manual", "none"])
+  mode: "ai" | "manual" | "none";
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsArray({ each: true })
+  question?: number[][];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsArray({ each: true })
+  answer?: number[][];
+}
+
+/** Kun mavzusiga yangi savol: admin faqat lotin yozuvida yozadi, qolganini AI tayyorlaydi. */
+export class PrepareQuestionDto {
+  @IsString()
+  @MaxLength(3000)
+  text: string;
+
+  @IsArray()
+  @ArrayMinSize(2)
+  @ArrayMaxSize(6)
+  @IsString({ each: true })
+  @MaxLength(3000, { each: true })
+  options: string[];
+
+  @IsInt()
+  @Min(0)
+  correctIndex: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(3000)
+  explanation?: string;
+
+  @ValidateNested()
+  @Type(() => PrepareKeywordsDto)
+  keywords: PrepareKeywordsDto;
 }

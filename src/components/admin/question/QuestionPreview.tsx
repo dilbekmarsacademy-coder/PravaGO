@@ -14,8 +14,8 @@ import type { QuestionDraft } from "./draft";
 const LANG_LABEL: Record<KwLang, string> = { cyrl: "Кирилл", uz: "Lotin", ru: "Русский" };
 
 /** Saytdagi ko'rinish: javob berilgandan keyingi holat (to'g'ri javob yashil, kalit so'zlar belgilangan). */
-export default function QuestionPreview({ draft, imageSrc }: { draft: QuestionDraft; imageSrc?: string | null }) {
-  const [lang, setLang] = useState<KwLang>("cyrl");
+export default function QuestionPreview({ draft, imageSrc, defaultLang = "cyrl" }: { draft: QuestionDraft; imageSrc?: string | null; defaultLang?: KwLang }) {
+  const [lang, setLang] = useState<KwLang>(defaultLang);
   const [device, setDevice] = useState<"mobile" | "desktop">("mobile");
   const show = (s: string) => (lang === "uz" ? formatUzLatin(s) : s);
   const questionText = textOf(draft.text, lang);

@@ -293,6 +293,22 @@ export class QuestionEditorService {
     await tx.questionKeyword.upsert({ where: { questionId }, update: keywordData, create: { questionId, ...keywordData } });
   }
 
+  /** Yangi savol mavzu oxiriga qo'shiladi (kun mavzusi yoki "Yangi testlar"). */
+  async create(admin: AdminUser, ip: string, topicId: string, input: QuestionInputDto, defaults: { ruNeedsReview: boolean }): Promise<EditableQuestionDto> {
+    const data = normalizeQuestionInput(input);
+    const id = await this.prisma.$transaction(async (tx) => {
+      const last = await tx.question.aggregate({ where: { topicId }, _max: { order: true } });
+      const q = await tx.question.create({
+        data: { topicId, order: (last._max.order ?? 0) + 1, text: data.text.cyrl, keyword: "", ruNeedsReview: input.ruNeedsReview ?? defaults.ruNeedsReview },
+      });
+      await this.write(tx, q.id, input, data);
+      return q.id;
+    });
+    const after = await this.get(id);
+    await this.audit.log(admin, ip, { action: "question.created", entityType: "question", entityId: id, after });
+    return after;
+  }
+
   async update(admin: AdminUser, ip: string, id: string, input: QuestionInputDto): Promise<EditableQuestionDto> {
     const current = await this.load(id);
     this.assertEditable(current.topic);
