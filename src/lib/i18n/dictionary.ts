@@ -102,6 +102,22 @@ export interface Dictionary {
     cta: string;
   };
 
+  /** Eski manzildagi "Sayt ko'chdi" sahifasi. */
+  moved: {
+    eyebrow: string;
+    /** Domen (pravaishonch.uz) alohida qatorda ko'rsatiladi. */
+    titlePre: string;
+    body: string;
+    button: string;
+    countdown: (seconds: number) => string;
+    signedIn: string;
+  };
+  /** Yangi manzildagi avtomatik kirish (/auth/transfer). */
+  transfer: {
+    loading: string;
+    failed: string;
+  };
+
   footer: {
     tagline: string;
     copyright: string;

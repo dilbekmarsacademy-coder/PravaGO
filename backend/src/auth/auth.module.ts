@@ -3,12 +3,13 @@ import { AuthController } from "./auth.controller";
 import { AuthGuard } from "./auth.guard";
 import { AuthService } from "./auth.service";
 import { CenterAuthService } from "./center-auth.service";
+import { TransferService } from "./transfer.service";
 import { SessionMiddleware } from "./session.middleware";
 
 @Global()
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, AuthGuard, CenterAuthService],
+  providers: [AuthService, AuthGuard, CenterAuthService, TransferService],
   exports: [AuthService, AuthGuard],
 })
 export class AuthModule implements NestModule {

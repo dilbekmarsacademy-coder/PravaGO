@@ -176,6 +176,19 @@ export const uzLatn: Dictionary = {
     cta: "Tayyorlanishni boshlash",
   },
 
+  moved: {
+    eyebrow: "Yangi manzil",
+    titlePre: "Sayt yangi manzilga koʻchdi:",
+    body: "Eski manzil endi ishlamaydi. Natijalaringiz va yechgan testlaringiz saqlanib qoladi.",
+    button: "Yangi saytga oʻtish",
+    countdown: (seconds) => `${seconds} soniyadan keyin avtomatik oʻtasiz`,
+    signedIn: "Tizimga kirgansiz — yangi saytda qaytadan kirish shart emas.",
+  },
+  transfer: {
+    loading: "Yangi saytga kirilmoqda…",
+    failed: "Qaytadan kiring: avtomatik kirish amalga oshmadi.",
+  },
+
   footer: {
     tagline: "Onlayn haydovchilik imtihoniga tayyorgarlik platformasi",
     copyright: "© 2026 PravaIshonch. Barcha huquqlar himoyalangan.",

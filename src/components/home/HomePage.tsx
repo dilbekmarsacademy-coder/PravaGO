@@ -14,6 +14,9 @@ import Footer from "@/components/home/Footer";
 import RegisterModal from "@/components/home/RegisterModal/RegisterModal";
 import CenterLoginModal from "@/components/home/CenterLoginModal";
 import { takeKickReason, type KickReason } from "@/lib/api/session";
+import { showToast } from "@/components/shared/Toast";
+import { TRANSFER_FAILED_KEY } from "@/components/transfer/TransferView";
+import { useLocale } from "@/lib/i18n/useLocale";
 import type { ExamStatus } from "@/components/home/types";
 
 export default function HomePage() {
@@ -21,6 +24,19 @@ export default function HomePage() {
   const [examStatus, setExamStatus] = useState<ExamStatus | null>(null);
   const [centerOpen, setCenterOpen] = useState(false);
   const [kickReason, setKickReason] = useState<KickReason | null>(null);
+  const { t } = useLocale();
+
+  // Eski domendan avtomatik kirish amalga oshmadi — "Qaytadan kiring".
+  useEffect(() => {
+    let failed = false;
+    try {
+      failed = sessionStorage.getItem(TRANSFER_FAILED_KEY) === "1";
+      sessionStorage.removeItem(TRANSFER_FAILED_KEY);
+    } catch {
+      // ignore
+    }
+    if (failed) showToast({ tone: "danger", message: t.transfer.failed });
+  }, [t]);
 
   // Boshqa qurilmadan kirilgani sababli chiqarilgan markaz o'quvchisi — sabab
   // bilan birga darhol qayta kirish oynasi.

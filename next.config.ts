@@ -34,6 +34,15 @@ const nextConfig: NextConfig = {
         has: [{ type: "host", value: "(?<host>.+)\\.vercel\\.app" }],
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
       },
+      {
+        // Bir martalik kod query'da keladi — boshqa saytlarga Referer bilan ketmasin.
+        source: "/auth/transfer",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Cache-Control", value: "no-store" },
+        ],
+      },
     ];
   },
   images: {

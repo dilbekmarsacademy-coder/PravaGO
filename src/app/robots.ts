@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { SITE_URL } from "@/lib/seo";
 
 /** Shaxsiy bo'limlar — qidiruvga yopiq (sahifalarning o'zida ham noindex). */
-const PRIVATE_PATHS = ["/admin", "/kabinet", "/test", "/tolov", "/api"];
+const PRIVATE_PATHS = ["/admin", "/kabinet", "/test", "/tolov", "/api", "/auth", "/ko-chdi"];
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
   const host = (await headers()).get("host") ?? "";

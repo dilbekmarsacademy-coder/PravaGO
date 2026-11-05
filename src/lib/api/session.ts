@@ -81,6 +81,21 @@ export function isCenterSession(): boolean {
   }
 }
 
+/** Joriy saqlangan token (yo'q bo'lsa — yangisi yaratilmaydi). */
+export function currentSessionToken(): string | null {
+  return readToken();
+}
+
+/** Domen ko'chishidan keyin — o'zi ro'yxatdan o'tgan foydalanuvchining yangi tokeni. */
+export function setSessionToken(token: string): void {
+  try {
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.removeItem(CENTER_KEY);
+  } catch {
+    // Xotira yo'q (shaxsiy oyna) — token faqat shu sahifa davomida yashaydi.
+  }
+}
+
 /** Markaz kirishidan keyin — yangi token shu qurilmaning yagona sessiyasi. */
 export function setCenterSessionToken(token: string): void {
   try {

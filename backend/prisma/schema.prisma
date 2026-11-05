@@ -177,6 +177,7 @@ model User {
   /// Oxirgi kirgan qurilma, masalan "Android · Chrome".
   lastDevice        String?            @db.VarChar(80)
   sessions          Session[]
+  transferCodes     SessionTransferCode[]
   examAttempts      ExamAttempt[]
   savedQuestions    SavedQuestion[]
   lessonProgress    LessonProgress[]
@@ -749,4 +750,17 @@ model StorageObject {
   size        Int
   data        Bytes
   createdAt   DateTime @default(now()) @db.Timestamptz(3)
+}
+
+/// Eski domendan (pravatayyor.vercel.app) yangi domenga (pravaishonch.uz) qayta
+/// kirishsiz o'tish uchun bir martalik kod. Faqat sha256 xeshi saqlanadi,
+/// 60 soniya amal qiladi va birinchi ishlatilishida o'chiriladi.
+model SessionTransferCode {
+  codeHash  String   @id @db.VarChar(64)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([expiresAt])
 }
