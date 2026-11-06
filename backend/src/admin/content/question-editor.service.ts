@@ -227,14 +227,15 @@ export class QuestionEditorService {
   }
 
   private async imageFields(input: QuestionInputDto) {
-    if (input.removeImage) return { imageUrl: null, imageWidth: null, imageHeight: null, imageAssetId: null };
+    // Kichik (telefon) nusxa ham tozalanadi — aks holda o'quvchi eski rasmni ko'radi.
+    if (input.removeImage) return { imageUrl: null, imageSmallUrl: null, imageWidth: null, imageHeight: null, imageAssetId: null };
     if (!input.imageAssetId) return {};
     const asset = await this.prisma.mediaAsset.findUnique({
       where: { id: input.imageAssetId },
       select: { id: true, public: true, width: true, height: true },
     });
     if (!asset || !asset.public) throw new BadRequestException("Rasm topilmadi yoki hali tasdiqlanmagan");
-    return { imageUrl: `/media/${asset.id}.webp`, imageWidth: asset.width, imageHeight: asset.height, imageAssetId: asset.id };
+    return { imageUrl: `/media/${asset.id}.webp`, imageSmallUrl: null, imageWidth: asset.width, imageHeight: asset.height, imageAssetId: asset.id };
   }
 
   /** Savol, variantlar va kalit so'zlarni bitta tranzaksiyada yozadi. */

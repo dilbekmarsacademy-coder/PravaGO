@@ -1,13 +1,15 @@
 "use client";
 
-// Admin rasm yuklash: Vercel funksiyasiga so'rov tanasi 4.5 MB dan oshmasligi
-// kerak — kattaroq rasm brauzerning o'zida (sifatni saqlab) kichraytiriladi.
-// Server baribir 10 MB va kontent turini tekshiradi.
+// Admin rasm yuklash: production'da backend funksiyasi ~1.2 MB dan katta
+// so'rovni qabul qilmaydi (Vercel 503 "deployment unavailable") — kattaroq rasm
+// brauzerning o'zida kichraytiriladi (uzun tomoni 2048 px, WebP/JPEG). Savol
+// rasmi saytda 1600 px gacha ko'rsatiladi, sifat yetarli. Server baribir
+// 10 MB va kontent turini tekshiradi.
 
 import { adminFetch } from "./api";
 
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;
-const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 900 * 1024;
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif", "image/gif"];
 
 export interface ImageJob {
@@ -33,17 +35,31 @@ export function validateFile(file: File): string | null {
   return null;
 }
 
-async function shrink(file: File): Promise<Blob> {
-  if (file.size <= MAX_UPLOAD_BYTES || file.type === "image/heic" || file.type === "image/heif") return file;
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, 3000 / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  for (const quality of [0.92, 0.85, 0.75]) {
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
-    if (blob && blob.size <= MAX_UPLOAD_BYTES) return blob;
+function encode(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob | null> {
+  return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+}
+
+export async function shrink(file: File): Promise<Blob> {
+  if (file.size <= MAX_UPLOAD_BYTES) return file;
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    // Masalan HEIC — Chrome o'qiy olmaydi.
+    throw new Error("Bu rasmni brauzer o'qiy olmadi — JPEG yoki PNG formatida saqlab, qayta yuklang");
+  }
+  for (const side of [2048, 1600, 1280]) {
+    const scale = Math.min(1, side / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    for (const quality of [0.92, 0.85, 0.75]) {
+      // WebP odatda kichikroq; brauzer qo'llamasa toBlob PNG qaytaradi — unda JPEG.
+      const webp = await encode(canvas, "image/webp", quality);
+      const blob = webp?.type === "image/webp" ? webp : await encode(canvas, "image/jpeg", quality);
+      if (blob && blob.size <= MAX_UPLOAD_BYTES) return blob;
+    }
   }
   throw new Error("Rasmni yuklash uchun kichraytirib bo'lmadi");
 }
@@ -51,7 +67,7 @@ async function shrink(file: File): Promise<Blob> {
 export async function uploadImage(file: File): Promise<{ asset: { id: string; width: number; height: number }; job: ImageJob }> {
   const blob = await shrink(file);
   const form = new FormData();
-  form.append("file", blob, blob === file ? file.name : "image.jpg");
+  form.append("file", blob, blob === file ? file.name : blob.type === "image/webp" ? "image.webp" : "image.jpg");
   return adminFetch("images", { method: "POST", body: form });
 }
 

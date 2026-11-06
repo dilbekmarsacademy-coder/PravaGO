@@ -133,6 +133,20 @@ describe("admin kontent", () => {
     expect(check.body).toMatchObject({ correct: true, keywords: { question: { text: { uz: "TAQIQLANADI" } } } });
   });
 
+  it("rasm almashtirilsa yoki olib tashlansa — eski kichik (telefon) nusxa ham tozalanadi", async () => {
+    const asset = await prisma.mediaAsset.create({
+      data: { kind: "processed", mime: "image/webp", width: 10, height: 10, size: 1, sha256: "e2e-small", data: new Uint8Array([1]), public: true },
+    });
+    await prisma.question.update({ where: { id: questionId }, data: { imageUrl: "/media/old.webp", imageSmallUrl: "/media/old-small.webp" } });
+    await http().put(`/admin/questions/${questionId}`).set(admin).send(body({ imageAssetId: asset.id })).expect(200);
+    expect(await prisma.question.findUniqueOrThrow({ where: { id: questionId } })).toMatchObject({ imageUrl: `/media/${asset.id}.webp`, imageSmallUrl: null });
+
+    await prisma.question.update({ where: { id: questionId }, data: { imageSmallUrl: "/media/old-small.webp" } });
+    await http().put(`/admin/questions/${questionId}`).set(admin).send(body({ removeImage: true })).expect(200);
+    expect(await prisma.question.findUniqueOrThrow({ where: { id: questionId } })).toMatchObject({ imageUrl: null, imageSmallUrl: null });
+    await prisma.mediaAsset.delete({ where: { id: asset.id } });
+  });
+
   it("variant qo'shish/o'chirish; kalit so'zsiz yoki yarim kalit so'z bilan saqlab bo'lmaydi", async () => {
     const options = [
       { id: optionIds[1], text: { cyrl: "Кўк", latn: "Ko'k", ru: "Синему" } },
