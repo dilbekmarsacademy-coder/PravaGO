@@ -95,7 +95,7 @@ export class QuestionCreateService {
     if (mode === "manual") {
       manual = validateRanges({ uz: input.keywords.question ?? [] }, { cyrl: "", latn: text, ru: "" }, "Savol kaliti");
       manualAnswer = validateRanges({ uz: input.keywords.answer ?? [] }, { cyrl: "", latn: correctLatn, ru: "" }, "Javob kaliti");
-      if (!manual.uz && !manualAnswer.uz) throw new BadRequestException("Kalit so'zni belgilang yoki AI tanlashini yoqing");
+      if (!manual.uz || !manualAnswer.uz) throw new BadRequestException("Savol kalitini ham, javob kalitini ham belgilang (yoki \"AI tanlasin\"ni tanlang)");
     }
     const slices = (s: string, r: Range[] | undefined) => (r ?? []).map(([a, b]) => s.slice(a, b));
 
@@ -117,29 +117,31 @@ export class QuestionCreateService {
     const explanationTexts: Texts = explanation ? { latn: explanation, cyrl: cyrl(explanation, ai.cyrl.explanation), ru: ai.ru.explanation.trim() } : { latn: "", cyrl: "", ru: "" };
 
     const warnings: string[] = [];
-    const keywords = { none: mode === "none", question: {} as Ranges, answer: {} as Ranges };
-    if (mode !== "none") {
-      const correct = optionTexts[input.correctIndex];
-      const parts = [
-        { part: "question" as const, label: "Savol", texts, phrases: ai.keywords.question, own: manual.uz },
-        { part: "answer" as const, label: "Javob", texts: correct, phrases: ai.keywords.answer, own: manualAnswer.uz },
-      ];
-      for (const p of parts) {
-        for (const lang of ["uz", "cyrl", "ru"] as Lang[]) {
-          if (lang === "uz" && mode === "manual") {
-            if (p.own) keywords[p.part].uz = p.own;
-            continue;
-          }
-          const source = lang === "uz" ? p.texts.latn : lang === "cyrl" ? p.texts.cyrl : p.texts.ru;
-          const { ranges, missing } = locatePhrases(source, p.phrases[lang]);
-          if (ranges.length) keywords[p.part][lang] = ranges;
-          if (missing.length) warnings.push(`${p.label} kaliti (${lang === "uz" ? "lotin" : lang === "cyrl" ? "kirill" : "rus"}) matndan topilmadi: ${missing.join(", ")}`);
+    const keywords = { none: false, question: {} as Ranges, answer: {} as Ranges };
+    const correct = optionTexts[input.correctIndex];
+    const parts = [
+      { part: "question" as const, label: "Savol", texts, phrases: ai.keywords.question, own: manual.uz },
+      { part: "answer" as const, label: "Javob", texts: correct, phrases: ai.keywords.answer, own: manualAnswer.uz },
+    ];
+    for (const p of parts) {
+      for (const lang of ["uz", "cyrl", "ru"] as Lang[]) {
+        if (lang === "uz" && mode === "manual") {
+          if (p.own) keywords[p.part].uz = p.own;
+          continue;
         }
+        const source = lang === "uz" ? p.texts.latn : lang === "cyrl" ? p.texts.cyrl : p.texts.ru;
+        const { ranges, missing } = locatePhrases(source, p.phrases[lang]);
+        if (ranges.length) keywords[p.part][lang] = ranges;
+        if (missing.length) warnings.push(`${p.label} kaliti (${lang === "uz" ? "lotin" : lang === "cyrl" ? "kirill" : "rus"}) matndan topilmadi: ${missing.join(", ")}`);
       }
-      if (!Object.keys(keywords.question).length && !Object.keys(keywords.answer).length) {
-        keywords.none = true;
-        warnings.push("AI kalit so'z topa olmadi — savol kalit so'zsiz qo'shiladi (keyin tahrirlashda belgilash mumkin)");
-      }
+    }
+    // Kalit so'zsiz savol saytga chiqmaydi — AI topa olmasa admin o'zi belgilaydi.
+    if (!Object.keys(keywords.question).length || !Object.keys(keywords.answer).length) {
+      throw new BadRequestException({
+        statusCode: 400,
+        code: "KEYWORDS_NOT_FOUND",
+        message: "AI savol yoki javob kalitini topa olmadi — \"O'zim belgilayman\"ni tanlab, kalit so'zni lotin matnda belgilang",
+      });
     }
     return { text: texts, options: optionTexts.map((t) => ({ text: t })), correctIndex: input.correctIndex, explanation: explanationTexts, keywords, warnings };
   }

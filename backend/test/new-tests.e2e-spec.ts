@@ -40,7 +40,7 @@ const question = (imageAssetId?: string) => ({
     { text: { cyrl: "Кириш тақиқланган", latn: "Kirish taqiqlangan", ru: "" } },
   ],
   correctIndex: 1,
-  keywords: { none: false, answer: { cyrl: [[0, 5]], uz: [[0, 6]] } },
+  keywords: { none: false, question: { cyrl: [[0, 11]], uz: [[0, 11]] }, answer: { cyrl: [[0, 5]], uz: [[0, 6]] } },
   ...(imageAssetId ? { imageAssetId } : {}),
 });
 

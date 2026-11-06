@@ -124,9 +124,9 @@ export class QuestionInputDto {
 }
 
 export class PrepareKeywordsDto {
-  /** ai — kalit so'zni AI tanlaydi, manual — admin lotin matnda belgilagan, none — kalit so'z yo'q. */
-  @IsIn(["ai", "manual", "none"])
-  mode: "ai" | "manual" | "none";
+  /** ai — kalit so'zni AI tanlaydi, manual — admin lotin matnda belgilagan. */
+  @IsIn(["ai", "manual"])
+  mode: "ai" | "manual";
 
   @IsOptional()
   @IsArray()

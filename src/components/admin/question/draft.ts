@@ -63,7 +63,8 @@ export function draftFromQuestion(q: EditableQuestion): QuestionDraft {
     correctIndex: q.correctIndex,
     explanation: { ...q.explanation },
     image: q.image,
-    keywords: { none: q.keywords.none, question: { ...q.keywords.question }, answer: { ...q.keywords.answer } },
+    // "Kalit so'z mavjud emas" endi yo'q — eski shunday savolda admin kalitni belgilaydi.
+    keywords: { none: false, question: { ...q.keywords.question }, answer: { ...q.keywords.answer } },
     ruNeedsReview: q.ruNeedsReview,
   };
 }
@@ -98,9 +99,8 @@ export function validateDraft(draft: QuestionDraft): string | null {
   const bad = draft.options.findIndex((o) => !o.text.cyrl.trim() || !o.text.latn.trim());
   if (bad >= 0) return `${bad + 1}-variant matni kirill va lotinda bo'lishi kerak`;
   if (draft.correctIndex === null) return "To'g'ri javobni belgilang";
-  if (!draft.keywords.none) {
-    const any = Object.values(draft.keywords.question).some((r) => r?.length) || Object.values(draft.keywords.answer).some((r) => r?.length);
-    if (!any) return "Kalit so'zni belgilang yoki \"Kalit so'z mavjud emas\"ni tanlang";
-  }
+  // Kalit so'z majburiy: o'quvchi javobdan keyin doim "SAVOL KALITI → JAVOB KALITI"ni ko'radi.
+  if (!Object.values(draft.keywords.question).some((r) => r?.length)) return "Savol kalitini belgilang (savol matnida)";
+  if (!Object.values(draft.keywords.answer).some((r) => r?.length)) return "Javob kalitini belgilang (to'g'ri javobda)";
   return null;
 }

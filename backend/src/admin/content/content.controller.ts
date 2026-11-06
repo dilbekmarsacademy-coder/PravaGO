@@ -1,9 +1,10 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query, UseGuards } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
-import { IsIn, IsInt, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min } from "class-validator";
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min } from "class-validator";
 import { AdminGuard, CurrentAdmin, RequestIp, RequirePermission } from "../admin.guard";
 import type { AdminUser } from "../admin-request";
 import { ContentService, type QuestionFilter } from "./content.service";
+import { KeywordFillService } from "./keyword-fill.service";
 import { LessonEditorService } from "./lesson-editor.service";
 import { QuestionEditorService } from "./question-editor.service";
 import { QuestionCreateService } from "./question-create.service";
@@ -23,6 +24,14 @@ class FilterQuery {
   @IsOptional()
   @IsIn(["all", "needsReview", "noKeywords", "noCorrect", "pending"])
   filter: QuestionFilter = "all";
+}
+
+class FillKeywordsInput {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(10)
+  @IsUUID("all", { each: true })
+  ids: string[];
 }
 
 class LessonInput {
@@ -46,7 +55,22 @@ export class AdminContentController {
     private readonly editor: QuestionEditorService,
     private readonly lessons: LessonEditorService,
     private readonly creator: QuestionCreateService,
+    private readonly keywordFill: KeywordFillService,
   ) {}
+
+  /** Kalit so'zi yo'q yoki biror tilda to'liq bo'lmagan savollar (admin panel ogohlantirishi). */
+  @Get("content/keywords/missing")
+  missingKeywords() {
+    return this.keywordFill.missing();
+  }
+
+  /** Yetishmayotgan kalit so'zlarni AI bilan to'ldirish — bir so'rovda 10 tagacha savol. */
+  @Post("content/keywords/fill")
+  @HttpCode(200)
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  fillKeywords(@Body() body: FillKeywordsInput, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    return this.keywordFill.fill(admin, ip, body.ids);
+  }
 
   /** Javobi kutilayotgan savollar (admin panel ogohlantirishi). */
   @Get("content/pending")

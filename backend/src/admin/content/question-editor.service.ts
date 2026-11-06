@@ -184,6 +184,22 @@ export function normalizeQuestionInput(input: QuestionInputDto): NormalizedQuest
   return { text, options, correctIndex: input.correctIndex, explanation, keywords: { none, question, answer } };
 }
 
+/**
+ * Admin saqlaydigan savolda kalit so'z majburiy: o'quvchi javobdan keyin doim
+ * "SAVOL KALITI → JAVOB KALITI"ni ko'radi. Ikkala qism kamida bitta tilda belgilanadi;
+ * yetishmagan tillar "Tekshirilmagan" va kalit so'z ogohlantirishida ko'rinadi.
+ */
+export function assertKeywordsPresent(data: NormalizedQuestion): void {
+  const { none, question, answer } = data.keywords;
+  if (none || !Object.keys(question).length || !Object.keys(answer).length) {
+    throw new BadRequestException({
+      statusCode: 400,
+      code: "KEYWORDS_REQUIRED",
+      message: "Kalit so'z majburiy: savol kalitini (savol matnida) va javob kalitini (to'g'ri javobda) belgilang",
+    });
+  }
+}
+
 @Injectable()
 export class QuestionEditorService {
   constructor(
@@ -296,6 +312,7 @@ export class QuestionEditorService {
   /** Yangi savol mavzu oxiriga qo'shiladi (kun mavzusi yoki "Yangi testlar"). */
   async create(admin: AdminUser, ip: string, topicId: string, input: QuestionInputDto, defaults: { ruNeedsReview: boolean }): Promise<EditableQuestionDto> {
     const data = normalizeQuestionInput(input);
+    assertKeywordsPresent(data);
     const id = await this.prisma.$transaction(async (tx) => {
       const last = await tx.question.aggregate({ where: { topicId }, _max: { order: true } });
       const q = await tx.question.create({
@@ -314,6 +331,7 @@ export class QuestionEditorService {
     this.assertEditable(current.topic);
     if (current.deletedAt) throw new BadRequestException("O'chirilgan savolni tahrirlab bo'lmaydi");
     const data = normalizeQuestionInput(input);
+    assertKeywordsPresent(data);
     const before = toEditable(current);
     await this.prisma.$transaction(async (tx) => {
       await this.write(tx, id, input, data);

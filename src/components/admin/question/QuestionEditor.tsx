@@ -323,7 +323,7 @@ export default function QuestionEditor({ initial, mode, onSave, onTranslate, aiC
     },
     {
       title: "Kalit so'zlar",
-      hint: "Matnda so'zni belgilab, tugmani bosing. Har til alohida saqlanadi; bir nechta bo'lak mumkin.",
+      hint: "Majburiy: savol kaliti va javob kaliti. Matnda so'zni belgilab, tugmani bosing. Har til alohida saqlanadi; bir nechta bo'lak mumkin.",
       body: (
         <div className="flex scroll-mt-24 flex-col gap-4" id="keywords-section">
           {correct && !draft.keywords.none && (
@@ -331,16 +331,6 @@ export default function QuestionEditor({ initial, mode, onSave, onTranslate, aiC
               <WandSparklesIcon className="size-4" /> Kalit so&apos;zni sayt o&apos;zi topsin
             </Button>
           )}
-          <label className="inline-flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={draft.keywords.none}
-              onChange={(e) => update((d) => ({ ...d, keywords: { ...d.keywords, none: e.target.checked } }))}
-              className="size-4 accent-[var(--brand)]"
-              name="keywords-none"
-            />
-            Kalit so&apos;z mavjud emas
-          </label>
           {!draft.keywords.none && (
             <>
               <KeywordMarker text={draft.text[key]} ranges={draft.keywords.question[lang]} tone="question" label="Savol matni" onChange={(r) => setRanges("question", r)} />

@@ -123,19 +123,26 @@ describe("Kun mavzusiga yangi savol", () => {
   });
 
   it("admin o'zi belgilagan lotin kalit so'z o'zgarmaydi, AI faqat kirill/rus mosini beradi", async () => {
-    create.mockResolvedValueOnce(aiReply({ question: { uz: ["taqiqlanadi"], cyrl: ["тақиқланади"], ru: ["запрещён"] }, answer: { uz: [], cyrl: [], ru: [] } }));
+    // Yarim belgilash (faqat savol kaliti) — AI'ga yuborilmaydi, 400.
+    await http().post(`/admin/content/topics/${SLUG}/questions/prepare`).set(admin).send(prepareBody({ mode: "manual", question: [[27, 38]] })).expect(400);
+    await http().post(`/admin/content/topics/${SLUG}/questions/prepare`).set(admin).send(prepareBody({ mode: "manual", question: [[30, 99]], answer: [[0, 8]] })).expect(400);
+    await http().post(`/admin/content/topics/${SLUG}/questions/prepare`).set(admin).send(prepareBody({ mode: "none" })).expect(400);
+    create.mockResolvedValueOnce(aiReply({ question: { uz: ["taqiqlanadi"], cyrl: ["тақиқланади"], ru: ["запрещён"] }, answer: { uz: ["Piyodalar"], cyrl: ["Пиёдалар"], ru: ["пешеходном"] } }));
     const res = await http()
       .post(`/admin/content/topics/${SLUG}/questions/prepare`)
       .set(admin)
-      .send(prepareBody({ mode: "manual", question: [[27, 38]] }))
+      .send(prepareBody({ mode: "manual", question: [[27, 38]], answer: [[0, 9]] }))
       .expect(200);
     expect(res.body.keywords.question).toEqual({ uz: [[27, 38]], cyrl: [[25, 36]], ru: [[21, 29]] });
-    expect(res.body.keywords.answer).toEqual({});
+    expect(res.body.keywords.answer).toEqual({ uz: [[0, 9]], cyrl: [[0, 8]], ru: [[3, 13]] });
     const sent = JSON.parse((create.mock.lastCall![0] as { messages: { content: { text: string }[] }[] }).messages[0].content[0].text);
-    expect(sent.keywords).toEqual({ question: ["taqiqlanadi"], answer: [] });
-    // Belgilash matndan tashqarida — 400; belgilashsiz "manual" — 400.
-    await http().post(`/admin/content/topics/${SLUG}/questions/prepare`).set(admin).send(prepareBody({ mode: "manual", question: [[30, 99]] })).expect(400);
-    await http().post(`/admin/content/topics/${SLUG}/questions/prepare`).set(admin).send(prepareBody({ mode: "manual" })).expect(400);
+    expect(sent.keywords).toEqual({ question: ["taqiqlanadi"], answer: ["Piyodalar"] });
+  });
+
+  it("AI javob kalitini topa olmasa — saqlashga o'tkazilmaydi (KEYWORDS_NOT_FOUND)", async () => {
+    create.mockResolvedValueOnce(aiReply({ question: { uz: ["quvib o'tish"], cyrl: ["қувиб ўтиш"], ru: ["обгон"] }, answer: { uz: [], cyrl: [], ru: [] } }));
+    const res = await http().post(`/admin/content/topics/${SLUG}/questions/prepare`).set(admin).send(prepareBody({ mode: "ai" })).expect(400);
+    expect(res.body.code).toBe("KEYWORDS_NOT_FOUND");
   });
 
   it("tasdiqlangan savol mavzu oxiriga qo'shiladi va o'quvchilar testida ko'rinadi", async () => {
@@ -165,5 +172,7 @@ describe("Kun mavzusiga yangi savol", () => {
     // To'plamga bu yo'l bilan qo'shib bo'lmaydi; noto'g'ri tana — 400.
     await http().post(`/admin/content/topics/${COLLECTION_SLUG}/questions`).set(admin).send(body).expect(404);
     await http().post(`/admin/content/topics/${SLUG}/questions`).set(admin).send({ ...body, correctIndex: 9 }).expect(400);
+    const noKw = await http().post(`/admin/content/topics/${SLUG}/questions`).set(admin).send({ ...body, keywords: { none: true } }).expect(400);
+    expect(noKw.body.code).toBe("KEYWORDS_REQUIRED");
   });
 });

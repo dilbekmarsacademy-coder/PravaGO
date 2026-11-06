@@ -121,6 +121,32 @@ export interface PrepareQuestionInput {
   keywords: { question: string[]; answer: string[] } | null;
 }
 
+const KEYWORD_PHRASES_SCHEMA = {
+  type: "object",
+  properties: { question: PHRASES_SCHEMA, answer: PHRASES_SCHEMA },
+  required: ["question", "answer"],
+  additionalProperties: false,
+} as const;
+const KeywordPhrasesZ = z.object({ question: PhrasesZ, answer: PhrasesZ });
+export type KeywordPhrases = z.infer<typeof KeywordPhrasesZ>;
+
+type LangPhrases = { uz: string[]; cyrl: string[]; ru: string[] };
+
+export interface PickKeywordsInput {
+  question: { uz: string; cyrl: string; ru: string };
+  correctAnswer: { uz: string; cyrl: string; ru: string };
+  /** Mavjud (to'g'ri) kalit iboralar — o'zgarmaydi; bo'sh tillar uchun mosi topiladi. */
+  existing: { question: LangPhrases; answer: LangPhrases };
+}
+
+export const KEYWORDS_SYSTEM =
+  "You pick key phrases for Uzbek driving-licence exam questions (traffic rules of Uzbekistan). A student sees them after answering, to remember the correct answer. " +
+  "You get the question text and the correct answer in Uzbek Latin (uz), Uzbek Cyrillic (cyrl) and Russian (ru), and the key phrases that already exist. " +
+  "Return for every language: `question` — 1–4 decisive words from the question text, `answer` — 1–4 decisive words from the correct answer text. " +
+  "Each phrase must be copied EXACTLY (same letters, same spelling) from the text in that language. Existing phrases must be returned unchanged; " +
+  "for the languages where they are missing, return the fragment with the same meaning. uz, cyrl and ru must mean the same thing. " +
+  "If the text in a language is empty, return an empty array for it.";
+
 export const PREPARE_SYSTEM =
   "You prepare Uzbek driving-licence exam questions (traffic rules of Uzbekistan) that an admin typed in Uzbek Latin script. Return:\n" +
   "1) cyrl — the same text in Uzbek Cyrillic script using official orthography: oʻ/o' → ў, gʻ/g' → ғ, sh → ш, ch → ч, yo → ё, yu → ю, ya → я, ye/word-initial e → е/э as correct, ' (tutuq belgisi) → ъ, " +
@@ -428,6 +454,20 @@ export class AiService {
     });
     if (result.options.length !== input.options.length) throw new Error("Tarjimada variantlar soni mos emas");
     return result;
+  }
+
+  /** Mavjud savolga yetishmayotgan kalit iboralar (har tilda matndan aynan ko'chirilgan). */
+  async pickKeywords(input: PickKeywordsInput, meta?: UsageMeta): Promise<KeywordPhrases> {
+    return this.json({
+      feature: "translate",
+      system: KEYWORDS_SYSTEM,
+      content: [{ type: "text", text: JSON.stringify(input) }],
+      schema: KEYWORD_PHRASES_SCHEMA,
+      validate: KeywordPhrasesZ,
+      effort: "low",
+      maxTokens: 2000,
+      meta,
+    });
   }
 
   /** Admin lotinda yozgan yangi savol: kirill yozuvi, ruscha tarjima va kalit so'z iboralari bitta so'rovda. */

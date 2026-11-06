@@ -133,27 +133,26 @@ describe("admin kontent", () => {
     expect(check.body).toMatchObject({ correct: true, keywords: { question: { text: { uz: "TAQIQLANADI" } } } });
   });
 
-  it("variant qo'shish/o'chirish va 'kalit so'z mavjud emas'", async () => {
+  it("variant qo'shish/o'chirish; kalit so'zsiz yoki yarim kalit so'z bilan saqlab bo'lmaydi", async () => {
+    const options = [
+      { id: optionIds[1], text: { cyrl: "Кўк", latn: "Ko'k", ru: "Синему" } },
+      { text: { cyrl: "Иккаласига", latn: "Ikkalasiga", ru: "Обоим" } },
+      { text: { cyrl: "Ҳеч бирига", latn: "Hech biriga", ru: "Никому" } },
+    ];
+    for (const keywords of [{ none: true }, { none: false, question: { uz: [[14, 25]] } }, { none: false, answer: { uz: [[0, 4]] } }]) {
+      const bad = await http().put(`/admin/questions/${questionId}`).set(admin).send(body({ options, correctIndex: 2, keywords })).expect(400);
+      expect(bad.body.code).toBe("KEYWORDS_REQUIRED");
+    }
     const res = await http()
       .put(`/admin/questions/${questionId}`)
       .set(admin)
-      .send(
-        body({
-          options: [
-            { id: optionIds[1], text: { cyrl: "Кўк", latn: "Ko'k", ru: "Синему" } },
-            { text: { cyrl: "Иккаласига", latn: "Ikkalasiga", ru: "Обоим" } },
-            { text: { cyrl: "Ҳеч бирига", latn: "Hech biriga", ru: "Никому" } },
-          ],
-          correctIndex: 2,
-          keywords: { none: true },
-        }),
-      )
+      .send(body({ options, correctIndex: 2, keywords: { none: false, question: { uz: [[14, 25]] }, answer: { uz: [[0, 4]], cyrl: [[0, 4]] } } }))
       .expect(200);
     const out = res.body as { options: { id: string; isCorrect: boolean }[]; keywords: { none: boolean } };
     expect(out.options).toHaveLength(3);
     expect(out.options[0].id).toBe(optionIds[1]);
     expect(out.options.map((o) => o.isCorrect)).toEqual([false, false, true]);
-    expect(out.keywords.none).toBe(true);
+    expect(out.keywords.none).toBe(false);
     expect(await prisma.option.count({ where: { id: optionIds[0] } })).toBe(0);
   });
 

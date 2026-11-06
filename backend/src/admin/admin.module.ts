@@ -11,6 +11,7 @@ import { AdminContentController } from "./content/content.controller";
 import { ContentService } from "./content/content.service";
 import { QuestionEditorService } from "./content/question-editor.service";
 import { QuestionCreateService } from "./content/question-create.service";
+import { KeywordFillService } from "./content/keyword-fill.service";
 import { LessonEditorService } from "./content/lesson-editor.service";
 import { LessonsModule } from "../lessons/lessons.module";
 import { AdminStatsController, CronController } from "./stats/stats.controller";
@@ -24,7 +25,7 @@ import { StudentsService } from "./students/students.service";
 @Module({
   imports: [PaymentsModule, LessonsModule],
   controllers: [AdminAuthController, AdminAuditController, AdminUsersController, AdminPaymentsController, AdminContentController, AdminStatsController, CronController, AdminStudentsController],
-  providers: [AdminAuthService, AuditService, AdminGuard, AdminProxyGuard, AdminUsersService, ContentService, QuestionEditorService, QuestionCreateService, LessonEditorService, StatsService, AiAnalysisService, AiInsightsService, StudentsService],
+  providers: [AdminAuthService, AuditService, AdminGuard, AdminProxyGuard, AdminUsersService, ContentService, QuestionEditorService, QuestionCreateService, KeywordFillService, LessonEditorService, StatsService, AiAnalysisService, AiInsightsService, StudentsService],
   exports: [AuditService, AdminGuard, AdminProxyGuard, QuestionEditorService],
 })
 export class AdminModule implements NestModule {

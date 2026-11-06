@@ -23,7 +23,7 @@ export function translateDraft(draft: QuestionDraft): Promise<TranslateResult> {
   });
 }
 
-export type KeywordMode = "ai" | "manual" | "none";
+export type KeywordMode = "ai" | "manual";
 
 /** Admin lotinda yozgan yangi savol (kun mavzusi uchun). */
 export interface NewQuestionInput {

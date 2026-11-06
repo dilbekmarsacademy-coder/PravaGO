@@ -5,6 +5,7 @@ import { adminFetch } from "@/lib/admin/api";
 import { formatDuration, formatNumber, formatSom } from "@/lib/admin/format";
 import { BarChart, HBars } from "@/components/admin/charts";
 import MissingAnswersBanner from "@/components/admin/MissingAnswersBanner";
+import MissingKeywordsBanner from "@/components/admin/MissingKeywordsBanner";
 import { ErrorBlock, LoadingBlock, PageHeader, Panel, StatCard, Table, Tabs, Td, Th } from "@/components/admin/ui";
 
 type Range = "today" | "7d" | "30d";
@@ -74,6 +75,7 @@ export default function AdminDashboardPage() {
         }
       />
       <MissingAnswersBanner />
+      <MissingKeywordsBanner />
       {error && <ErrorBlock message={error} onRetry={load} />}
       {!data ? (
         <LoadingBlock />

@@ -22,7 +22,6 @@ const MAX_OPTIONS = 6;
 const KEYWORD_MODES: { value: KeywordMode; label: string; hint: string }[] = [
   { value: "ai", label: "AI tanlasin", hint: "AI savol va to'g'ri javobdan kalit so'zni topadi (lotin, kirill, rus)." },
   { value: "manual", label: "O'zim belgilayman", hint: "Lotin matnda so'zni belgilang — AI kirill va rus tilidagi mosini topadi." },
-  { value: "none", label: "Kalit so'zsiz", hint: "Savol kalit so'zsiz qo'shiladi." },
 ];
 
 interface Form {
@@ -62,7 +61,7 @@ function check(form: Form): string | null {
   if (form.correctIndex === null) return "To'g'ri javobni belgilang (variant yonidagi doira)";
   if (!form.options[form.correctIndex].trim()) return "To'g'ri deb belgilangan javob bo'sh — matnini yozing";
   if (/[Ѐ-ӿ]/.test(form.text + form.options.join(""))) return "Savol va variantlarni lotin yozuvida yozing — kirill va rus tilini AI tayyorlaydi";
-  if (form.mode === "manual" && !form.question.length && !form.answer.length) return "Kalit so'zni belgilang yoki \"AI tanlasin\"ni tanlang";
+  if (form.mode === "manual" && (!form.question.length || !form.answer.length)) return "Savol kalitini ham, javob kalitini ham belgilang (yoki \"AI tanlasin\"ni tanlang)";
   return null;
 }
 
@@ -118,7 +117,7 @@ export default function NewTopicQuestionForm({ slug, topicTitle, aiConfigured }:
         keywords:
           form.mode === "manual"
             ? { mode: "manual", question: shiftRanges(form.text, form.question), answer: shiftRanges(form.options[form.correctIndex!], form.answer) }
-            : { mode: form.mode },
+            : { mode: "ai" },
       });
       setPrepared(result);
     } catch (err) {
