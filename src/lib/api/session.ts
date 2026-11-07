@@ -133,6 +133,7 @@ function kickOut(reason: KickReason): void {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(CENTER_KEY);
     localStorage.removeItem(REGISTRATION_KEY);
+    localStorage.removeItem("pt_unlock_all");
     sessionStorage.setItem(KICKED_KEY, reason);
   } catch {
     // ignore

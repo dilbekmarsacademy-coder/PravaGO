@@ -175,6 +175,7 @@ export class AdminUsersService {
       login: user.login,
       isActive: user.isActive,
       centerAccess: user.centerAccess,
+      unlockAll: user.unlockAll,
       lastLoginAt: user.lastLoginAt,
       lastDevice: user.lastDevice,
       firstName: user.firstName,
@@ -210,6 +211,14 @@ export class AdminUsersService {
    * Butunlay o'chirish. Sessiyalar ham o'chadi — qurilmadagi eski token 401 oladi
    * va sayt yangi anonim sessiya ochadi. Audit'ga asosiy ma'lumot va to'lovlar yoziladi.
    */
+  async setUnlockAll(admin: AdminUser, ip: string, id: string, enabled: boolean): Promise<{ id: string; unlockAll: boolean }> {
+    const before = await this.prisma.user.findUnique({ where: { id }, select: { id: true, unlockAll: true } });
+    if (!before) throw new NotFoundException("Foydalanuvchi topilmadi");
+    const after = await this.prisma.user.update({ where: { id }, data: { unlockAll: enabled }, select: { id: true, unlockAll: true } });
+    await this.audit.log(admin, ip, { action: "user.unlock_all", entityType: "user", entityId: id, before, after });
+    return after;
+  }
+
   async remove(admin: AdminUser, ip: string, id: string): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       const user = await tx.user.findUnique({

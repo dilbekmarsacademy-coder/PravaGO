@@ -70,6 +70,8 @@ interface SecureVideoPlayerProps {
   /** Darsga hali video ulanmagan (serverdagi xaritada yo'q). */
   onUnavailable?: () => void;
   className?: string;
+  /** Admin hamma narsani ochib qo'ygan o'quvchi — videoni istalgan joyga o'tkaza oladi ("ko'rildi" belgilanmaydi). */
+  freeSeek?: boolean;
 }
 
 type Phase = "loading" | "ready" | "error" | "unavailable";
@@ -133,6 +135,7 @@ export function SecureVideoPlayer({
   onProgress,
   onUnavailable,
   className,
+  freeSeek = false,
 }: SecureVideoPlayerProps) {
   const { t } = useLocale();
   const p = t.lesson.player;
@@ -544,7 +547,9 @@ export function SecureVideoPlayer({
       setMaxPosition(tallyRef.current.maxPosition);
       window.setTimeout(() => void report({ force: true }), 300);
     }
-    const allowed = clampSeek(target, tallyRef.current.maxPosition, durationRef.current);
+    const allowed = freeSeek
+      ? Math.min(Math.max(0, target), durationRef.current || target)
+      : clampSeek(target, tallyRef.current.maxPosition, durationRef.current);
     if (target > allowed + 0.5) flashHint(p.seekLocked);
     const state = player.getPlayerState();
     if (state === PlayerState.PLAYING || state === PlayerState.BUFFERING) {
@@ -869,7 +874,7 @@ export function SecureVideoPlayer({
                   <span className="absolute -right-1.5 -bottom-1.5 font-mono text-[9px] font-bold">10</span>
                 </span>
               </ControlButton>
-              {TEMP_ALLOW_FORWARD_SEEK && (
+              {(TEMP_ALLOW_FORWARD_SEEK || freeSeek) && (
                 <>
                   <ControlButton label={p.skipForward} onClick={() => seekTo(lastTimeRef.current + SEEK_FORWARD_SEC)}>
                     <FastForwardIcon className="size-5" />

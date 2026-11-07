@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LockIcon, RotateCcwIcon, SparklesIcon, TriangleAlertIcon } from "lucide-react";
-import { getRegistration, clearRegistration, syncAccount, useRegistration } from "@/lib/registration-store";
+import { getRegistration, getUnlockAll, clearRegistration, syncAccount, useRegistration } from "@/lib/registration-store";
 import { getDashboardData, type DashboardData } from "@/lib/api/course";
 import { clearSessionToken, isCenterSession } from "@/lib/api/session";
 import { logoutSession } from "@/lib/api/center";
@@ -31,15 +31,20 @@ export default function KabinetPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   // Markaz o'quvchisi, lekin admin kursga kirishni o'chirgan (to'lov sahifasi unga tegishli emas).
   const [centerBlocked, setCenterBlocked] = useState(false);
+  // Admin hamma narsani ochib qo'ygan o'quvchi (oxirgi ma'lum holat, keyin serverdan).
+  const [unlockAll, setUnlockAll] = useState(false);
   const { t } = useLocale();
 
   // Kirish huquqi serverdan (to'lov admin tomonidan tasdiqlangan bo'lishi kerak);
   // tarmoq xatosida klientdagi oxirgi ma'lum holat ishlatiladi.
   useEffect(() => {
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUnlockAll(getUnlockAll());
     syncAccount()
       .then((me) => {
         if (cancelled) return;
+        setUnlockAll(Boolean(me.unlockAll));
         const local = getRegistration();
         if (!me.registered && !local) router.replace("/");
         else if (me.type === "CENTER" && !me.access) setCenterBlocked(true);
@@ -161,6 +166,7 @@ export default function KabinetPage() {
           <DashboardContent
             data={data}
             examStatus={registration.examStatus}
+            unlockAll={unlockAll}
           />
         )}
       </main>
@@ -171,12 +177,14 @@ export default function KabinetPage() {
 function DashboardContent({
   data,
   examStatus,
+  unlockAll,
 }: {
   data: DashboardData;
   examStatus: ExamStatus;
+  unlockAll: boolean;
 }) {
   const { t } = useLocale();
-  const courseState = buildCourseState(data.days, data.topics, data.topicProgress, data.examProgress);
+  const courseState = buildCourseState(data.days, data.topics, data.topicProgress, data.examProgress, { unlockAll });
 
   return (
     <div className="flex flex-col gap-6">

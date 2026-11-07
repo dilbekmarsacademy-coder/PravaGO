@@ -378,3 +378,12 @@ describe("buildCourseState (o'rtadan boshlagan o'quvchi)", () => {
     expect(day5.topics.filter((t) => t.unlocked).map((t) => t.topic.id)).toEqual(["day5-topic1"]);
   });
 });
+
+describe("buildCourseState (admin hamma narsani ochgan)", () => {
+  it("unlockAll — progresssiz ham barcha kun va mavzular ochiq; odatiy holatda qoida o'zgarmaydi", () => {
+    const open = buildCourseState(COURSE_DAYS, TOPICS_WITH_CONTENT, MOCK_TOPIC_PROGRESS, MOCK_EXAM_PROGRESS, { unlockAll: true });
+    expect(open.days.every((d) => d.unlocked && d.topics.every((t) => t.unlocked))).toBe(true);
+    const normal = buildCourseState(COURSE_DAYS, TOPICS_WITH_CONTENT, MOCK_TOPIC_PROGRESS, MOCK_EXAM_PROGRESS);
+    expect(normal.days.some((d) => d.topics.some((t) => !t.unlocked))).toBe(true);
+  });
+});

@@ -39,6 +39,13 @@ export class AccessService {
     return computeCourseAccess(user);
   }
 
+  /** Admin bu o'quvchiga hamma narsani ochib qo'ygan (video va kalit so'z sharti yo'q). */
+  async hasUnlockAll(userId: string | undefined): Promise<boolean> {
+    if (!userId) return false;
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { unlockAll: true } });
+    return user?.unlockAll ?? false;
+  }
+
   async assertCourseAccess(userId: string | undefined): Promise<void> {
     if (await this.hasCourseAccess(userId)) return;
     if (userId) {

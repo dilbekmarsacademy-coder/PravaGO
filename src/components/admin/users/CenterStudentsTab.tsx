@@ -186,6 +186,7 @@ export default function CenterStudentsTab() {
                     <span className="inline-flex flex-col gap-1">
                       {u.isActive ? <Badge tone="success">faol</Badge> : <Badge tone="danger">faolsiz</Badge>}
                       {u.online && u.isActive && <span className="text-[0.65rem] text-success">qurilmada kirgan</span>}
+                      {u.unlockAll && <Badge tone="brand">hammasi ochiq</Badge>}
                     </span>
                   </Td>
                   <Td className="whitespace-nowrap">

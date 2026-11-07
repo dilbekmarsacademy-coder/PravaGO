@@ -27,7 +27,7 @@ import { ApiError } from "@/lib/api/session";
 import type { Locale } from "@/lib/i18n/dictionary";
 import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
-import { getRegistration } from "@/lib/registration-store";
+import { getRegistration, getUnlockAll } from "@/lib/registration-store";
 import { track } from "@/lib/analytics";
 
 interface KeywordsPageProps {
@@ -123,6 +123,12 @@ export default function KeywordsPage({ params }: KeywordsPageProps) {
   }
 
   const percent = items.length ? Math.round((reviewedCount / items.length) * 100) : 0;
+  // Admin hamma narsani ochib qo'ygan o'quvchi — test tanishib chiqmasdan ham ochiq.
+  const [unlockAll, setUnlockAll] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUnlockAll(getUnlockAll());
+  }, []);
   const allReviewed = reviewedCount === items.length;
   // Mavzuda savollar bor, lekin birortasida kalit so'z yo'q (masalan, 2-kun 6-mavzu).
   const topicHasNoKeywords = items.length > 0 && items.every((item) => !item.keywords);
@@ -333,12 +339,14 @@ export default function KeywordsPage({ params }: KeywordsPageProps) {
               </section>
             )}
 
-            {allReviewed ? (
+            {allReviewed || unlockAll ? (
               <div className="flex flex-col items-center gap-3 text-center">
-                <p role="status" className="flex items-center gap-2 text-sm font-semibold text-success">
-                  <CheckCircle2Icon className="size-4.5" aria-hidden="true" />
-                  {labels.allReviewed}
-                </p>
+                {allReviewed && (
+                  <p role="status" className="flex items-center gap-2 text-sm font-semibold text-success">
+                    <CheckCircle2Icon className="size-4.5" aria-hidden="true" />
+                    {labels.allReviewed}
+                  </p>
+                )}
                 <Link
                   href={testHref(testSlug)}
                   className={buttonClasses({ variant: "primary", size: "lg" })}

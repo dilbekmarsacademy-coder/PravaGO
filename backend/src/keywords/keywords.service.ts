@@ -1,12 +1,16 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { AccessService } from "../access/access.service";
 import { toLocalizedText } from "../common/localized-text";
 import { OPTION_ORDER, STUDENT_QUESTION_WHERE, approvedExplanation, optionText, questionText, toKeywordsDto } from "../common/question-content";
 import type { KeywordListDto, KeywordProgressDto, ReviewResultDto } from "./dto/keywords.dto";
 
 @Injectable()
 export class KeywordsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly access: AccessService,
+  ) {}
 
   private async topicId(slug: string): Promise<string> {
     const topic = await this.prisma.topic.findUnique({ where: { slug }, select: { id: true } });
@@ -66,6 +70,8 @@ export class KeywordsService {
    */
   async assertReviewed(userId: string, slug: string): Promise<void> {
     if (slug.startsWith("new-")) return;
+    // Admin ochib qo'ygan o'quvchi — kalit so'zlar bilan tanishmasdan ham test ochiq.
+    if (await this.access.hasUnlockAll(userId)) return;
     const topic = await this.prisma.topic.findUnique({ where: { slug }, select: { id: true } });
     if (!topic) return; // topilmagan mavzu — savollar endpointi o'zi 404 qaytaradi
     const { total, reviewedCount } = await this.counts(userId, topic.id);

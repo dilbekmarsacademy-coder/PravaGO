@@ -139,7 +139,8 @@ export class LessonsService {
   /**
    * Mavzu kontentiga (test, javob tekshiruvi, "Kalit so'zlar") kirish huquqi.
    * Hamma joyda shu bitta tekshiruv ishlatiladi: sessiya (AuthGuard) + to'lov
-   * (AccessService) + video sharti. Darsi yo'q mavzular uchun video sharti yo'q.
+   * (AccessService) + video sharti. Darsi yo'q mavzular uchun va admin
+ * "hammasini ochgan" o'quvchi (User.unlockAll) uchun video sharti yo'q.
    * "Yangi testlar" to'plami faqat nashr qilingan bo'lsa ochiladi.
    */
   async assertTopicUnlocked(topicSlug: string, userId: string | undefined): Promise<void> {
@@ -153,6 +154,8 @@ export class LessonsService {
     }
     const lessonId = findLessonIdForTopic(topicSlug);
     if (!lessonId) return;
+    // Admin ochib qo'ygan o'quvchi — videoni ko'rmasdan ham test ochiq.
+    if (await this.access.hasUnlockAll(userId)) return;
     const completed =
       userId !== undefined &&
       (await this.prisma.lessonProgress.count({

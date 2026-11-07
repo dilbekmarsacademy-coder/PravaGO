@@ -171,6 +171,8 @@ export function buildCourseState(
   topics: Topic[],
   topicProgress: TopicProgress[],
   _examProgress: ExamProgress,
+  /** Admin hamma narsani ochib qo'ygan o'quvchi — barcha kun va mavzular ochiq. */
+  options: { unlockAll?: boolean } = {},
 ): CourseState {
   void _examProgress;
 
@@ -197,12 +199,12 @@ export function buildCourseState(
   let continueTarget: ContinueTarget | null = null;
   const dayStates: DayViewState[] = sortedDays.map((day) => {
     const dayTopics = topicsByDayId[day.id] ?? [];
-    const unlocked = isDayUnlocked(day, sortedDays, topicsByDayId, progressByTopicId);
+    const unlocked = Boolean(options.unlockAll) || isDayUnlocked(day, sortedDays, topicsByDayId, progressByTopicId);
 
     const topicStates: TopicViewState[] = dayTopics.map((topic) => {
       const progress = progressByTopicId[topic.id];
       const completed = isTopicDone(topic, progress);
-      const topicUnlocked = isTopicUnlocked(topic, dayTopics, progressByTopicId, unlocked);
+      const topicUnlocked = Boolean(options.unlockAll) || isTopicUnlocked(topic, dayTopics, progressByTopicId, unlocked);
 
       const state: TopicViewState = {
         topic,

@@ -15,6 +15,8 @@ export interface Me {
   paymentRequired: boolean;
   /** "CENTER" — o'quv markaz o'quvchisi (login + parol, bitta faol qurilma). */
   type?: "SELF" | "CENTER";
+  /** Admin hamma narsani ochib qo'ygan: kun/mavzu qulfi, video va kalit so'z sharti yo'q. */
+  unlockAll?: boolean;
 }
 
 export interface RegisterInput {

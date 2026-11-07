@@ -1,4 +1,4 @@
-import { IsIn, IsInt, IsOptional, IsString, IsUUID, MaxLength, Min, Max } from "class-validator";
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, IsUUID, MaxLength, Min, Max } from "class-validator";
 import { Type } from "class-transformer";
 import { PageQueryDto } from "../dto/admin-auth.dto";
 
@@ -23,6 +23,11 @@ export class UsersQueryDto extends PageQueryDto {
   @IsOptional()
   @IsIn(["asc", "desc"])
   dir: "asc" | "desc" = "desc";
+}
+
+export class UnlockAllDto {
+  @IsBoolean()
+  enabled: boolean;
 }
 
 export class UserIdParamDto {

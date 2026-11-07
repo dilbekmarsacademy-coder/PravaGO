@@ -32,6 +32,8 @@ export interface StudentRow {
   login: string | null;
   isActive: boolean;
   centerAccess: boolean;
+  /** Admin hamma narsani ochib qo'ygan. */
+  unlockAll?: boolean;
   lastLoginAt: string | null;
   lastDevice: string | null;
   lastActiveAt: string | null;

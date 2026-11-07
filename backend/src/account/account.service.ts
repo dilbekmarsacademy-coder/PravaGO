@@ -20,6 +20,8 @@ export interface MeDto {
   paymentRequired: boolean;
   /** "CENTER" — markaz o'quvchisi (login + parol, bitta faol qurilma). */
   type: "SELF" | "CENTER";
+  /** Admin hamma narsani ochib qo'ygan: kunlar/mavzular qulfsiz, test video va kalit so'zsiz. */
+  unlockAll: boolean;
 }
 
 @Injectable()
@@ -51,6 +53,7 @@ export class AccountService {
       access: computeCourseAccess(user),
       paymentRequired: user.type === "CENTER" ? false : paymentEnforced(),
       type: user.type,
+      unlockAll: user.unlockAll,
     };
   }
 

@@ -8,6 +8,7 @@ import { adminFetch } from "@/lib/admin/api";
 import { formatDate, formatDateTime, formatPhone, formatRelative, formatSom } from "@/lib/admin/format";
 import { EXAM_STATUS_LABEL, fullName, type AdminPayment, type UserPaymentStatus, type UserProgress } from "@/lib/admin/types";
 import { Badge } from "@/components/shared/Badge";
+import { Button } from "@/components/shared/Button";
 import { showToast } from "@/components/shared/Toast";
 import DeleteButton from "@/components/admin/DeleteButton";
 import AddPaymentForm from "@/components/admin/AddPaymentForm";
@@ -37,6 +38,8 @@ interface UserDetail {
   login?: string | null;
   isActive?: boolean;
   centerAccess?: boolean;
+  /** Hamma narsa ochiq: kun/mavzu qulfi, video va kalit so'z sharti yo'q. */
+  unlockAll?: boolean;
   lastLoginAt?: string | null;
   lastDevice?: string | null;
   firstName: string | null;
@@ -110,6 +113,8 @@ export default function AdminUserPage({ params }: { params: Promise<{ id: string
         <StatCard label="Ro'yxatdan o'tgan" value={formatDate(data.registeredAt)} />
         <StatCard label="Oxirgi faollik" value={formatRelative(data.lastActiveAt)} hint={formatDateTime(data.lastActiveAt)} />
       </div>
+
+      <UnlockAllPanel userId={data.id} enabled={Boolean(data.unlockAll)} onChange={(unlockAll) => setData((d) => (d ? { ...d, unlockAll } : d))} />
 
       <div className="mb-6 grid gap-6 lg:grid-cols-2">
         <Panel title="Shaxsiy ma'lumot">
@@ -307,6 +312,43 @@ function UserRandomTests({ userId }: { userId: string }) {
           )}
         </div>
       )}
+    </Panel>
+  );
+}
+
+/**
+ * Shu o'quvchiga hamma narsani ochish: barcha kun va mavzular, test videoni
+ * ko'rmasdan va kalit so'zlar bilan tanishmasdan. Faqat shu foydalanuvchi uchun.
+ */
+function UnlockAllPanel({ userId, enabled, onChange }: { userId: string; enabled: boolean; onChange: (enabled: boolean) => void }) {
+  const [busy, setBusy] = useState(false);
+  async function toggle() {
+    setBusy(true);
+    try {
+      const res = await adminFetch<{ unlockAll: boolean }>(`users/${userId}/unlock-all`, { json: { enabled: !enabled } });
+      onChange(res.unlockAll);
+      showToast({ tone: "success", message: res.unlockAll ? "Hamma narsa ochildi — o'quvchi sahifani yangilashi kerak" : "Odatiy tartib qaytarildi" });
+    } catch (err) {
+      showToast({ tone: "danger", message: err instanceof Error ? err.message : "Bajarib bo'lmadi" });
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Panel className="mb-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" data-testid="unlock-all-panel">
+        <div>
+          <p className="flex items-center gap-2 font-semibold text-foreground">
+            Hamma narsa ochiq {enabled ? <Badge tone="success">yoqilgan</Badge> : <Badge tone="muted">o&apos;chiq</Badge>}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Barcha kun va mavzular ochiladi; test videoni ko&apos;rmasdan va kalit so&apos;zlar bilan tanishmasdan yechiladi. Faqat shu o&apos;quvchiga.
+          </p>
+        </div>
+        <Button variant={enabled ? "secondary" : "primary"} size="sm" disabled={busy} onClick={toggle} data-testid="unlock-all-toggle">
+          {enabled ? "O'chirish" : "Hammasini ochish"}
+        </Button>
+      </div>
     </Panel>
   );
 }

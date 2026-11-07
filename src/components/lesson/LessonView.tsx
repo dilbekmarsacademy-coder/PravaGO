@@ -15,7 +15,7 @@ import { getReadyCounts } from "@/lib/api/ready";
 import { getKeywordProgress, type KeywordProgress } from "@/lib/api/keywords";
 import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
-import { getRegistration } from "@/lib/registration-store";
+import { getRegistration, getUnlockAll } from "@/lib/registration-store";
 import { AppHeader } from "@/components/shared/AppHeader";
 import { buttonClasses } from "@/components/shared/Button";
 import LanguageSwitcher from "@/components/shared/LanguageSwitcher";
@@ -47,6 +47,12 @@ export function LessonView({ topic }: LessonViewProps) {
   const hasTest = Boolean(testSlug) && testReady !== false;
   // Video ko'rilgach — nechta savol bilan tanishilgani (test shunga qarab ochiladi).
   const [keywordProgress, setKeywordProgress] = useState<KeywordProgress | null>(null);
+  // Admin hamma narsani ochib qo'ygan o'quvchi (GET /me → kabinetda saqlangan); backend ham tekshiradi.
+  const [unlockAll, setUnlockAll] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUnlockAll(getUnlockAll());
+  }, []);
   const videoCompleted = Boolean(status?.completed);
   useEffect(() => {
     if (!testSlug || !videoCompleted) return;
@@ -118,6 +124,7 @@ export function LessonView({ topic }: LessonViewProps) {
         <SecureVideoPlayer
           lessonId={topic.lessonId}
           title={title}
+          freeSeek={unlockAll}
           onProgress={setStatus}
           onUnavailable={() => setUnavailable(true)}
           onCompleted={() => showToast({ tone: "success", message: hasTest ? t.lesson.gate.videoDone : t.lesson.gate.unlocked })}
@@ -136,6 +143,7 @@ export function LessonView({ topic }: LessonViewProps) {
           testHref={hasTest && testSlug ? testHref(testSlug) : null}
           keywordsHref={hasTest ? keywordsHref(topic) : null}
           keywordProgress={keywordProgress}
+          unlockAll={unlockAll}
         />
       </main>
     </>

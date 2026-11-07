@@ -30,6 +30,8 @@ interface LessonTestGateProps {
   keywordsHref?: string | null;
   /** Savollar bilan tanishish holati (serverdan); null — noma'lum, test tugmasi ochiq qoladi. */
   keywordProgress?: KeywordProgress | null;
+  /** Admin hamma narsani ochib qo'ygan: test videosiz va kalit so'zlarsiz ochiq. */
+  unlockAll?: boolean;
   className?: string;
 }
 
@@ -39,6 +41,7 @@ export function LessonTestGate({
   testHref,
   keywordsHref,
   keywordProgress = null,
+  unlockAll = false,
   className,
 }: LessonTestGateProps) {
   const { t } = useLocale();
@@ -61,9 +64,10 @@ export function LessonTestGate({
 
   // Videosi hali ulanmagan mavzuda test banki bo'lsa — video sharti yo'q (backend ham testni beradi).
   const noVideoGate = unavailable && Boolean(testHref);
-  const completed = Boolean(status?.completed) || noVideoGate;
+  const completed = Boolean(status?.completed) || noVideoGate || (unlockAll && Boolean(testHref));
   // Video ko'rilgan, lekin hali hamma savol bilan tanishilmagan — test yopiq.
   const studying =
+    !unlockAll &&
     completed && Boolean(testHref && keywordsHref) && keywordProgress !== null && keywordProgress.reviewedCount < keywordProgress.total;
   const studied = completed && Boolean(testHref) && keywordProgress !== null && !studying;
   const percent = studying

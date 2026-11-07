@@ -26,6 +26,25 @@ export interface RegistrationRecord {
 }
 
 const STORAGE_KEY = "pt_registration";
+/** GET /me → `unlockAll` (admin ochib qo'ygan). Faqat ko'rinish uchun — backend o'zi tekshiradi. */
+const UNLOCK_ALL_KEY = "pt_unlock_all";
+
+export function getUnlockAll(): boolean {
+  try {
+    return localStorage.getItem(UNLOCK_ALL_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeUnlockAll(value: boolean): void {
+  try {
+    if (value) localStorage.setItem(UNLOCK_ALL_KEY, "1");
+    else localStorage.removeItem(UNLOCK_ALL_KEY);
+  } catch {
+    // ignore
+  }
+}
 const listeners = new Set<() => void>();
 
 function subscribe(listener: () => void) {
@@ -83,6 +102,7 @@ export function syncAccount(): Promise<Me> {
   syncing ??= (async () => {
     const local = getRegistration();
     let me = await getMe();
+    writeUnlockAll(Boolean(me.unlockAll));
     if (!me.registered && local && !local.synced) {
       try {
         me = await registerAccount({ ...local, legacyStatus: local.status });
@@ -146,6 +166,7 @@ export function useRegistration(): RegistrationRecord | null {
 export function clearRegistration(): void {
   try {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(UNLOCK_ALL_KEY);
   } catch {
     // ignore
   }

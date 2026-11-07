@@ -3,7 +3,7 @@ import { AdminGuard, CurrentAdmin, RequestIp, RequirePermission } from "../admin
 import type { AdminUser } from "../admin-request";
 import { AuditService } from "../audit.service";
 import { PaymentsService } from "../../payments/payments.service";
-import { CreatePaymentDto, PaymentActionDto, PaymentsQueryDto, UserIdParamDto, UsersQueryDto } from "./admin-users.dto";
+import { CreatePaymentDto, PaymentActionDto, PaymentsQueryDto, UnlockAllDto, UserIdParamDto, UsersQueryDto } from "./admin-users.dto";
 import { AdminUsersService } from "./admin-users.service";
 
 @Controller("admin/users")
@@ -33,6 +33,13 @@ export class AdminUsersController {
   @Get(":id")
   detail(@Param() params: UserIdParamDto) {
     return this.users.detail(params.id);
+  }
+
+  /** Shu o'quvchiga hamma narsani ochish/yopish (video va kalit so'z shartisiz test, barcha kunlar). */
+  @Post(":id/unlock-all")
+  @HttpCode(200)
+  unlockAll(@Param() params: UserIdParamDto, @Body() body: UnlockAllDto, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    return this.users.setUnlockAll(admin, ip, params.id, body.enabled);
   }
 
   /** Foydalanuvchini butunlay o'chirish: sessiyalari, progressi, saqlanganlari va to'lovlari bilan. */

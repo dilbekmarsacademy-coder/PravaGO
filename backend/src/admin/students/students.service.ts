@@ -26,6 +26,8 @@ export interface StudentRow {
   login: string | null;
   isActive: boolean;
   centerAccess: boolean;
+  /** Admin hamma narsani ochib qo'ygan. */
+  unlockAll: boolean;
   lastLoginAt: Date | null;
   lastDevice: string | null;
   lastActiveAt: Date | null;
@@ -43,6 +45,7 @@ const ROW_SELECT = {
   login: true,
   isActive: true,
   centerAccess: true,
+  unlockAll: true,
   lastLoginAt: true,
   lastDevice: true,
   lastActiveAt: true,
