@@ -150,7 +150,7 @@ export default function AdminUserPage({ params }: { params: Promise<{ id: string
             <dd>{formatDateTime(data.accessGrantedAt)}</dd>
           </dl>
         </Panel>
-        <Panel title={`Qurilmalar (${data.devices.length})`}>
+        <Panel title="Oxirgi kirgan qurilmalar">
           {data.devices.length === 0 ? (
             <EmptyState>Qurilma yo&apos;q</EmptyState>
           ) : (

@@ -26,6 +26,9 @@ export interface AdminUserRow {
   progress: UserProgress;
 }
 
+/** Admin panelda foydalanuvchi sahifasida ko'rsatiladigan oxirgi qurilmalar soni. */
+const RECENT_DEVICES = 3;
+
 @Injectable()
 export class AdminUsersService {
   constructor(
@@ -190,14 +193,18 @@ export class AdminUsersService {
       paymentStatus: user.paymentStatus,
       accessGrantedAt: user.accessGrantedAt,
       progress,
-      devices: user.sessions.map((s) => ({
-        id: s.id,
-        type: deviceType(s.userAgent),
-        label: s.userAgent ? deviceLabel(s.userAgent) : "Noma'lum (eski sessiya)",
-        createdAt: s.createdAt,
-        lastSeenAt: s.lastSeenAt,
-        expired: s.expiresAt.getTime() <= Date.now(),
-      })),
+      // Oxirgi kirilgan 3 ta qurilma (faqat ko'rinish; "bitta qurilma" qoidasi sessiyalarda alohida ishlaydi).
+      devices: [...user.sessions]
+        .sort((a, b) => (b.lastSeenAt ?? b.createdAt).getTime() - (a.lastSeenAt ?? a.createdAt).getTime())
+        .slice(0, RECENT_DEVICES)
+        .map((s) => ({
+          id: s.id,
+          type: deviceType(s.userAgent),
+          label: s.userAgent ? deviceLabel(s.userAgent) : "Noma'lum (eski sessiya)",
+          createdAt: s.createdAt,
+          lastSeenAt: s.lastSeenAt,
+          expired: s.expiresAt.getTime() <= Date.now(),
+        })),
       payments: user.payments,
       topics: topicResults,
       mostWrong: wrong.flatMap((w) => {

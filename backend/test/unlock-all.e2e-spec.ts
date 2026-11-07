@@ -90,4 +90,18 @@ describe("Hammasini ochish (User.unlockAll)", () => {
     expect((await http().get(`/topics/${SLUG}/questions`).set(plain.auth).expect(403)).body.code).toBe("KEYWORDS_NOT_REVIEWED");
     await http().get(`/topics/${SLUG}/questions`).set(opened.auth).expect(200);
   });
+
+  it("admin: foydalanuvchi sahifasida faqat oxirgi 3 ta qurilma (eng yangisi birinchi)", async () => {
+    const user = await newUser();
+    const base = Date.now();
+    for (let i = 1; i <= 5; i++) {
+      await prisma.session.create({
+        data: { userId: user.userId, tokenHash: `e2e-device-${user.userId}-${i}`, userAgent: `UA-${i}`, lastSeenAt: new Date(base - i * 60_000), expiresAt: new Date(base + 86_400_000) },
+      });
+    }
+    const detail = (await http().get(`/admin/users/${user.userId}`).set(admin).expect(200)).body as { devices: { id: string; lastSeenAt: string }[] };
+    expect(detail.devices).toHaveLength(3);
+    const seen = detail.devices.map((d) => new Date(d.lastSeenAt).getTime());
+    expect([...seen].sort((a, b) => b - a)).toEqual(seen);
+  });
 });
