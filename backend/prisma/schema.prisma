@@ -39,9 +39,9 @@ model Topic {
 }
 
 model Question {
-  id                  String           @id @default(uuid())
+  id                  String             @id @default(uuid())
   topicId             String
-  topic               Topic            @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  topic               Topic              @relation(fields: [topicId], references: [id], onDelete: Cascade)
   text                String // o'zbek kirill
   /// O'zbek lotin (bo'lmasa frontend kirilldan transliteratsiya qiladi).
   textLatn            String?
@@ -58,28 +58,29 @@ model Question {
   imageSmallUrl       String?
   order               Int
   /// Yumshoq o'chirish — o'chirilgan savol hech qayerda chiqmaydi.
-  deletedAt           DateTime?        @db.Timestamptz(3)
+  deletedAt           DateTime?          @db.Timestamptz(3)
   /// Izoh (manbada bo'lsa): kirill / lotin / rus.
   explanation         String?
   explanationLatn     String?
   explanationRu       String?
   /// Izoh admin tomonidan tasdiqlangan — faqat shunda o'quvchiga ko'rsatiladi (AI izohlari tasdiqlanmaguncha yashirin).
-  explanationApproved Boolean          @default(false)
+  explanationApproved Boolean            @default(false)
   /// Eski format: javob kalit so'zi bitta matn sifatida. Yangi kalit so'zlar — QuestionKeyword.
   keyword             String
   keywordRu           String?
-  needsReview         Boolean          @default(false)
+  needsReview         Boolean            @default(false)
   /// To'g'ri javob manbada belgilanmagan — admin belgilab "Tugatdim" bosmaguncha o'quvchiga ko'rinmaydi.
-  answerPending       Boolean          @default(false)
+  answerPending       Boolean            @default(false)
   /// Ruscha tarjima qo'lda tekshirilmagan (mashina/AI tarjimasi).
-  ruNeedsReview       Boolean          @default(false)
+  ruNeedsReview       Boolean            @default(false)
   options             Option[]
   keywords            QuestionKeyword?
   savedBy             SavedQuestion[]
   keywordReviews      KeywordReview[]
   answerLogs          AnswerLog[]
-  createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
+  randomTestAnswers   RandomTestAnswer[]
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
 
   @@unique([topicId, order])
 }
@@ -144,48 +145,49 @@ model KeywordReview {
 /// Bitta foydalanuvchi — bir nechta qurilma sessiyasi (Session).
 /// Ustun nomlari telefon OTP (Eskiz) branch'i bilan bir xil.
 model User {
-  id                String             @id @default(uuid())
+  id                 String                @id @default(uuid())
   /// +998XXXXXXXXX (normallashtirilgan). Faqat admin API'da qaytariladi.
-  phone             String?            @unique
-  firstName         String?
-  lastName          String?
-  age               Int?
+  phone              String?               @unique
+  firstName          String?
+  lastName           String?
+  age                Int?
   /// "first-time" | "failed-before" | "license-revoked"
-  examStatus        String?
+  examStatus         String?
   /// Telefon SMS-kod bilan tasdiqlangan vaqt (OTP branch'i to'ldiradi).
-  phoneVerifiedAt   DateTime?          @db.Timestamptz(3)
+  phoneVerifiedAt    DateTime?             @db.Timestamptz(3)
   /// "uz-latn" | "uz-cyrl" | "ru"
-  preferredLanguage String?            @db.VarChar(10)
-  registeredAt      DateTime?          @db.Timestamptz(3)
-  lastActiveAt      DateTime?          @db.Timestamptz(3)
+  preferredLanguage  String?               @db.VarChar(10)
+  registeredAt       DateTime?             @db.Timestamptz(3)
+  lastActiveAt       DateTime?             @db.Timestamptz(3)
   /// To'lovlar jadvalidan hisoblanadi (PaymentsService.syncUserPaymentStatus).
-  paymentStatus     UserPaymentStatus  @default(NONE)
-  accessGrantedAt   DateTime?          @db.Timestamptz(3)
+  paymentStatus      UserPaymentStatus     @default(NONE)
+  accessGrantedAt    DateTime?             @db.Timestamptz(3)
   /// SELF — o'zi ro'yxatdan o'tgan; CENTER — o'quv markaz o'quvchisi (admin yaratadi, login + parol).
-  type              UserType           @default(SELF)
+  type               UserType              @default(SELF)
   /// Faqat CENTER: kirish logini (kichik harf, unique) va parol xeshi (argon2id).
-  login             String?            @unique @db.VarChar(40)
-  passwordHash      String?
+  login              String?               @unique @db.VarChar(40)
+  passwordHash       String?
   /// Faolsiz akkaunt kira olmaydi, eski sessiyalari ham 401 oladi.
-  isActive          Boolean            @default(true)
+  isActive           Boolean               @default(true)
   /// Faqat CENTER: kursga to'liq kirish (to'lov qilgan bilan teng). Admin o'chirib-yoqadi.
-  centerAccess      Boolean            @default(true)
-  createdByAdminId  String?
-  lastLoginAt       DateTime?          @db.Timestamptz(3)
+  centerAccess       Boolean               @default(true)
+  createdByAdminId   String?
+  lastLoginAt        DateTime?             @db.Timestamptz(3)
   /// Faqat CENTER: yagona faol sessiya (Session.id). Boshqa sessiyalar 401 SESSION_REPLACED oladi.
-  activeSessionId   String?            @db.VarChar(64)
+  activeSessionId    String?               @db.VarChar(64)
   /// Oxirgi kirgan qurilma, masalan "Android · Chrome".
-  lastDevice        String?            @db.VarChar(80)
-  sessions          Session[]
-  transferCodes     SessionTransferCode[]
-  examAttempts      ExamAttempt[]
-  savedQuestions    SavedQuestion[]
-  lessonProgress    LessonProgress[]
-  keywordReviews    KeywordReview[]
-  testAttempts      TopicTestAttempt[]
-  payments          Payment[]
-  answerLogs        AnswerLog[]
-  createdAt         DateTime           @default(now()) @db.Timestamptz(3)
+  lastDevice         String?               @db.VarChar(80)
+  sessions           Session[]
+  transferCodes      SessionTransferCode[]
+  examAttempts       ExamAttempt[]
+  savedQuestions     SavedQuestion[]
+  lessonProgress     LessonProgress[]
+  keywordReviews     KeywordReview[]
+  testAttempts       TopicTestAttempt[]
+  payments           Payment[]
+  answerLogs         AnswerLog[]
+  randomTestAttempts RandomTestAttempt[]
+  createdAt          DateTime              @default(now()) @db.Timestamptz(3)
 
   @@index([registeredAt])
   @@index([lastActiveAt])
@@ -619,7 +621,7 @@ model ImportBatch {
   error            String?          @db.VarChar(1000)
   createdById      String?
   /// Qadam qulfi: bir vaqtda faqat bitta qadam (ikki tab / qayta urinish).
-  lockedUntil      DateTime?      @db.Timestamptz(3)
+  lockedUntil      DateTime?        @db.Timestamptz(3)
   files            ImportFile[]
   tests            ImportTest[]
   questions        ImportQuestion[]
@@ -763,4 +765,49 @@ model SessionTransferCode {
   createdAt DateTime @default(now()) @db.Timestamptz(3)
 
   @@index([expiresAt])
+}
+
+/// Kabinetdagi "Random testlar": kunlik mavzu testlari savollaridan tasodifiy
+/// 20/50/100/200 talik test. Vaqt serverda: `deadlineAt` = boshlanish + har savolga 1 daqiqa.
+/// Bir foydalanuvchida bir vaqtda faqat bitta `in_progress` urinish (migratsiyadagi qisman unique indeks).
+model RandomTestAttempt {
+  id         String             @id @default(uuid())
+  userId     String
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Tanlangan tur: 20, 50, 100 yoki 200.
+  size       Int
+  /// Haqiqiy savollar soni (bazada kam bo'lsa — size'dan kichik).
+  total      Int
+  /// in_progress | finished | expired
+  status     String             @default("in_progress") @db.VarChar(20)
+  startedAt  DateTime           @default(now()) @db.Timestamptz(3)
+  deadlineAt DateTime           @db.Timestamptz(3)
+  finishedAt DateTime?          @db.Timestamptz(3)
+  answered   Int                @default(0)
+  correct    Int                @default(0)
+  percent    Int                @default(0)
+  answers    RandomTestAnswer[]
+
+  @@index([userId, startedAt])
+  @@index([startedAt])
+}
+
+/// Urinishdagi bitta savol: tartib, ko'rsatiladigan variantlar tartibi va javob.
+model RandomTestAnswer {
+  id               String            @id @default(uuid())
+  attemptId        String
+  attempt          RandomTestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId       String
+  question         Question          @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  /// 0 dan boshlab — testdagi o'rni.
+  position         Int
+  /// Variant id'lari aralashtirilgan tartibda (F1, F2, ...).
+  optionOrder      String[]
+  selectedOptionId String?
+  correct          Boolean?
+  answeredAt       DateTime?         @db.Timestamptz(3)
+
+  @@unique([attemptId, position])
+  @@unique([attemptId, questionId])
+  @@index([questionId])
 }

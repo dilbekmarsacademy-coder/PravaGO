@@ -20,6 +20,7 @@ import { InsightsModule } from "./insights/insights.module";
 import { ImagesModule } from "./images/images.module";
 import { CollectionsModule } from "./collections/collections.module";
 import { EventsModule } from "./events/events.module";
+import { RandomTestsModule } from "./random-tests/random-tests.module";
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { EventsModule } from "./events/events.module";
     InsightsModule,
     ImagesModule,
     CollectionsModule,
+    RandomTestsModule,
     EventsModule,
   ],
   providers: [

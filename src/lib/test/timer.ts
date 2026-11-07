@@ -22,3 +22,10 @@ export function formatClock(totalSec: number): string {
   const seconds = safe % 60;
   return `${String(minutes).padStart(2, "0")} : ${String(seconds).padStart(2, "0")}`;
 }
+
+/** Sana va vaqt "07.11.2026, 14:56" — barcha tillarda bir xil (brauzerning uz-UZ formati noto'g'ri chiqadi). */
+export function formatDateTime(iso: string | Date): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}

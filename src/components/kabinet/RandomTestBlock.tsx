@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { ShuffleIcon } from "lucide-react";
+import { ShuffleIcon, TimerIcon } from "lucide-react";
 import { useLocale } from "@/lib/i18n/useLocale";
+import { RANDOM_TEST_SIZES } from "@/lib/api/random-tests";
 import { Card } from "@/components/shared/Card";
-
-const SIZES = [20, 50, 100, 200];
 
 export default function RandomTestBlock() {
   const { t } = useLocale();
@@ -17,11 +16,15 @@ export default function RandomTestBlock() {
         <span className="flex size-9 items-center justify-center rounded-full bg-foreground/5 text-info">
           <ShuffleIcon className="size-4" />
         </span>
-        <h2 className="font-display text-base font-bold text-foreground">{labels.title}</h2>
+        <h2 className="font-display text-base font-bold text-foreground">
+          <Link href="/kabinet/random" className="hover:text-brand">
+            {labels.title}
+          </Link>
+        </h2>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {SIZES.map((size) => (
+        {RANDOM_TEST_SIZES.map((size) => (
           <Link
             key={size}
             href={`/kabinet/random?size=${size}`}
@@ -29,6 +32,10 @@ export default function RandomTestBlock() {
           >
             <span className="font-mono text-lg font-bold text-foreground tabular-nums">{size}</span>
             <span className="text-[0.65rem] text-muted-foreground uppercase">{labels.questionsUnit}</span>
+            <span className="mt-0.5 inline-flex items-center gap-1 text-[0.7rem] text-muted-foreground">
+              <TimerIcon className="size-3" />
+              {labels.minutes(size)}
+            </span>
           </Link>
         ))}
       </div>

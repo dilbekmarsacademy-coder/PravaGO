@@ -21,6 +21,8 @@ export class ApiError extends Error {
   constructor(
     readonly status: number,
     readonly code?: string,
+    /** Xato javobidagi qo'shimcha maydonlar (masalan `attemptId`, `available`). */
+    readonly details?: Record<string, unknown>,
   ) {
     super(`So'rov muvaffaqiyatsiz tugadi: ${status}`);
   }
@@ -178,8 +180,10 @@ export async function authFetch<T>(path: string, init?: RequestInit): Promise<T>
   }
   if (!res.ok) {
     let code: string | undefined;
+    let details: Record<string, unknown> | undefined;
     try {
-      code = ((await res.json()) as { code?: string }).code;
+      details = (await res.json()) as Record<string, unknown>;
+      code = typeof details.code === "string" ? details.code : undefined;
     } catch {
       // tana JSON emas
     }
@@ -187,7 +191,7 @@ export async function authFetch<T>(path: string, init?: RequestInit): Promise<T>
     if (res.status === 403 && code === "PAYMENT_REQUIRED" && typeof window !== "undefined" && window.location.pathname !== "/tolov") {
       window.location.assign("/tolov");
     }
-    throw new ApiError(res.status, code);
+    throw new ApiError(res.status, code, details);
   }
   return (res.status === 204 ? undefined : await res.json()) as T;
 }

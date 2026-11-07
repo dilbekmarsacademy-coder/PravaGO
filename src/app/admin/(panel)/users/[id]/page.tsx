@@ -13,6 +13,7 @@ import DeleteButton from "@/components/admin/DeleteButton";
 import AddPaymentForm from "@/components/admin/AddPaymentForm";
 import PaymentActions from "@/components/admin/PaymentActions";
 import { PaymentBadge, ProgressBar, UserPaymentBadge } from "@/components/admin/StatusBadges";
+import RandomTestsTable, { type AdminRandomTestRow } from "@/components/admin/RandomTestsTable";
 import { EmptyState, ErrorBlock, LoadingBlock, PageHeader, Panel, StatCard, Table, Td, Th } from "@/components/admin/ui";
 
 interface TopicResult {
@@ -257,6 +258,8 @@ export default function AdminUserPage({ params }: { params: Promise<{ id: string
         ))}
       </Panel>
 
+      <UserRandomTests userId={data.id} />
+
       <Panel title="Eng ko'p xato qilgan savollari">
         {data.mostWrong.length === 0 ? (
           <EmptyState>Xato javoblar yo&apos;q</EmptyState>
@@ -277,5 +280,33 @@ export default function AdminUserPage({ params }: { params: Promise<{ id: string
         )}
       </Panel>
     </>
+  );
+}
+
+/** Foydalanuvchining random test urinishlari (oxirgi 50 tasi). */
+function UserRandomTests({ userId }: { userId: string }) {
+  const [rows, setRows] = useState<{ total: number; items: AdminRandomTestRow[] } | null>(null);
+  useEffect(() => {
+    adminFetch<{ total: number; items: AdminRandomTestRow[] }>(`random-tests?userId=${userId}&pageSize=50`)
+      .then(setRows)
+      .catch(() => setRows({ total: 0, items: [] }));
+  }, [userId]);
+  return (
+    <Panel title={`Random testlar${rows ? ` (${rows.total})` : ""}`} className="mb-6">
+      {!rows ? (
+        <LoadingBlock />
+      ) : rows.items.length === 0 ? (
+        <EmptyState>Hali random test yechmagan</EmptyState>
+      ) : (
+        <div data-testid="user-random-tests">
+          <RandomTestsTable items={rows.items} />
+          {rows.total > rows.items.length && (
+            <Link href={`/admin/random-tests?userId=${userId}`} className="mt-3 inline-block text-sm font-semibold text-brand hover:underline">
+              Hammasi ({rows.total})
+            </Link>
+          )}
+        </div>
+      )}
+    </Panel>
   );
 }
