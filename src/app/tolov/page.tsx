@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ClockIcon, GaugeIcon, Loader2Icon, SendIcon, ShieldCheckIcon, TriangleAlertIcon } from "lucide-react";
+import { ClockIcon, Loader2Icon, SendIcon, ShieldCheckIcon, TriangleAlertIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatSom } from "@/config/prices";
 import { requestPayment, type Me } from "@/lib/api/account";
@@ -11,6 +11,7 @@ import { track } from "@/lib/analytics";
 import { getRegistration, syncAccount, useRegistration } from "@/lib/registration-store";
 import PaymentSummary from "@/components/payment/PaymentSummary";
 import PaymentResult from "@/components/payment/PaymentResult";
+import { Logo } from "@/components/shared/Logo";
 
 // Payme/Click hozircha ulanmagan: foydalanuvchi to'lov so'rovini yuboradi,
 // administrator to'lovni qabul qilib, admin panelda tasdiqlaydi. Kursga kirish
@@ -84,14 +85,9 @@ export default function TolovPage() {
   return (
     <main className="min-h-screen bg-background px-5 py-10 sm:px-8">
       <div className="mx-auto max-w-xl">
-        <div className="mb-8 flex items-center gap-2.5">
-          <span className="glow-orange flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-neon-orange to-neon-orange-2 text-background">
-            <GaugeIcon className="size-4.5" strokeWidth={2.4} />
-          </span>
-          <span className="font-display text-sm font-bold tracking-wide text-foreground uppercase">
-            PravaIshonch
-          </span>
-        </div>
+        <Link href="/" aria-label="PravaIshonch" className="mb-8 flex w-fit items-center">
+          <Logo priority className="h-10" />
+        </Link>
 
         {stage !== "success" && (
           <div className="glass mb-6 flex items-start gap-3 rounded-xl border-neon-amber/30 bg-neon-amber/5 p-4">

@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { GaugeIcon, MenuIcon, XIcon } from "lucide-react";
+import { MenuIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/useLocale";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import LanguageSwitcher from "./LanguageSwitcher";
+import Link from "next/link";
+import { Logo } from "@/components/shared/Logo";
 
 interface HeaderProps {
   onRegisterClick: () => void;
@@ -28,14 +30,9 @@ export default function Header({ onRegisterClick }: HeaderProps) {
   return (
     <header className="fixed inset-x-0 top-0 z-40 border-b border-border bg-background/95 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-5 sm:px-8">
-        <a href="#bosh-sahifa" className="flex shrink-0 items-center gap-2.5">
-          <span aria-hidden="true" className="glow-orange flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-neon-orange to-neon-orange-2 text-background">
-            <GaugeIcon className="size-4.5" strokeWidth={2.4} />
-          </span>
-          <span className="font-display text-sm font-bold tracking-wide text-foreground uppercase">
-            {t.header.brand}
-          </span>
-        </a>
+        <Link href="/" aria-label={t.header.brand} className="flex shrink-0 items-center">
+          <Logo priority className="h-9 lg:h-11" />
+        </Link>
 
         <nav className="hidden items-center gap-4 lg:flex xl:gap-5">
           {navLinks.map((link) => (

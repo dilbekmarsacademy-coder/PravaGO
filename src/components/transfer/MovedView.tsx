@@ -5,7 +5,7 @@
 // qolganlar — yangi domendagi o'sha sahifaga.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowRightIcon, CheckCircle2Icon, GaugeIcon, ShieldCheckIcon } from "lucide-react";
+import { ArrowRightIcon, CheckCircle2Icon, ShieldCheckIcon } from "lucide-react";
 import { buttonClasses } from "@/components/shared/Button";
 import LanguageSwitcher from "@/components/shared/LanguageSwitcher";
 import { requestTransferCode } from "@/lib/api/transfer";
@@ -13,6 +13,7 @@ import { hasSessionToken, isCenterSession } from "@/lib/api/session";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { getRegistration, syncAccount } from "@/lib/registration-store";
 import { plainTarget, transferTarget } from "@/lib/transfer";
+import { Logo } from "@/components/shared/Logo";
 
 const COUNTDOWN_SEC = 5;
 /** Kod 60 s amal qiladi — shundan eski bo'lsa, o'tishdan oldin yangisi olinadi. */
@@ -79,12 +80,7 @@ export function MovedView({ oldPath }: { oldPath: string }) {
         className="glass relative flex w-full max-w-lg flex-col items-center gap-6 rounded-3xl border-amber-400/25 px-6 py-10 text-center shadow-[0_0_80px_-30px_rgba(251,191,36,0.45)] sm:px-10"
         data-testid="moved"
       >
-        <div className="flex items-center gap-2.5">
-          <span aria-hidden="true" className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 to-amber-500 text-background">
-            <GaugeIcon className="size-5" strokeWidth={2.4} />
-          </span>
-          <span className="font-display text-sm font-bold tracking-[0.2em] text-foreground uppercase">PravaIshonch</span>
-        </div>
+        <Logo priority className="h-11" />
 
         <div>
           <p className="font-mono text-xs font-semibold tracking-[0.25em] text-amber-300 uppercase">{t.moved.eyebrow}</p>

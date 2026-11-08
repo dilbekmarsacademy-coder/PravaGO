@@ -4,7 +4,7 @@
 export const SITE_URL = "https://www.pravaishonch.uz";
 export const BRAND_NAME = "PravaIshonch";
 /** Qidiruvda bo'shliq bilan va domen ko'rinishida ham tanilsin. */
-export const BRAND_ALT_NAMES = ["Prava Ishonch", "PravaIshonch.uz"];
+export const BRAND_ALT_NAMES = ["Prava Ishonch", "Prava Ishonch uz", "PravaIshonch.uz"];
 export const SITE_TITLE = "PravaIshonch (Prava Ishonch) — haydovchilik imtihoniga onlayn tayyorgarlik";
 export const SITE_DESCRIPTION =
   "PravaIshonch (Prava Ishonch) — haydovchilik guvohnomasi (prava) imtihoniga onlayn tayyorgarlik: video darslar, kalit soʻzlar va rasmiy biletlar asosidagi testlar. 7 kunda imtihonga tayyorlaning.";
@@ -17,5 +17,10 @@ export const SITE_KEYWORDS = [
   "prava test",
   "avtotest",
 ];
+/** Brend ranglari (manifest, brauzer paneli): to'q fon va oltin aksent. */
+export const BRAND_DARK = "#050811";
+/** Ulashish rasmi (Open Graph / Twitter) — public/og-image.png, 1200×630. */
+export const OG_IMAGE = { url: "/og-image.png", width: 1200, height: 630, alt: "PravaIshonch (Prava Ishonch) — haydovchilik imtihoniga onlayn tayyorgarlik" };
+
 /** Ijtimoiy tarmoq havolalari — qo'shilganda Organization.sameAs ga tushadi. */
 export const SOCIAL_LINKS: string[] = [];

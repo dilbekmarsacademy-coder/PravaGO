@@ -10,6 +10,8 @@ import LanguageSwitcher from "@/components/shared/LanguageSwitcher";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import { SavedHeaderLink } from "@/components/saved/SavedHeaderLink";
 import { useLocale } from "@/lib/i18n/useLocale";
+import Link from "next/link";
+import { Logo } from "@/components/shared/Logo";
 
 interface DashboardHeaderProps {
   firstName: string;
@@ -24,12 +26,12 @@ export default function DashboardHeader({ firstName, lastName, examStatus, onLog
 
   return (
     <AppHeader>
-      <div className="flex items-center gap-2.5">
-        <BrandMark />
-        <span className="hidden font-display text-sm font-bold tracking-wide text-foreground uppercase md:inline">
-          {t.header.brand}
+      <Link href="/kabinet" aria-label={t.header.brand} className="flex shrink-0 items-center">
+        <BrandMark className="md:hidden" />
+        <span className="hidden md:flex">
+          <Logo priority className="h-10" />
         </span>
-      </div>
+      </Link>
 
       <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-3">
         <div className="min-w-0 text-right">

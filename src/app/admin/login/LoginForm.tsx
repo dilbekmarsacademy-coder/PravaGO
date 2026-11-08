@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { GaugeIcon, LockKeyholeIcon } from "lucide-react";
+import { LockKeyholeIcon } from "lucide-react";
 import { adminFetch, AdminApiError } from "@/lib/admin/api";
 import { Button } from "@/components/shared/Button";
 import { Field, Spinner, TextInput } from "@/components/admin/ui";
+import { Logo } from "@/components/shared/Logo";
 
 const INVALID_INPUT = "Kirish ma'lumotlari noto'g'ri";
 
@@ -35,14 +36,9 @@ export default function LoginForm({ next }: { next?: string }) {
 
   return (
     <form onSubmit={submit} className="glass flex w-full max-w-sm flex-col gap-4 rounded-2xl p-6 sm:p-7" method="post" noValidate>
-      <div className="mb-2 flex items-center gap-2.5">
-        <span className="glow-orange flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-neon-orange to-neon-orange-2 text-background">
-          <GaugeIcon className="size-5" strokeWidth={2.4} />
-        </span>
-        <div>
-          <p className="font-display text-sm font-bold tracking-wide uppercase">PravaIshonch</p>
-          <p className="text-xs text-muted-foreground">Boshqaruv paneli</p>
-        </div>
+      <div className="mb-2 flex flex-col items-start gap-1.5">
+        <Logo priority className="h-10" />
+        <p className="text-xs text-muted-foreground">Boshqaruv paneli</p>
       </div>
       <Field label="Maxsus kod">
         <TextInput value={accessCode} onChange={(e) => setAccessCode(e.target.value)} autoComplete="off" required className="font-mono" name="accessCode" />

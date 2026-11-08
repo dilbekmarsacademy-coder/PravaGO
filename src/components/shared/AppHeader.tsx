@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { GaugeIcon } from "lucide-react";
+import { Logo } from "./Logo";
 import { cn } from "@/lib/utils";
 
 interface AppHeaderProps {
@@ -30,16 +30,11 @@ export function AppHeader({ children, width = "narrow", className }: AppHeaderPr
   );
 }
 
-/** Brend belgisi (logo doirasi). */
+/** Brend belgisi — logotip emblemasi (qalqon). */
 export function BrandMark({ className }: { className?: string }) {
   return (
-    <span
-      className={cn(
-        "glow-orange flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand to-brand-2 text-brand-foreground",
-        className,
-      )}
-    >
-      <GaugeIcon className="size-4.5" strokeWidth={2.4} />
+    <span className={cn("flex size-9 shrink-0 items-center justify-center", className)}>
+      <Logo variant="emblem" priority className="size-9" />
     </span>
   );
 }

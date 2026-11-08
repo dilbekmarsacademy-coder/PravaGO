@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3Icon,
   BookOpenCheckIcon,
-  GaugeIcon,
+  
   HistoryIcon,
   LogOutIcon,
   MenuIcon,
@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import { adminFetch } from "@/lib/admin/api";
 import ThemeToggle from "@/components/shared/ThemeToggle";
+import { Logo } from "@/components/shared/Logo";
 
 export interface AdminProfile {
   id: string;
@@ -112,13 +113,9 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   );
 
   const brand = (
-    <Link href="/admin/dashboard" className="flex items-center gap-2.5">
-      <span className="glow-orange flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-neon-orange to-neon-orange-2 text-background">
-        <GaugeIcon className="size-4.5" strokeWidth={2.4} />
-      </span>
-      <span className="font-display text-sm font-bold tracking-wide text-foreground uppercase">
-        PravaIshonch <span className="text-brand">admin</span>
-      </span>
+    <Link href="/admin/dashboard" aria-label="PravaIshonch admin" className="flex items-center gap-2">
+      <Logo className="h-9" />
+      <span className="font-display text-xs font-bold tracking-wide text-brand uppercase">admin</span>
     </Link>
   );
 

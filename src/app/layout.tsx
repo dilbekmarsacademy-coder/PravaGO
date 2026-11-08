@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { Toaster } from "@/components/shared/Toast";
 import AnalyticsTracker from "@/components/shared/AnalyticsTracker";
 import CenterSessionWatcher from "@/components/shared/CenterSessionWatcher";
-import { BRAND_NAME, SITE_DESCRIPTION, SITE_KEYWORDS, SITE_TITLE, SITE_URL } from "@/lib/seo";
+import { BRAND_DARK, BRAND_NAME, OG_IMAGE, SITE_DESCRIPTION, SITE_KEYWORDS, SITE_TITLE, SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
 const THEME_INIT_SCRIPT = `(function () {
@@ -51,6 +51,17 @@ export const metadata: Metadata = {
   description: SITE_DESCRIPTION,
   applicationName: BRAND_NAME,
   keywords: SITE_KEYWORDS,
+  // Google qidiruv natijasidagi ikonka: kvadrat, 48 ning karralisi, o'zgarmas URL (public/).
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon-48.png", sizes: "48x48", type: "image/png" },
+      { url: "/icon-96.png", sizes: "96x96", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   openGraph: {
     type: "website",
     url: SITE_URL,
@@ -59,8 +70,9 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
     locale: "uz_UZ",
     alternateLocale: ["ru_RU"],
+    images: [OG_IMAGE],
   },
-  twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESCRIPTION },
+  twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESCRIPTION, images: [OG_IMAGE] },
   // Brauzer tarjimasi (Chrome/Google Translate) DOM'dagi matnlarni o'zgartiradi
   // va React birinchi yangilanishda qulaydi — oq ekran. Sayt o'zi 3 tilda.
   other: { google: "notranslate" },
@@ -71,6 +83,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   // iPhone "home indicator" / chetlar uchun env(safe-area-inset-*) ishlashi uchun.
   viewportFit: "cover",
+  themeColor: BRAND_DARK,
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
