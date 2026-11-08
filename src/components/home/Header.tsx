@@ -71,33 +71,37 @@ export default function Header({ onRegisterClick }: HeaderProps) {
         </div>
       </div>
 
+      {/* Yopiq menyu joy egallamaydi: padding ichki o'ramda, 0fr qator uni to'liq yashiradi. */}
       <div
+        inert={!menuOpen}
         className={cn(
-          "grid overflow-hidden border-b border-border bg-background/95 backdrop-blur-xl transition-all duration-300 lg:hidden",
-          menuOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+          "grid overflow-hidden bg-background/95 backdrop-blur-xl transition-all duration-300 lg:hidden",
+          menuOpen ? "grid-rows-[1fr] border-b border-border opacity-100" : "pointer-events-none grid-rows-[0fr] opacity-0",
         )}
       >
-        <div className="flex flex-col gap-1 overflow-hidden px-5 py-4">
-          {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              onClick={() => setMenuOpen(false)}
-              className="rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-neon-cyan"
-            >
-              {link.label}
-            </a>
-          ))}
-          <div className="mt-2 border-t border-border pt-3">
-            <Button
-              onClick={() => {
-                setMenuOpen(false);
-                onRegisterClick();
-              }}
-              className="h-auto w-full rounded-full border-0 bg-gradient-to-r from-neon-orange to-neon-orange-2 px-4 py-2.5 text-sm font-bold text-background"
-            >
-              {t.header.royxatdanOtish}
-            </Button>
+        <div className="min-h-0 overflow-hidden">
+          <div className="flex flex-col gap-1 px-5 py-4">
+            {navLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                onClick={() => setMenuOpen(false)}
+                className="rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-neon-cyan"
+              >
+                {link.label}
+              </a>
+            ))}
+            <div className="mt-2 border-t border-border pt-3">
+              <Button
+                onClick={() => {
+                  setMenuOpen(false);
+                  onRegisterClick();
+                }}
+                className="h-auto w-full rounded-full border-0 bg-gradient-to-r from-neon-orange to-neon-orange-2 px-4 py-2.5 text-sm font-bold text-background"
+              >
+                {t.header.royxatdanOtish}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
