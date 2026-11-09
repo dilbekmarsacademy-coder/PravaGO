@@ -1,18 +1,11 @@
 // Random test savollarini tanlash — sof funksiyalar (bazasiz, test qilinadi).
 
-export type Random = () => number;
+import { shuffle, type Random } from "../common/option-order";
 
-export function shuffle<T>(items: readonly T[], random: Random = Math.random): T[] {
-  const out = [...items];
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
-}
+export { shuffle, type Random };
 
 /** Mavzular bo'yicha navbatma-navbat: har aylanishda har mavzudan bittadan — test bitta mavzuga to'planmaydi. */
-function roundRobin(groups: string[][], need: number): string[] {
+export function roundRobin(groups: string[][], need: number): string[] {
   const queues = groups.map((g) => [...g]);
   const out: string[] = [];
   while (out.length < need && queues.some((q) => q.length)) {

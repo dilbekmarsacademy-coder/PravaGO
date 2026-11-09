@@ -25,6 +25,8 @@ export interface ApiQuestion {
   imageWidth?: number | null;
   imageHeight?: number | null;
   options: ApiOption[];
+  /** "Hammasi to'g'ri", "1 va 2" kabi variantli savol — variantlar joyi almashtirilmaydi (qoida serverda). */
+  orderLocked?: boolean;
 }
 
 /**

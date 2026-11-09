@@ -15,6 +15,7 @@ import AddPaymentForm from "@/components/admin/AddPaymentForm";
 import PaymentActions from "@/components/admin/PaymentActions";
 import { PaymentBadge, ProgressBar, UserPaymentBadge } from "@/components/admin/StatusBadges";
 import RandomTestsTable, { type AdminRandomTestRow } from "@/components/admin/RandomTestsTable";
+import { UserFinalExamPanel } from "@/components/admin/FinalExamPanel";
 import { EmptyState, ErrorBlock, LoadingBlock, PageHeader, Panel, StatCard, Table, Td, Th } from "@/components/admin/ui";
 
 interface TopicResult {
@@ -264,6 +265,8 @@ export default function AdminUserPage({ params }: { params: Promise<{ id: string
       </Panel>
 
       <UserRandomTests userId={data.id} />
+
+      <UserFinalExamPanel userId={data.id} />
 
       <Panel title="Eng ko'p xato qilgan savollari">
         {data.mostWrong.length === 0 ? (

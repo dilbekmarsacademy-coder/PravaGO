@@ -190,6 +190,8 @@ model User {
   payments           Payment[]
   answerLogs         AnswerLog[]
   randomTestAttempts RandomTestAttempt[]
+  finalExamAttempts  FinalExamAttempt[]
+  certificates       Certificate[]
   createdAt          DateTime              @default(now()) @db.Timestamptz(3)
 
   @@index([registeredAt])
@@ -813,4 +815,70 @@ model RandomTestAnswer {
   @@unique([attemptId, position])
   @@unique([attemptId, questionId])
   @@index([questionId])
+}
+
+// ───────────────────────── Yakuniy ichki imtihon (7-kun) ─────────────────────────
+
+enum FinalExamType {
+  Q20
+  Q50
+}
+
+enum FinalExamStatus {
+  IN_PROGRESS
+  FINISHED
+  EXPIRED
+}
+
+/// Yakuniy imtihon urinishi. Vaqt faqat serverda (startedAt, expiresAt). Savollar
+/// va variantlar tartibi urinish bilan saqlanadi; to'g'ri javob imtihon tugaguncha
+/// klientga chiqmaydi. Har tur uchun 10 ta urinish (archivedAt — admin nolga qaytargan).
+model FinalExamAttempt {
+  id             String          @id @default(uuid())
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type           FinalExamType
+  status         FinalExamStatus @default(IN_PROGRESS)
+  startedAt      DateTime        @default(now()) @db.Timestamptz(3)
+  expiresAt      DateTime        @db.Timestamptz(3)
+  finishedAt     DateTime?       @db.Timestamptz(3)
+  totalQuestions Int
+  correctCount   Int             @default(0)
+  /// To'g'ri / jami * 100, 1 xona kasr bilan.
+  scorePercent   Float           @default(0)
+  /// [{ questionId, topicId, topicSlug, day, optionOrder: string[], locked, correct? }] — tartib bo'yicha.
+  questions      Json
+  /// { "<position>": { optionId, answeredAt } }
+  answers        Json            @default("{}")
+  /// Admin urinishlarni nolga qaytargan — hisobga olinmaydi, tarix uchun saqlanadi.
+  archivedAt     DateTime?       @db.Timestamptz(3)
+
+  @@index([userId, type])
+  @@index([startedAt])
+}
+
+/// Yakuniy imtihon sertifikati — faqat server 10 ta urinish o'rtachasi >= 98% ekanini
+/// tasdiqlaganda yaratiladi. Bir foydalanuvchiga bir tur uchun bittadan.
+model Certificate {
+  id                String        @id @default(uuid())
+  /// PI-YYYY-NNNNNN raqamidagi tartib (ketma-ketlik).
+  serial            Int           @unique @default(autoincrement())
+  certificateNumber String        @unique @db.VarChar(20)
+  userId            String
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  examType          FinalExamType
+  /// 1 xona kasr bilan.
+  averagePercent    Float
+  attemptsCount     Int
+  /// Berilgan vaqtdagi ism (keyin profil o'zgarsa ham sertifikat o'zgarmaydi). Bo'sh — o'quvchi hali kiritmagan.
+  fullName          String        @default("") @db.VarChar(120)
+  /// Motivatsion xat (murojaatsiz qismi) — bir marta yig'iladi va o'zgarmaydi.
+  letterText        String
+  /// Xat ohangi: perfect | steady | growth | learned.
+  letterTone        String        @db.VarChar(20)
+  issuedAt          DateTime      @default(now()) @db.Timestamptz(3)
+  /// O'quvchi tabrik ekranini (xat + sertifikat) ko'rgan vaqt; null — keyingi kirishda ko'rsatiladi.
+  celebratedAt      DateTime?     @db.Timestamptz(3)
+
+  @@unique([userId, examType])
 }

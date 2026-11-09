@@ -6,7 +6,8 @@ import { OPTION_ORDER, STUDENT_QUESTION_WHERE, approvedExplanation, optionText, 
 import { parseCourseSlug } from "../common/rules";
 import { userSearch } from "../payments/payments.service";
 import { PrismaService } from "../prisma/prisma.service";
-import { selectQuestions, shuffle } from "./selection";
+import { initialOrder, isOrderLocked } from "../common/option-order";
+import { selectQuestions } from "./selection";
 
 // "Random testlar": kunlik mavzu testlari savollaridan tasodifiy test. Vaqt
 // faqat serverda hisoblanadi (startedAt, deadlineAt); klient taymerni
@@ -203,9 +204,14 @@ export class RandomTestsService {
       (await this.prisma.randomTestAnswer.findMany({ where: { attempt: { userId } }, select: { questionId: true }, distinct: ["questionId"] })).map((r) => r.questionId),
     );
     const ids = selectQuestions(pool, seen, Math.min(size, pool.length));
-    const options = await this.prisma.option.findMany({ where: { questionId: { in: ids } }, select: { id: true, questionId: true } });
-    const byQuestion = new Map<string, string[]>();
-    for (const o of options) byQuestion.set(o.questionId, [...(byQuestion.get(o.questionId) ?? []), o.id]);
+    const options = await this.prisma.option.findMany({ where: { questionId: { in: ids } }, orderBy: OPTION_ORDER, select: { id: true, questionId: true, text: true, textLatn: true, textRu: true } });
+    const byQuestion = new Map<string, typeof options>();
+    for (const o of options) byQuestion.set(o.questionId, [...(byQuestion.get(o.questionId) ?? []), o]);
+    // "Hammasi to'g'ri", "1 va 2" kabi variantli savollarda tartib o'zgarmaydi.
+    const orderFor = (questionId: string) => {
+      const list = byQuestion.get(questionId) ?? [];
+      return initialOrder(list.map((o) => o.id), isOrderLocked(list));
+    };
 
     const now = new Date();
     try {
@@ -216,7 +222,7 @@ export class RandomTestsService {
           total: ids.length,
           startedAt: now,
           deadlineAt: new Date(now.getTime() + ids.length * SECONDS_PER_QUESTION * 1000),
-          answers: { createMany: { data: ids.map((questionId, position) => ({ questionId, position, optionOrder: shuffle(byQuestion.get(questionId) ?? []) })) } },
+          answers: { createMany: { data: ids.map((questionId, position) => ({ questionId, position, optionOrder: orderFor(questionId) })) } },
         },
         include: { answers: { select: { selectedOptionId: true, correct: true }, orderBy: { position: "asc" } } },
       });

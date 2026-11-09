@@ -283,10 +283,11 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
       if (!questions) return;
       if (index < 0 || index >= questions.length) return;
       if (index === currentIndex) return;
-      // Javob berilmay (va tekshirilmay) tashlab ketilyapti — qaytganda variantlar boshqa joyda bo'ladi.
+      // Javob berilmay (va tekshirilmay) tashlab ketilyapti — qaytganda variantlar boshqa joyda bo'ladi
+      // ("Hammasi to'g'ri" kabi variantli savollardan tashqari — orderLocked).
       const leaving = questions[currentIndex];
       const leavingAnswer = answers[currentIndex];
-      if (leaving && !leavingAnswer?.result && !leavingAnswer?.selectedOptionId) {
+      if (leaving && !leaving.orderLocked && !leavingAnswer?.result && !leavingAnswer?.selectedOptionId) {
         setOptionOrder((prev) => ({
           ...prev,
           [leaving.id]: reshuffle(prev[leaving.id] ?? leaving.options.map((o) => o.id)),

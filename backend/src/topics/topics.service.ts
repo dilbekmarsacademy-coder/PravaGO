@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { isOrderLocked } from "../common/option-order";
 import { OPTION_ORDER, STUDENT_QUESTION_WHERE, optionText, questionText } from "../common/question-content";
 import { PublicOptionDto, PublicQuestionDto } from "./dto/public-question.dto";
 
@@ -33,6 +34,7 @@ export class TopicsService {
           imageWidth: q.imageWidth,
           imageHeight: q.imageHeight,
           options: q.options.map((o) => new PublicOptionDto(o.id, optionText(o))),
+          orderLocked: isOrderLocked(q.options),
         }),
     );
   }

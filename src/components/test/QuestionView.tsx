@@ -28,6 +28,8 @@ interface QuestionViewProps {
   videoHref: string | null;
   onToggleBookmark: () => void;
   onAnswer: (optionId: string) => void;
+  /** Yakuniy imtihon: saqlash yo'q ("Saqlanganlar" to'g'ri javobni ko'rsatadi). */
+  hideBookmark?: boolean;
 }
 
 function getAnswerState(
@@ -55,6 +57,7 @@ export function QuestionView({
   videoHref,
   onToggleBookmark,
   onAnswer,
+  hideBookmark = false,
 }: QuestionViewProps) {
   const { locale, t } = useLocale();
   const text = localize(question.text, locale);
@@ -90,7 +93,7 @@ export function QuestionView({
         <span className="font-mono text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase tabular-nums">
           {t.testSession.questionOf(index + 1, total)}
         </span>
-        <BookmarkButton saved={bookmarked} onToggle={onToggleBookmark} className="-my-2" />
+        {!hideBookmark && <BookmarkButton saved={bookmarked} onToggle={onToggleBookmark} className="-my-2" />}
       </div>
 
       {text && (
