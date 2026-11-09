@@ -33,7 +33,10 @@ export default function CertificateViewer({ certificate, onChange }: { certifica
 
   return (
     <Card className="flex flex-col gap-4 p-3 sm:p-5" data-testid="certificate-viewer">
-      <ScaledCertificate data={certificate} sheetRef={sheetRef} />
+      {/* Sertifikat ekran balandligiga sig'adi (nisbat 1600:1131). */}
+      <div className="mx-auto w-full" style={{ maxWidth: "min(52rem, calc((100dvh - 9rem) * 1.4147))" }}>
+        <ScaledCertificate data={certificate} sheetRef={sheetRef} />
+      </div>
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <Button variant="secondary" size="md" onClick={() => setLetterOpen(true)} data-testid="read-letter">
           <MailOpenIcon className="size-4" />
