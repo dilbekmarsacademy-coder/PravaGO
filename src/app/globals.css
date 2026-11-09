@@ -402,3 +402,31 @@ body::before {
     display: none;
   }
 }
+
+/* Sertifikatni chop etish / PDF: faqat #certificate-print-root (A4 landshaft, hoshiyasiz). */
+#certificate-print-root {
+  display: none;
+}
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+  body.printing-certificate * {
+    visibility: hidden !important;
+  }
+  body.printing-certificate #certificate-print-root,
+  body.printing-certificate #certificate-print-root * {
+    visibility: visible !important;
+  }
+  body.printing-certificate #certificate-print-root {
+    display: block;
+    position: fixed;
+    inset: 0;
+    width: 297mm;
+    height: 210mm;
+    overflow: hidden;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

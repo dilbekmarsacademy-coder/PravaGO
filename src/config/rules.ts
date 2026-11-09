@@ -5,12 +5,11 @@ export const PASS_PERCENT = 98;
 export const FINAL_EXAM_MAX_ATTEMPTS = 10;
 
 /**
- * Yakuniy imtihon oqimi (savollarni tanlash, vaqt hisoblagichi, natija sahifasi)
- * hali qurilmagan — shuning uchun Dastur xaritasidagi 7-kun kartochkasi progress
- * hisob-kitobidan qat'i nazar hozircha doim qulflangan ko'rinishda chiqadi.
- * Oqim tayyor bo'lgach shu bayroqni true qilish kifoya.
+ * Yakuniy imtihon oqimi yoqilgan (backend: /final-exam). Qulf qarori serverda —
+ * 1–6-kun mavzulari tugatilmaguncha imtihon boshlanmaydi. Favqulodda holatda
+ * kartani yopish uchun shu bayroqni false qilish kifoya.
  */
-export const FINAL_EXAM_FLOW_ENABLED = false;
+export const FINAL_EXAM_FLOW_ENABLED = true;
 
 /** Test uchun har bir savolga beriladigan vaqt (soniya). */
 export const TEST_TIME_PER_QUESTION_SEC = 60;

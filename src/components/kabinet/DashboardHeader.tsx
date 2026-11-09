@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOutIcon } from "lucide-react";
+import { AwardIcon, LogOutIcon } from "lucide-react";
 import type { ExamStatus } from "@/components/home/types";
 import { AppHeader, BrandMark } from "@/components/shared/AppHeader";
 import { Badge } from "@/components/shared/Badge";
@@ -50,6 +50,15 @@ export default function DashboardHeader({ firstName, lastName, examStatus, onLog
         </Badge>
 
         {/* Telefonda ham ko'rinadi — menyu ichiga yashirilmaydi. */}
+        <Link
+          href="/kabinet/sertifikatlar"
+          aria-label="Sertifikatlar"
+          title="Sertifikatlar"
+          className={buttonClasses({ variant: "secondary", size: "icon", className: "md:size-10" })}
+          data-testid="header-certificates"
+        >
+          <AwardIcon className="size-4.5" aria-hidden="true" />
+        </Link>
         <SavedHeaderLink />
 
         <div className="hidden items-center gap-2 md:flex">

@@ -24,6 +24,8 @@ export class PublicQuestionDto {
   imageWidth: number | null;
   imageHeight: number | null;
   options: PublicOptionDto[];
+  /** "Hammasi to'g'ri", "1 va 2" kabi variantli savol — variantlar joyi almashtirilmaydi (faqat true bo'lsa). */
+  orderLocked?: true;
 
   constructor(params: {
     id: string;
@@ -33,6 +35,7 @@ export class PublicQuestionDto {
     imageWidth: number | null;
     imageHeight: number | null;
     options: PublicOptionDto[];
+    orderLocked?: boolean;
   }) {
     this.id = params.id;
     this.text = params.text;
@@ -41,5 +44,6 @@ export class PublicQuestionDto {
     this.imageWidth = params.imageWidth;
     this.imageHeight = params.imageHeight;
     this.options = params.options;
+    if (params.orderLocked) this.orderLocked = true;
   }
 }
