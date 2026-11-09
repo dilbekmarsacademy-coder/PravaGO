@@ -349,6 +349,7 @@ describe("Yakuniy imtihon — admin", () => {
     const detail = (await http().get(`/admin/final-exam/users/${user.userId}`).set(admin).expect(200)).body;
     expect(detail.types[0].attempts).toHaveLength(10);
     expect(detail.types[0].attempts[9].percent).toBe(90);
+    expect(detail.types[0].attempts[0].durationSec).toBe(60);
 
     expect((await http().post("/final-exam").set(user.auth).send({ type: "Q20" }).expect(409)).body.code).toBe("FINAL_EXAM_NO_ATTEMPTS");
     expect((await http().post(`/admin/final-exam/users/${user.userId}/reset`).set(admin).send({ type: "Q20" }).expect(200)).body).toMatchObject({ archived: 10 });
@@ -357,5 +358,28 @@ describe("Yakuniy imtihon — admin", () => {
     expect(overview.types[0]).toMatchObject({ attemptsUsed: 0, attemptsLeft: 10, average: null, outcome: "in_progress" });
     await http().post("/final-exam").set(user.auth).send({ type: "Q20" }).expect(201);
     expect((await http().get(`/admin/final-exam/users/${user.userId}`).set(admin).expect(200)).body.types[0]).toMatchObject({ attemptsUsed: 1, archivedCount: 10 });
+  });
+
+  it("urinish tafsiloti: sarflangan vaqt, xato va javobsiz savollar; faol urinishda 409", async () => {
+    const user = await newUser();
+    await completeCourse(user.userId);
+    const { id } = (await http().post("/final-exam").set(user.auth).send({ type: "Q20" }).expect(201)).body;
+    await http().get(`/admin/final-exam/attempts/${id}`).expect(403);
+    expect((await http().get(`/admin/final-exam/attempts/${id}`).set(admin).expect(409)).body.code).toBe("FINAL_EXAM_IN_PROGRESS");
+    const rows = (await http().get(`/final-exam/attempts/${id}/questions`).set(user.auth).expect(200)).body as QuestionRow[];
+    await http().post(`/final-exam/attempts/${id}/answers`).set(user.auth).send({ position: 0, optionId: await correctOf(rows[0].question.id) }).expect(200);
+    await http().post(`/final-exam/attempts/${id}/answers`).set(user.auth).send({ position: 1, optionId: await wrongOf(rows[1].question.id) }).expect(200);
+    await http().post(`/final-exam/attempts/${id}/finish`).set(user.auth).expect(200);
+
+    const body = (await http().get(`/admin/final-exam/attempts/${id}`).set(admin).expect(200)).body;
+    expect(body).toMatchObject({ id, userId: user.userId, status: "FINISHED", correct: 1, total: 20 });
+    expect(body.durationSec).toBeGreaterThanOrEqual(0);
+    expect(body.questions).toHaveLength(20);
+    expect(body.questions[0]).toMatchObject({ position: 0, result: "correct", correctOptionId: await correctOf(rows[0].question.id) });
+    expect(body.questions[1]).toMatchObject({ result: "wrong", selectedOptionId: await wrongOf(rows[1].question.id), correctOptionId: await correctOf(rows[1].question.id) });
+    expect(body.questions[2]).toMatchObject({ result: "skipped", selectedOptionId: null });
+    // Variantlar o'quvchiga ko'rsatilgan tartibda.
+    expect(body.questions[1].options.map((o: { id: string }) => o.id)).toEqual(rows[1].question.options.map((o) => o.id));
+    await http().get(`/admin/final-exam/attempts/00000000-0000-4000-8000-000000000000`).set(admin).expect(404);
   });
 });

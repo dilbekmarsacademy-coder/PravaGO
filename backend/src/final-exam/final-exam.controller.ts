@@ -5,6 +5,7 @@ import type { AdminUser } from "../admin/admin-request";
 import { AuthGuard, CurrentUser } from "../auth/auth.guard";
 import type { SessionUser } from "../auth/auth.service";
 import {
+  AdminFinalAttemptParamDto,
   AdminFinalExamQueryDto,
   AdminFinalResetDto,
   AdminFinalUserParamDto,
@@ -124,6 +125,11 @@ export class AdminFinalExamController {
   @Get("users/:userId")
   user(@Param() params: AdminFinalUserParamDto) {
     return this.service.adminUser(params.userId);
+  }
+
+  @Get("attempts/:attemptId")
+  attempt(@Param() params: AdminFinalAttemptParamDto) {
+    return this.service.adminAttempt(params.attemptId);
   }
 
   @Post("users/:userId/reset")

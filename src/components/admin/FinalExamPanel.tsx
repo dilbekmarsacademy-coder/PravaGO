@@ -1,8 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon, XIcon } from "lucide-react";
 import { adminFetch } from "@/lib/admin/api";
-import { formatDateTime } from "@/lib/admin/format";
+import { formatDateTime, formatDuration } from "@/lib/admin/format";
+import { localize, type LocalizedText } from "@/lib/i18n/localized";
+import { cn } from "@/lib/utils";
 import { EXAM_TYPE_LABEL, formatPercent, type AttemptSummary, type FinalExamType } from "@/lib/api/final-exam";
 import { Badge } from "@/components/shared/Badge";
 import { Button } from "@/components/shared/Button";
@@ -25,6 +29,23 @@ export interface AdminFinalExamUser {
   }[];
 }
 
+/** GET /admin/final-exam/attempts/:id — urinishdagi savollar, javob va to'g'ri javob bilan. */
+interface AdminAttemptDetail {
+  id: string;
+  questions: {
+    position: number;
+    questionId: string;
+    topicTitle: string | null;
+    day: number;
+    text: LocalizedText | null;
+    imageUrl: string | null;
+    options: { id: string; text: LocalizedText }[];
+    selectedOptionId: string | null;
+    correctOptionId: string | null;
+    result: "correct" | "wrong" | "skipped";
+  }[];
+}
+
 export const FINAL_STATUS: Record<AttemptSummary["status"], { label: string; tone: "success" | "danger" | "warning" }> = {
   FINISHED: { label: "Yakunlangan", tone: "success" },
   EXPIRED: { label: "Vaqt tugagan", tone: "danger" },
@@ -36,6 +57,7 @@ export function UserFinalExamPanel({ userId }: { userId: string }) {
   const [data, setData] = useState<AdminFinalExamUser | null>(null);
   const [confirming, setConfirming] = useState<FinalExamType | null>(null);
   const [busy, setBusy] = useState(false);
+  const [openAttempt, setOpenAttempt] = useState<string | null>(null);
 
   const load = useCallback(() => {
     adminFetch<AdminFinalExamUser>(`final-exam/users/${userId}`)
@@ -122,21 +144,52 @@ export function UserFinalExamPanel({ userId }: { userId: string }) {
                         <Th>Boshlangan</Th>
                         <Th>To&apos;g&apos;ri</Th>
                         <Th>Foiz</Th>
+                        <Th>Vaqt</Th>
                         <Th>Holat</Th>
+                        <Th>Xatolar</Th>
                       </tr>
                     </thead>
                     <tbody>
-                      {t.attempts.map((a, i) => (
-                        <tr key={a.id} data-testid="admin-final-row">
-                          <Td className="font-mono">{i + 1}</Td>
-                          <Td className="whitespace-nowrap">{formatDateTime(a.startedAt)}</Td>
-                          <Td className="font-mono whitespace-nowrap">{a.correct !== null ? `${a.correct}/${a.total}` : `${a.answered}/${a.total} javob`}</Td>
-                          <Td className="font-mono font-semibold">{a.percent !== null ? formatPercent(a.percent) : "—"}</Td>
-                          <Td>
-                            <Badge tone={FINAL_STATUS[a.status].tone}>{FINAL_STATUS[a.status].label}</Badge>
-                          </Td>
-                        </tr>
-                      ))}
+                      {t.attempts.map((a, i) => {
+                        const mistakes = a.correct !== null ? a.total - a.correct : null;
+                        const open = openAttempt === a.id;
+                        return (
+                          <Fragment key={a.id}>
+                            <tr data-testid="admin-final-row">
+                              <Td className="font-mono">{i + 1}</Td>
+                              <Td className="whitespace-nowrap">{formatDateTime(a.startedAt)}</Td>
+                              <Td className="font-mono whitespace-nowrap">{a.correct !== null ? `${a.correct}/${a.total}` : `${a.answered}/${a.total} javob`}</Td>
+                              <Td className="font-mono font-semibold">{a.percent !== null ? formatPercent(a.percent) : "—"}</Td>
+                              <Td className="whitespace-nowrap">
+                                {formatDuration(a.durationSec)}
+                                <span className="text-xs text-muted-foreground"> / {t.minutes} daq</span>
+                              </Td>
+                              <Td>
+                                <Badge tone={FINAL_STATUS[a.status].tone}>{FINAL_STATUS[a.status].label}</Badge>
+                              </Td>
+                              <Td>
+                                {mistakes === null ? (
+                                  <span className="text-muted-foreground">—</span>
+                                ) : mistakes === 0 ? (
+                                  <span className="text-sm text-success">xatosiz</span>
+                                ) : (
+                                  <Button variant="ghost" size="sm" onClick={() => setOpenAttempt(open ? null : a.id)} data-testid="admin-final-mistakes">
+                                    {mistakes} ta
+                                    {open ? <ChevronUpIcon className="size-4" /> : <ChevronDownIcon className="size-4" />}
+                                  </Button>
+                                )}
+                              </Td>
+                            </tr>
+                            {open && (
+                              <tr>
+                                <td colSpan={7} className="bg-surface/60 px-3 py-3">
+                                  <AttemptMistakes attemptId={a.id} />
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
+                        );
+                      })}
                     </tbody>
                   </Table>
                 </div>
@@ -146,5 +199,66 @@ export function UserFinalExamPanel({ userId }: { userId: string }) {
         </div>
       )}
     </Panel>
+  );
+}
+
+/** Urinishdagi xato va javobsiz qolgan savollar: o'quvchi tanlovi va to'g'ri javob. */
+function AttemptMistakes({ attemptId }: { attemptId: string }) {
+  const [data, setData] = useState<AdminAttemptDetail | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    adminFetch<AdminAttemptDetail>(`final-exam/attempts/${attemptId}`)
+      .then(setData)
+      .catch((err) => setError(err instanceof Error ? err.message : "Yuklab bo'lmadi"));
+  }, [attemptId]);
+
+  if (error) return <p className="text-sm text-danger">{error}</p>;
+  if (!data) return <LoadingBlock />;
+  const mistakes = data.questions.filter((q) => q.result !== "correct");
+  return (
+    <ol className="flex flex-col gap-3" data-testid="admin-final-mistake-list">
+      {mistakes.map((q) => (
+        <li key={q.position} className="rounded-xl border border-border bg-background p-3" data-testid="admin-final-mistake">
+          <div className="mb-1.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span className="font-mono font-bold text-foreground">{q.position + 1}-savol</span>
+            <span>
+              {q.day}-kun{q.topicTitle ? ` · ${q.topicTitle}` : ""}
+            </span>
+            <Badge tone={q.result === "wrong" ? "danger" : "warning"}>{q.result === "wrong" ? "Xato" : "Javob berilmagan"}</Badge>
+            <Link href={`/admin/questions/${q.questionId}`} className="ml-auto text-brand hover:underline">
+              Savolni ochish
+            </Link>
+          </div>
+          {q.text ? <p className="text-sm font-medium text-foreground">{localize(q.text, "uz-latn")}</p> : <p className="text-sm text-muted-foreground">Savol bazadan o&apos;chirilgan</p>}
+          {q.imageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={q.imageUrl} alt="" className="mt-2 max-h-40 rounded-lg border border-border" />
+          )}
+          <ul className="mt-2 flex flex-col gap-1">
+            {q.options.map((o) => {
+              const correct = o.id === q.correctOptionId;
+              const chosen = o.id === q.selectedOptionId;
+              return (
+                <li
+                  key={o.id}
+                  className={cn(
+                    "flex items-start gap-2 rounded-lg px-2 py-1 text-sm",
+                    correct && "bg-success/10 text-success",
+                    chosen && !correct && "bg-danger/10 text-danger",
+                  )}
+                >
+                  <span className="mt-0.5 size-4 shrink-0">
+                    {correct ? <CheckIcon className="size-4" /> : chosen ? <XIcon className="size-4" /> : null}
+                  </span>
+                  <span className="min-w-0 flex-1">{localize(o.text, "uz-latn")}</span>
+                  {chosen && <span className="shrink-0 text-xs font-semibold">o&apos;quvchi tanlovi</span>}
+                </li>
+              );
+            })}
+          </ul>
+        </li>
+      ))}
+    </ol>
   );
 }

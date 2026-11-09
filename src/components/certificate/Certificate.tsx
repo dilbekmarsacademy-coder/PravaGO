@@ -12,6 +12,8 @@ import { certificateFonts } from "./fonts";
 
 export const CERT_WIDTH = 1600;
 export const CERT_HEIGHT = 1131;
+/** Pastdagi muhr (akademiya logotipi) o'lchami, asos px. */
+const SEAL = 146;
 
 const C = {
   paper: "#fffdf6",
@@ -108,31 +110,16 @@ export const CertificateSheet = forwardRef<HTMLDivElement, { data: CertificateDa
         Haydovchilar akademiyasi tomonidan berildi · pravaishonch<span style={{ color: C.goldText }}>.uz</span>
       </Line>
 
-      {/* Muhr */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          top: 928,
-          left: (CERT_WIDTH - 136) / 2,
-          width: 136,
-          height: 136,
-          borderRadius: "50%",
-          background: `radial-gradient(circle at 38% 30%, #f6df8f 0%, #dcbb56 38%, #c39a2c 72%, #a98317 100%)`,
-          boxShadow: `0 0 0 3px ${C.paper}, 0 0 0 5px ${C.gold}`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <div style={{ position: "absolute", inset: 7, borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.85)" }} />
-        <div style={{ position: "absolute", inset: 11, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.6)" }} />
-        <div style={{ ...poppins, fontSize: 11.5, fontWeight: 700, lineHeight: 1.35, color: "#fff", textAlign: "center", letterSpacing: "0.04em", textShadow: "0 1px 1px rgba(120,90,10,0.35)" }}>
-          HAYDOVCHILAR
-          <br />
-          AKADEMIYASI
-        </div>
-      </div>
+      {/* Muhr — Haydovchilar akademiyasi logotipi (public/logo/akademiya-seal.png, doira, shaffof burchaklar). */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/logo/akademiya-seal.png"
+        alt="Haydovchilar akademiyasi"
+        width={SEAL}
+        height={SEAL}
+        data-testid="certificate-seal"
+        style={{ position: "absolute", top: 1072 - SEAL, left: (CERT_WIDTH - SEAL) / 2, width: SEAL, height: SEAL, borderRadius: "50%", boxShadow: `0 0 0 3px ${C.paper}, 0 0 0 5px ${C.gold}, 0 6px 14px rgba(11,31,68,0.25)` }}
+      />
 
       <div style={{ position: "absolute", left: 111, top: 1000, lineHeight: 1 }}>
         <div style={{ ...lora, fontSize: 21, color: C.slate }}>Sana</div>

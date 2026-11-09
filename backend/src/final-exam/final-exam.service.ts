@@ -71,7 +71,13 @@ function attemptSummary(a: FinalExamAttempt) {
     answered,
     correct: done ? a.correctCount : null,
     percent: done ? a.scorePercent : null,
+    /** Sarflangan vaqt (soniya): yakunlangan urinishda boshlanishdan tugashgacha. */
+    durationSec: done && a.finishedAt ? durationSec(a.startedAt, a.finishedAt) : null,
   };
+}
+
+function durationSec(startedAt: Date, finishedAt: Date): number {
+  return Math.max(0, Math.round((finishedAt.getTime() - startedAt.getTime()) / 1000));
 }
 
 const userBrief = { id: true, firstName: true, lastName: true, phone: true, login: true, type: true } satisfies Prisma.UserSelect;
@@ -366,7 +372,7 @@ export class FinalExamService {
     return {
       ...attemptSummary(a),
       remainingMs: remainingMs(a),
-      durationSec: Math.round(((a.finishedAt ?? new Date()).getTime() - a.startedAt.getTime()) / 1000),
+      durationSec: durationSec(a.startedAt, a.finishedAt ?? new Date()),
       limitSec: FINAL_EXAM_TYPES[a.type].minutes * 60,
       attemptNo: index >= 0 ? index + 1 : null,
       archived: a.archivedAt !== null,
@@ -634,6 +640,50 @@ export class FinalExamService {
           attempts: list.map(attemptSummary),
           archivedCount: attempts.filter((a) => a.type === type && a.archivedAt !== null).length,
           certificate: cert ? { certificateNumber: cert.certificateNumber, averagePercent: cert.averagePercent, issuedAt: cert.issuedAt, fullName: cert.fullName } : null,
+        };
+      }),
+    };
+  }
+
+  /**
+   * Admin: yakunlangan urinish savollari — o'quvchi javobi, to'g'ri javob va natija
+   * (xato / javobsiz). Faol urinishda 409: imtihon davomida javoblar ko'rsatilmaydi.
+   */
+  async adminAttempt(attemptId: string) {
+    await this.expireOverdue();
+    const attempt = await this.prisma.finalExamAttempt.findUnique({ where: { id: attemptId } });
+    if (!attempt) throw new NotFoundException({ statusCode: 404, code: "FINAL_EXAM_NOT_FOUND", message: "Urinish topilmadi" });
+    if (attempt.status === "IN_PROGRESS") throw conflict("FINAL_EXAM_IN_PROGRESS", "Urinish hali yakunlanmagan");
+    const items = questionsOf(attempt);
+    const answers = answersOf(attempt);
+    const rows = await this.prisma.question.findMany({
+      where: { id: { in: items.map((q) => q.questionId) } },
+      include: { options: { orderBy: OPTION_ORDER }, topic: { select: { slug: true, title: true } } },
+    });
+    const byId = new Map(rows.map((q) => [q.id, q]));
+    return {
+      ...attemptSummary(attempt),
+      userId: attempt.userId,
+      questions: items.map((item, position) => {
+        const q = byId.get(item.questionId);
+        const selectedOptionId = answers[position]?.optionId ?? null;
+        const correctOptionId = q?.options.find((o) => o.isCorrect)?.id ?? null;
+        const options = q ? new Map(q.options.map((o) => [o.id, o])) : new Map();
+        const ordered = q ? [...item.optionOrder.flatMap((oid) => options.get(oid) ?? []), ...q.options.filter((o) => !item.optionOrder.includes(o.id))] : [];
+        return {
+          position,
+          questionId: item.questionId,
+          topicSlug: item.topicSlug,
+          topicTitle: q?.topic.title ?? null,
+          day: item.day,
+          /** Savol bazadan o'chirilgan bo'lsa — matn yo'q. */
+          text: q ? questionText(q) : null,
+          imageUrl: q?.imageUrl ?? null,
+          options: ordered.map((o) => ({ id: o.id, text: optionText(o) })),
+          selectedOptionId,
+          correctOptionId,
+          answeredAt: answers[position]?.answeredAt ?? null,
+          result: !selectedOptionId ? "skipped" : item.correct ? "correct" : "wrong",
         };
       }),
     };

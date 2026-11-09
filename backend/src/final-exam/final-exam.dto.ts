@@ -66,6 +66,11 @@ export class AdminFinalUserParamDto {
   userId: string;
 }
 
+export class AdminFinalAttemptParamDto {
+  @IsUUID()
+  attemptId: string;
+}
+
 export class AdminFinalResetDto {
   @IsIn(["Q20", "Q50"])
   type: "Q20" | "Q50";

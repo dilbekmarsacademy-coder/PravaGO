@@ -31,6 +31,8 @@ export interface AttemptSummary {
   answered: number;
   correct: number | null;
   percent: number | null;
+  /** Sarflangan vaqt (soniya) — faqat yakunlangan urinishda. */
+  durationSec: number | null;
 }
 
 export interface TypeOverview {
