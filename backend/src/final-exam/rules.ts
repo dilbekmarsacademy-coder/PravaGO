@@ -7,6 +7,12 @@ export const FINAL_EXAM_TYPES: Record<FinalExamType, { questions: number; minute
   Q50: { questions: 50, minutes: 45 },
 };
 
+/**
+ * Imtihon 1–6-kun mavzulari tugatilishini talab qiladimi. false — o'quvchi
+ * to'g'ridan-to'g'ri kirib topshira oladi (kursga kirish huquqi baribir kerak).
+ */
+export const FINAL_EXAM_REQUIRES_COURSE = false;
+
 /** Har bir tur uchun alohida urinishlar soni. */
 export const FINAL_EXAM_MAX_ATTEMPTS = 10;
 /** O'tish uchun 10 ta urinish o'rtachasi (1 xona kasr bilan) kamida shuncha bo'lishi kerak. */

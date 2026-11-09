@@ -69,7 +69,8 @@ export function UserFinalExamPanel({ userId }: { userId: string }) {
       ) : (
         <div className="flex flex-col gap-5" data-testid="user-final-exam">
           <p className="text-sm text-muted-foreground">
-            {data.unlocked ? "Imtihon ochiq (1–6-kun mavzulari tugagan)." : `Imtihon yopiq — ${data.remainingTopics} ta mavzu tugatilmagan.`}
+            {data.unlocked ? "Imtihon ochiq." : "Imtihon yopiq."}{" "}
+            {data.remainingTopics > 0 ? `1–6-kunda ${data.remainingTopics} ta mavzu hali tugatilmagan.` : "1–6-kun mavzulari tugagan."}
           </p>
           {data.types.map((t) => (
             <div key={t.type} className="rounded-2xl border border-border p-4">
