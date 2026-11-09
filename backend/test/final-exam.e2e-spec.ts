@@ -120,18 +120,25 @@ afterAll(async () => {
 });
 
 describe("Yakuniy imtihon — qulf va boshlash", () => {
-  it("1–6-kun tugatilmagan — boshlay olmaydi (403), kabinetda qulf; sessiyasiz — 401", async () => {
+  it("1–6-kun tugatilmagan ham to'g'ridan-to'g'ri boshlay oladi (kurs sharti o'chirilgan); sessiyasiz — 401", async () => {
     const user = await newUser();
     await http().get("/final-exam").expect(401);
     const overview = (await http().get("/final-exam").set(user.auth).expect(200)).body;
-    expect(overview).toMatchObject({ unlocked: false, poolSize: SLUGS.length * PER_TOPIC });
+    expect(overview).toMatchObject({ unlocked: true, poolSize: SLUGS.length * PER_TOPIC });
+    // Kurs progressi ma'lumot sifatida qaytadi (admin uchun), imtihonni to'smaydi.
     expect(overview.remainingTopics).toBeGreaterThanOrEqual(SLUGS.length);
-    expect((await http().post("/final-exam").set(user.auth).send({ type: "Q20" }).expect(403)).body.code).toBe("FINAL_EXAM_LOCKED");
-    // Bitta mavzu 97% — hali ham yopiq.
-    await completeCourse(user.userId);
-    await prisma.topicTestAttempt.deleteMany({ where: { userId: user.userId, topicId: topicIds[0] } });
-    await prisma.topicTestAttempt.create({ data: { userId: user.userId, topicId: topicIds[0], correct: 97, total: 100, percent: 97 } });
-    expect((await http().post("/final-exam").set(user.auth).send({ type: "Q20" }).expect(403)).body.remainingTopics).toBe(1);
+    const state = (await http().post("/final-exam").set(user.auth).send({ type: "Q20" }).expect(201)).body;
+    expect(state).toMatchObject({ type: "Q20", status: "IN_PROGRESS", total: 20, attemptNo: 1 });
+  });
+
+  it("kursga kirish huquqi baribir kerak (to'lov sharti yoqilgan, to'lanmagan — 403)", async () => {
+    const user = await newUser();
+    process.env.PAYMENT_ENFORCED = "true";
+    try {
+      await http().post("/final-exam").set(user.auth).send({ type: "Q20" }).expect(403);
+    } finally {
+      process.env.PAYMENT_ENFORCED = "false";
+    }
   });
 
   it("20 talik: savollar faqat 1–6-kun testlaridan, kunlar teng, ketma-ket bir mavzu yo'q, to'g'ri javob chiqmaydi", async () => {

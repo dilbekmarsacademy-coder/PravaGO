@@ -11,7 +11,7 @@ import { LESSONS, lessonTopicSlug } from "../lessons/lessons.config";
 import { userSearch } from "../payments/payments.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { buildFailureNote, buildLetter, type WeakTopic } from "./letter";
-import { FINAL_EXAM_MAX_ATTEMPTS, FINAL_EXAM_TYPES, averagePercent, certificateNumber, isPassed, scorePercent } from "./rules";
+import { FINAL_EXAM_MAX_ATTEMPTS, FINAL_EXAM_REQUIRES_COURSE, FINAL_EXAM_TYPES, averagePercent, certificateNumber, isPassed, scorePercent } from "./rules";
 import { selectExamQuestions, type PoolQuestion } from "./selection";
 
 // Yakuniy ichki imtihon (7-kun). Savollar faqat 1–6-kun mavzu testlaridan.
@@ -135,8 +135,14 @@ export class FinalExamService {
     return { unlocked: remaining === 0, remainingTopics: remaining };
   }
 
+  /** Imtihon ochiqmi: kurs sharti o'chirilgan bo'lsa — hammaga (kursga kirish huquqi bilan). */
+  async examLock(userId: string): Promise<{ unlocked: boolean; remainingTopics: number }> {
+    const course = await this.unlockState(userId);
+    return { unlocked: !FINAL_EXAM_REQUIRES_COURSE || course.unlocked, remainingTopics: course.remainingTopics };
+  }
+
   private async assertUnlocked(userId: string): Promise<void> {
-    const { unlocked, remainingTopics } = await this.unlockState(userId);
+    const { unlocked, remainingTopics } = await this.examLock(userId);
     if (!unlocked) {
       throw new ForbiddenException({
         statusCode: 403,
@@ -277,7 +283,7 @@ export class FinalExamService {
     await this.access.assertCourseAccess(userId);
     await this.expireOverdue(userId);
     const [lock, poolSize, q20, q50] = await Promise.all([
-      this.unlockState(userId),
+      this.examLock(userId),
       this.pool().then((p) => p.length),
       this.typeOverview(userId, "Q20"),
       this.typeOverview(userId, "Q50"),
@@ -610,7 +616,7 @@ export class FinalExamService {
     const [attempts, certificates, lock] = await Promise.all([
       this.prisma.finalExamAttempt.findMany({ where: { userId }, orderBy: { startedAt: "asc" } }),
       this.prisma.certificate.findMany({ where: { userId } }),
-      this.unlockState(userId),
+      this.examLock(userId),
     ]);
     return {
       user,

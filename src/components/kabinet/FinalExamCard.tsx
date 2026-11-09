@@ -23,13 +23,13 @@ interface FinalExamCardProps {
   examStatus: ExamStatus;
   attemptsUsed: number;
   maxAttempts: number;
-  /** Kabinetdagi hisob (server javobi kelguncha); qaror — serverda. */
+  /** Kabinetdagi hisob — endi ishlatilmaydi: imtihon qulfi serverda (kurs sharti o'chirilgan). */
   unlocked: boolean;
   /** Savollar bazasi — 1–6-kunlardagi barcha mavzular savollari yig'indisi. */
   poolSize: number;
 }
 
-export default function FinalExamCard({ unlocked: localUnlocked, poolSize }: FinalExamCardProps) {
+export default function FinalExamCard({ poolSize }: FinalExamCardProps) {
   const { t } = useLocale();
   const router = useRouter();
   const labels = t.kabinet.finalExam;
@@ -53,7 +53,8 @@ export default function FinalExamCard({ unlocked: localUnlocked, poolSize }: Fin
     load();
   }, [load]);
 
-  const unlocked = overview ? overview.unlocked : localUnlocked;
+  // Server javobi kelguncha ochiq ko'rsatiladi; boshlash tugmasi baribir server javobidan keyin chiqadi.
+  const unlocked = overview ? overview.unlocked : true;
   const isAvailable = FINAL_EXAM_FLOW_ENABLED && unlocked;
 
   return (
