@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ interface OfferStepProps {
 export default function OfferStep({ stepLabel, onAccept, onCenterLogin }: OfferStepProps) {
   const [checked, setChecked] = useState(false);
   const { t } = useLocale();
+  const consent = t.registerModal.offer.consent;
 
   return (
     <div className="flex flex-col gap-5">
@@ -28,39 +30,35 @@ export default function OfferStep({ stepLabel, onAccept, onCenterLogin }: OfferS
         </DialogTitle>
       </div>
 
-      <div className="h-48 overflow-y-auto rounded-xl border border-border bg-foreground/[0.03] p-4 text-sm leading-relaxed text-muted-foreground">
-        {/* TODO: real oferta matni bilan almashtiriladi */}
-        <p className="mb-3">
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ushbu
-          hujjat PravaIshonch platformasidan foydalanish shartlarini
-          belgilaydi. Foydalanuvchi ro&rsquo;yxatdan o&rsquo;tish orqali quyida
-          keltirilgan shartlarga rozilik bildiradi.
-        </p>
-        <p className="mb-3">
-          Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-          Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris
-          nisi ut aliquip ex ea commodo consequat.
-        </p>
-        <p className="mb-3">
-          Duis aute irure dolor in reprehenderit in voluptate velit esse
-          cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat
-          cupidatat non proident, sunt in culpa qui officia deserunt mollit
-          anim id est laborum.
-        </p>
-        <p>
-          Platforma xizmatlaridan foydalanish, to&rsquo;lov shartlari va
-          shaxsiy ma&rsquo;lumotlarni qayta ishlash tartibi ushbu oferta bilan
-          tartibga solinadi.
-        </p>
+      <div className="max-h-56 overflow-y-auto rounded-xl border border-border bg-foreground/[0.03] p-4 text-sm leading-relaxed text-muted-foreground">
+        <p className="mb-2">{t.registerModal.offer.intro}</p>
+        <ul className="flex list-disc flex-col gap-1.5 pl-5">
+          {t.registerModal.offer.rules.map((rule) => (
+            <li key={rule}>{rule}</li>
+          ))}
+        </ul>
       </div>
 
+      {/* Mavjud foydalanuvchilardan qayta so'ralmaydi.
+          TODO(to'lov): onlayn to'lovdan oldin ham oferta va qaytarish siyosatiga rozilik so'ralsin. */}
       <label className="flex cursor-pointer items-start gap-3 text-sm text-foreground/90">
         <Checkbox
           checked={checked}
           onCheckedChange={(value) => setChecked(value === true)}
           className="mt-0.5"
+          data-testid="register-consent"
         />
-        <span>{t.registerModal.offer.checkbox}</span>
+        <span>
+          {consent.pre}
+          <Link href="/oferta" target="_blank" className="font-semibold text-neon-orange underline-offset-2 hover:underline">
+            {consent.offer}
+          </Link>
+          {consent.mid}
+          <Link href="/maxfiylik" target="_blank" className="font-semibold text-neon-orange underline-offset-2 hover:underline">
+            {consent.privacy}
+          </Link>
+          {consent.post}
+        </span>
       </label>
 
       <Button

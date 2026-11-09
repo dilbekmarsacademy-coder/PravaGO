@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import HomePage from "@/components/home/HomePage";
+import SiteFooter from "@/components/legal/SiteFooter";
 import { BRAND_ALT_NAMES, BRAND_NAME, SITE_DESCRIPTION, SITE_URL, SOCIAL_LINKS } from "@/lib/seo";
 
 // Qidiruv tizimlari uchun tuzilgan ma'lumot: sayt nomi (variantlari bilan) va tashkilot logosi.
@@ -40,7 +41,7 @@ export default function Page() {
         // Faqat statik, o'zimizning ma'lumotlar; `<` qochiriladi.
         dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD).replace(/</g, "\\u003c") }}
       />
-      <HomePage />
+      <HomePage footer={<SiteFooter />} />
     </>
   );
 }

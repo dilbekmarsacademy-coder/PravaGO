@@ -81,11 +81,21 @@ export interface Dictionary {
     somLabel: string;
     ommabop: string;
     tanlash: string;
+    /** Muddat almashtirgich: 7 → "1 hafta", 30 → "1 oy". */
+    durationLabel: (days: number) => string;
+    /** "14 kun uchun" */
+    period: (days: number) => string;
+    /** Premium/Mentor muddati: "Imtihondan o'tguncha". */
+    untilPassed: string;
+    trialNote: (days: number) => string;
+    /** /tariflar havolasi */
+    details: string;
+    /** Narx va muddat — src/config/tariffs.ts; tartib TARIFFS bilan bir xil. */
     plans: {
       name: string;
-      price: string;
-      periodLabel: string;
       desc: string;
+      /** "Standartdagi hamma narsa +" yoki null. */
+      inherits: string | null;
       features: string[];
     }[];
   };
@@ -123,6 +133,12 @@ export interface Dictionary {
     copyright: string;
     /** "Biz haqimizda": brend nomi ikkala shaklda (PravaIshonch / Prava Ishonch). */
     about: string;
+    /** Ommaviy sahifalar (/tariflar, /oferta, /qaytarish, /maxfiylik, /aloqa). */
+    links: { tariffs: string; offer: string; refund: string; privacy: string; contact: string };
+    contactsTitle: string;
+    legalTitle: string;
+    workingHours: string;
+    stir: string;
   };
 
   registerModal: {
@@ -130,7 +146,10 @@ export interface Dictionary {
     yopish: string;
     offer: {
       title: string;
-      checkbox: string;
+      intro: string;
+      rules: string[];
+      /** Rozilik: "{pre}<oferta>{mid}<maxfiylik siyosati>{post}" — havolalar /oferta va /maxfiylik. */
+      consent: { pre: string; offer: string; mid: string; privacy: string; post: string };
       cta: string;
     };
     status: {

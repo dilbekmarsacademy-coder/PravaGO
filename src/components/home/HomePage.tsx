@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Header from "@/components/home/Header";
 import Hero from "@/components/home/Hero";
 import TrustStats from "@/components/home/TrustStats";
@@ -10,7 +10,6 @@ import ProductPreview from "@/components/home/ProductPreview";
 import Pricing from "@/components/home/Pricing";
 import Testimonials from "@/components/home/Testimonials";
 import FinalCta from "@/components/home/FinalCta";
-import Footer from "@/components/home/Footer";
 import RegisterModal from "@/components/home/RegisterModal/RegisterModal";
 import CenterLoginModal from "@/components/home/CenterLoginModal";
 import { takeKickReason, type KickReason } from "@/lib/api/session";
@@ -18,8 +17,10 @@ import { showToast } from "@/components/shared/Toast";
 import { TRANSFER_FAILED_KEY } from "@/components/transfer/TransferView";
 import { useLocale } from "@/lib/i18n/useLocale";
 import type { ExamStatus } from "@/components/home/types";
+import { SHOW_TESTIMONIALS } from "@/config/features";
 
-export default function HomePage() {
+/** `footer` — server komponent (SiteFooter: rekvizitlar serverda tekshiriladi). */
+export default function HomePage({ footer }: { footer: ReactNode }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [examStatus, setExamStatus] = useState<ExamStatus | null>(null);
   const [centerOpen, setCenterOpen] = useState(false);
@@ -68,10 +69,11 @@ export default function HomePage() {
         <HowItWorks />
         <ProductPreview onStart={() => openRegister()} />
         <Pricing onStart={() => openRegister()} />
-        <Testimonials />
+        {/* Namuna fikrlar yopiq — haqiqiy sharhlar kelganda NEXT_PUBLIC_SHOW_TESTIMONIALS=true. */}
+        {SHOW_TESTIMONIALS && <Testimonials />}
         <FinalCta onStart={() => openRegister()} />
       </main>
-      <Footer />
+      {footer}
       <RegisterModal
         open={modalOpen}
         onOpenChange={setModalOpen}

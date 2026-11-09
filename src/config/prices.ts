@@ -22,7 +22,5 @@ export const COURSE_FEATURES = [
   "7-kun yakuniy imtihon",
 ];
 
-export function formatSom(amount: number): string {
-  const grouped = amount.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-  return `${grouped} so'm`;
-}
+// Narx formati — yagona yordamchi (src/config/tariffs.ts).
+export { formatSom } from "./tariffs";

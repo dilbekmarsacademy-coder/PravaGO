@@ -23,7 +23,7 @@ export default function Header({ onRegisterClick }: HeaderProps) {
     { href: "#dastur", label: t.header.nav.dastur },
     { href: "#qanday-ishlaydi", label: t.header.nav.qandayIshlaydi },
     { href: "#natijalar", label: t.header.nav.natijalar },
-    { href: "#narxlar", label: t.header.nav.narxlar },
+    { href: "/tariflar", label: t.footer.links.tariffs },
     { href: "#biz-haqimizda", label: t.header.nav.bizHaqimizda },
   ];
 

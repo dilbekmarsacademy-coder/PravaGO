@@ -1,5 +1,6 @@
 import type { Dictionary } from "../dictionary";
 import { formatNumber } from "../localized";
+import { TARIFFS, UNTIL_PASSED_LABEL, inheritsLabel } from "@/config/tariffs";
 
 const num = (value: number) => formatNumber(value, "uz-latn");
 
@@ -42,7 +43,7 @@ export const uzLatn: Dictionary = {
   trustStats: {
     items: [
       { value: "63", unit: "BILET", desc: "To'liq yangilangan bazasi" },
-      { value: "1 260", unit: "SAVOL", desc: "Rasmiy YHXBB imtihon bazasi" },
+      { value: "1 260", unit: "SAVOL", desc: "YHXBB imtihon savollari asosida" },
       { value: "6+1", unit: "KUN", desc: "Bosqichma-bosqich tezlashtirilgan tizim" },
       { value: "98%", unit: "PASSRATE", desc: "Keyingi bosqichga o'tish talabi" },
     ],
@@ -89,7 +90,7 @@ export const uzLatn: Dictionary = {
     desc: "Video darsdan tortib yakuniy ichki imtihongacha — butun tayyorgarlik jarayoni bitta shaxsiy kabinetda, aniq bosqichlar bilan boshqariladi.",
     checklist: [
       "Mavzuli video darslar",
-      "1 260 ta rasmiy savol",
+      "YHXBB savollari asosida 1 260 ta savol",
       "Avtomatik natija nazorati",
       "Qayta ishlash imkoniyati",
       "Yakuniy ichki imtihon",
@@ -108,44 +109,17 @@ export const uzLatn: Dictionary = {
   pricing: {
     eyebrow: "Tariflar",
     heading: "O'zingizga mos rejani tanlang",
-    desc: "Barcha tariflarda to'liq savollar bazasi mavjud. Farqi — qo'shimcha video darslar va muddatda.",
+    desc: "Standart — testlar bilan mustaqil tayyorgarlik; Premium va Mentor — videodarslar, kurator va ustoz bilan imtihondan o'tguncha.",
     somLabel: "so'm",
-    ommabop: "Ommabop",
+    ommabop: "Mashhur",
     tanlash: "Tanlash",
-    plans: [
-      {
-        name: "Standart",
-        price: "300 000",
-        periodLabel: "14 kun uchun",
-        desc: "Asosiy tayyorgarlik uchun",
-        features: ["63 ta bilet", "1 260 ta savol", "Mavzuli testlar", "Xatolar ustida ishlash"],
-      },
-      {
-        name: "Pro",
-        price: "900 000",
-        periodLabel: "30 kun uchun",
-        desc: "Eng ko'p tanlanadigan tarif",
-        features: [
-          "63 ta bilet",
-          "1 260 ta savol",
-          "Video darslar",
-          "7 kunlik nazorat dasturi",
-          "Yakuniy ichki imtihon",
-        ],
-      },
-      {
-        name: "Max",
-        price: "1 500 000",
-        periodLabel: "30 kun uchun",
-        desc: "To'liq imkoniyatlar bilan",
-        features: [
-          "Pro tarifidagi barchasi",
-          "Mnemonika video darslari",
-          "Cheklanmagan qayta urinish",
-          "Ustuvor qo'llab-quvvatlash",
-        ],
-      },
-    ],
+    durationLabel: (days) => (days === 7 ? "1 hafta" : days === 14 ? "2 hafta" : days === 30 ? "1 oy" : `${days} kun`),
+    period: (days) => `${days} kun uchun`,
+    untilPassed: UNTIL_PASSED_LABEL,
+    trialNote: (days) => `${days} kunlik bepul sinov`,
+    details: "Barcha tariflar",
+    // Matnlar src/config/tariffs.ts dan (o'zbek lotin — yagona manba).
+    plans: TARIFFS.map((t) => ({ name: t.name, desc: t.summary, inherits: inheritsLabel(t), features: t.features })),
   },
 
   testimonials: {
@@ -159,7 +133,7 @@ export const uzLatn: Dictionary = {
       },
       {
         name: "Madina Yusupova",
-        role: "Pro tarif",
+        role: "Premium tarif",
         text: "Video darslar tufayli chorrahalardagi qoidalarni oxiri tushunib yetdim. 7 kunlik dastur juda qulay tuzilgan.",
       },
       {
@@ -192,7 +166,12 @@ export const uzLatn: Dictionary = {
   footer: {
     tagline: "Onlayn haydovchilik imtihoniga tayyorgarlik platformasi",
     copyright: "© 2026 PravaIshonch. Barcha huquqlar himoyalangan.",
-    about: "PravaIshonch (Prava Ishonch) — haydovchilik guvohnomasi imtihoniga onlayn tayyorlov platformasi. Prava Ishonch kursida video darslar, kalit soʻzlar va rasmiy biletlar asosidagi testlar bilan 7 kunda imtihonga tayyorlanasiz.",
+    about: "PravaIshonch (Prava Ishonch) — haydovchilik guvohnomasi imtihoniga onlayn tayyorlov platformasi. Prava Ishonch kursida video darslar, kalit soʻzlar va YHXBB imtihon savollari asosidagi testlar bilan 7 kunda imtihonga tayyorlanasiz.",
+    links: { tariffs: "Tariflar", offer: "Ommaviy oferta", refund: "Qaytarish siyosati", privacy: "Maxfiylik siyosati", contact: "Aloqa" },
+    contactsTitle: "Aloqa",
+    legalTitle: "Hujjatlar",
+    workingHours: "Ish vaqti",
+    stir: "STIR",
   },
 
   registerModal: {
@@ -200,7 +179,14 @@ export const uzLatn: Dictionary = {
     yopish: "Yopish",
     offer: {
       title: "Ommaviy oferta shartlari",
-      checkbox: "Men ommaviy oferta shartlari bilan tanishdim va roziman",
+      intro: "Ro'yxatdan o'tishdan oldin ommaviy oferta va maxfiylik siyosati bilan tanishing. Asosiy qoidalar:",
+      rules: [
+        "Xizmat 16 yoshdan katta foydalanuvchilar uchun.",
+        "Bitta akkaunt faqat 1 ta qurilmada ishlaydi; akkauntni boshqalarga berish mumkin emas.",
+        "1 kunlik bepul sinovdan keyin amalga oshirilgan to'lov qaytarilmaydi.",
+        "Ism, telefon raqam va test natijalari faqat xizmat ko'rsatish uchun ishlatiladi.",
+      ],
+      consent: { pre: "16 yoshdan kattaman va ", offer: "oferta", mid: " hamda ", privacy: "maxfiylik siyosati", post: "ga roziman" },
       cta: "Davom etish",
     },
     status: {
