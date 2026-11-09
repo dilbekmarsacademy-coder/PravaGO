@@ -169,9 +169,12 @@ export default function CelebrationOverlay({ certificate: initial, startWith = "
           )}
 
           {stage === "certificate" && (
-            <motion.div key="certificate" className="flex w-full max-w-5xl flex-col items-center gap-6">
+            <motion.div key="certificate" className="flex w-full flex-col items-center gap-6">
               <motion.div
                 className="w-full"
+                // Sertifikat va "Rahmat" tugmasi har doim bitta ekranga sig'adi: kenglik ekran
+                // balandligidan (nisbat 1600:1131) va 52rem dan oshmaydi.
+                style={{ maxWidth: "min(52rem, calc((100dvh - 11rem) * 1.4147))" }}
                 initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.6, rotate: -6 }}
                 animate={{ opacity: 1, scale: 1, rotate: 0 }}
                 transition={reduced ? { duration: 0.3 } : { delay: 0.5, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
