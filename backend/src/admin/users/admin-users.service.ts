@@ -123,11 +123,12 @@ export class AdminUsersService {
 
     const topics = await loadCourseTopics(this.prisma);
     const [attempts, reviews, wrong] = await Promise.all([
-      this.prisma.topicTestAttempt.findMany({ where: { userId: id }, orderBy: { createdAt: "asc" }, select: { topicId: true, percent: true, createdAt: true } }),
+      // Joriy hafta natijalari (kabinetdagi bilan bir xil); oldingi haftalar — "Natijalar arxivi" panelida.
+      this.prisma.topicTestAttempt.findMany({ where: { userId: id, archivedAt: null }, orderBy: { createdAt: "asc" }, select: { topicId: true, percent: true, createdAt: true } }),
       this.prisma.keywordReview.groupBy({ by: ["questionId"], where: { userId: id } }),
       this.prisma.answerLog.groupBy({
         by: ["questionId"],
-        where: { userId: id, correct: false },
+        where: { userId: id, correct: false, archivedAt: null },
         _count: { _all: true },
         orderBy: { _count: { questionId: "desc" } },
         take: 10,

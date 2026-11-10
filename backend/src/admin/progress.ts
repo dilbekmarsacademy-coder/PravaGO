@@ -36,13 +36,13 @@ export interface UserProgress {
   passedDays: number[];
 }
 
-/** userId → (topicId → eng yaxshi foiz). */
+/** userId → (topicId → eng yaxshi foiz). Faqat joriy hafta — arxivlanganlari "Natijalar arxivi"da. */
 export async function loadBestPercents(prisma: PrismaService, userIds: string[]): Promise<Map<string, Map<string, number>>> {
   const out = new Map<string, Map<string, number>>();
   if (userIds.length === 0) return out;
   const rows = await prisma.topicTestAttempt.groupBy({
     by: ["userId", "topicId"],
-    where: { userId: { in: userIds } },
+    where: { userId: { in: userIds }, archivedAt: null },
     _max: { percent: true },
   });
   for (const row of rows) {
