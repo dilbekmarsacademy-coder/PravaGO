@@ -16,7 +16,7 @@ export const uzCyrl: Dictionary = {
       boshSahifa: "Бош саҳифа",
       dastur: "Дастур",
       qandayIshlaydi: "Қандай ишлайди",
-      natijalar: "Натижалар",
+      afzalliklar: "Афзалликлар",
       narxlar: "Нархлар",
       bizHaqimizda: "Биз ҳақимизда",
     },

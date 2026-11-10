@@ -29,7 +29,7 @@ export default function Footer({ requisites }: { requisites: Pick<Requisites, "s
     { href: "/#bosh-sahifa", label: t.header.nav.boshSahifa },
     { href: "/#dastur", label: t.header.nav.dastur },
     { href: "/#qanday-ishlaydi", label: t.header.nav.qandayIshlaydi },
-    { href: "/#natijalar", label: t.header.nav.natijalar },
+    { href: "/#afzalliklar", label: t.header.nav.afzalliklar },
     { href: "/tariflar", label: t.footer.links.tariffs },
   ];
 

@@ -17,7 +17,7 @@ export const uzLatn: Dictionary = {
       boshSahifa: "Bosh sahifa",
       dastur: "Dastur",
       qandayIshlaydi: "Qanday ishlaydi",
-      natijalar: "Natijalar",
+      afzalliklar: "Afzalliklar",
       narxlar: "Narxlar",
       bizHaqimizda: "Biz haqimizda",
     },

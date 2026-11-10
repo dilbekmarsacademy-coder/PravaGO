@@ -19,7 +19,7 @@ export interface Dictionary {
       boshSahifa: string;
       dastur: string;
       qandayIshlaydi: string;
-      natijalar: string;
+      afzalliklar: string;
       narxlar: string;
       bizHaqimizda: string;
     };

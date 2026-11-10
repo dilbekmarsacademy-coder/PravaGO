@@ -34,7 +34,7 @@ export const ru: Dictionary = {
       boshSahifa: "Главная",
       dastur: "Программа",
       qandayIshlaydi: "Как это работает",
-      natijalar: "Результаты",
+      afzalliklar: "Преимущества",
       narxlar: "Тарифы",
       bizHaqimizda: "О нас",
     },

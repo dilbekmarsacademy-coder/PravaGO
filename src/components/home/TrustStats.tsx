@@ -19,7 +19,7 @@ export default function TrustStats() {
 
   return (
     <section
-      id="natijalar"
+      id="afzalliklar"
       className="relative scroll-mt-20 border-y border-border px-5 py-14 sm:px-8"
     >
       <div
