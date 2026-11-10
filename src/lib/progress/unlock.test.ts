@@ -154,6 +154,13 @@ describe("isTopicUnlocked", () => {
     };
     expect(isTopicUnlocked(dayTopics[1], dayTopics, progressByTopicId, true)).toBe(true);
   });
+  it("keeps topics passed before the weekly reset open, without marking them completed", () => {
+    const progressByTopicId = {
+      t1: { topicId: "t1", videoWatched: true, pdfOpened: true, attempts: [], passedBefore: true },
+    };
+    expect(isTopicUnlocked(dayTopics[1], dayTopics, progressByTopicId, true)).toBe(true);
+    expect(isTopicCompleted(progressByTopicId.t1)).toBe(false);
+  });
 });
 
 describe("isDayUnlocked", () => {

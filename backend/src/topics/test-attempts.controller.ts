@@ -30,4 +30,10 @@ export class TestAttemptsController {
   list(@CurrentUser() user: SessionUser): Promise<TestAttemptDto[]> {
     return this.attempts.list(user.id);
   }
+
+  /** Haftalik yangilanishgacha o'tilgan mavzular (slug'lar) — qulf yopilmasligi uchun. */
+  @Get("attempts/passed-before")
+  passedBefore(@CurrentUser() user: SessionUser): Promise<string[]> {
+    return this.attempts.passedBefore(user.id);
+  }
 }

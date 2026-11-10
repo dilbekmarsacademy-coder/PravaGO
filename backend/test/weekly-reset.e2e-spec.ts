@@ -194,6 +194,8 @@ describe("Haftalik yangilanish — arxivlash va nollash", () => {
 
   it("foydalanuvchi API'lari 0 natija qaytaradi va arxivni ko'rsatmaydi", async () => {
     expect((await http().get("/attempts").set(user.auth).expect(200)).body).toEqual([]);
+    // Qulf yopilmasin: o'tilgan mavzular faqat slug sifatida (natijalarsiz).
+    expect((await http().get("/attempts/passed-before").set(user.auth).expect(200)).body).toEqual(["weekly-e2e-topic"]);
     const random = (await http().get("/random-tests").set(user.auth).expect(200)).body;
     expect(random.history).toEqual([]);
     const archivedRandom = await prisma.randomTestAttempt.findFirstOrThrow({ where: { userId: user.userId, archivedAt: { not: null } } });

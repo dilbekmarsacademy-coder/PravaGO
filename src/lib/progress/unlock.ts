@@ -34,7 +34,8 @@ export function isTopicDone(topic: Topic, progress: TopicProgress | undefined): 
  * esa mavzu ichida, video oxirigacha ko'rilguncha yopiq).
  */
 function isTopicPassable(topic: Topic, progressByTopicId: ProgressByTopicId): boolean {
-  return !topic.testSlug || isTopicDone(topic, progressByTopicId[topic.id]);
+  const progress = progressByTopicId[topic.id];
+  return !topic.testSlug || isTopicDone(topic, progress) || Boolean(progress?.passedBefore);
 }
 
 /** "Davom ettirish" uchun yaroqli: testi bor yoki videosi serverda mavjud. */
@@ -128,7 +129,7 @@ export function isFinalExamUnlocked(
     // 1-6-kunlar har doim mavzuga ega bo'lishi kerak — mavzu ro'yxati
     // noma'lum/bo'sh bo'lsa, bu kun "tugagan" deb hisoblanmaydi.
     if (dayTopics.length === 0) return false;
-    return dayTopics.every((topic) => isTopicDone(topic, progressByTopicId[topic.id]));
+    return dayTopics.every((topic) => isTopicDone(topic, progressByTopicId[topic.id]) || Boolean(progressByTopicId[topic.id]?.passedBefore));
   });
 }
 

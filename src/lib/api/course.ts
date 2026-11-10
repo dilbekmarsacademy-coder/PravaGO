@@ -7,7 +7,7 @@ import type { Day, ExamProgress, Topic, TopicProgress } from "@/lib/course-types
 import { COURSE_DAYS, COURSE_TOPICS } from "@/data/curriculum";
 import { MOCK_EXAM_PROGRESS, MOCK_TOPIC_PROGRESS } from "@/lib/mock/progress";
 import { listLessonStatuses, type LessonStatus } from "./lessons";
-import { listTestAttempts, type TestAttempt } from "./test";
+import { listPassedBeforeTopics, listTestAttempts, type TestAttempt } from "./test";
 import { getReadyCounts } from "./ready";
 
 const NETWORK_DELAY_MS = 700;
@@ -35,17 +35,18 @@ export async function getDashboardData(options?: { forceError?: boolean }): Prom
 
   // Video progressi va test natijalari haqiqiy backend'dan; ular ishlamasa ham
   // kabinet ochiladi (foizlar shunchaki ko'rsatilmaydi).
-  const [lessons, attempts, ready] = await Promise.all([
+  const [lessons, attempts, ready, passedBefore] = await Promise.all([
     listLessonStatuses().catch(() => [] as LessonStatus[]),
     listTestAttempts().catch(() => [] as TestAttempt[]),
     getReadyCounts().catch(() => null),
+    listPassedBeforeTopics().catch(() => [] as string[]),
   ]);
   const topics = withReadyCounts(COURSE_TOPICS, ready);
 
   return {
     days: COURSE_DAYS,
     topics,
-    topicProgress: withTestAttempts(withLessonProgress(MOCK_TOPIC_PROGRESS, topics, lessons), topics, attempts),
+    topicProgress: withPassedBefore(withTestAttempts(withLessonProgress(MOCK_TOPIC_PROGRESS, topics, lessons), topics, attempts), topics, passedBefore),
     examProgress: MOCK_EXAM_PROGRESS,
   };
 }
@@ -73,6 +74,19 @@ export function withTestAttempts(progress: TopicProgress[], topics: Topic[], att
     if (!topic) continue;
     const base = byTopic.get(topic.id) ?? { topicId: topic.id, videoWatched: false, pdfOpened: false, attempts: [] };
     byTopic.set(topic.id, { ...base, attempts: [...base.attempts, { percent: attempt.percent, date: attempt.createdAt }] });
+  }
+  return [...byTopic.values()];
+}
+
+/** Haftalik yangilanishgacha o'tilgan mavzular: qulf yopilmasin (natijalar esa nolda qoladi). */
+export function withPassedBefore(progress: TopicProgress[], topics: Topic[], slugs: string[]): TopicProgress[] {
+  if (slugs.length === 0) return progress;
+  const passed = new Set(slugs);
+  const byTopic = new Map(progress.map((item) => [item.topicId, item]));
+  for (const topic of topics) {
+    if (!topic.testSlug || !passed.has(topic.testSlug)) continue;
+    const base = byTopic.get(topic.id) ?? { topicId: topic.id, videoWatched: false, pdfOpened: false, attempts: [] };
+    byTopic.set(topic.id, { ...base, passedBefore: true });
   }
   return [...byTopic.values()];
 }

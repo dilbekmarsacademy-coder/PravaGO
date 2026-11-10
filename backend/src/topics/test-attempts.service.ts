@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { STUDENT_QUESTION_WHERE } from "../common/question-content";
+import { PASS_PERCENT } from "../common/rules";
 import { PrismaService } from "../prisma/prisma.service";
 import type { AttemptAnswerDto, TestAttemptDto } from "./dto/test-attempt.dto";
 
@@ -48,5 +49,19 @@ export class TestAttemptsService {
       include: { topic: { select: { slug: true } } },
     });
     return rows.map((r) => ({ topicSlug: r.topic.slug, correct: r.correct, total: r.total, percent: r.percent, createdAt: r.createdAt }));
+  }
+
+  /**
+   * Haftalik yangilanishdan oldin o'tilgan (>= PASS_PERCENT) mavzular — faqat
+   * slug'lar, natijalarsiz. Kabinetda keyingi mavzular ochiq qolishi uchun:
+   * natijalar nolga tushadi, lekin qulf qayta yopilmaydi.
+   */
+  async passedBefore(userId: string): Promise<string[]> {
+    const rows = await this.prisma.topicTestAttempt.findMany({
+      where: { userId, archivedAt: { not: null }, percent: { gte: PASS_PERCENT } },
+      distinct: ["topicId"],
+      select: { topic: { select: { slug: true } } },
+    });
+    return rows.map((r) => r.topic.slug);
   }
 }

@@ -30,6 +30,11 @@ export interface TopicProgress {
   videoPercent?: number;
   pdfOpened: boolean;
   attempts: TopicAttempt[];
+  /**
+   * Haftalik yangilanishgacha o'tilgan (natija nolga tushgan): keyingi mavzularni
+   * qulflamaydi, lekin "tugagan" deb ko'rsatilmaydi va foizlarga kirmaydi.
+   */
+  passedBefore?: boolean;
 }
 
 export interface ExamProgress {

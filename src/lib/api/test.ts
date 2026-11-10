@@ -138,3 +138,8 @@ export function submitTestAttempt(
 export function listTestAttempts(): Promise<TestAttempt[]> {
   return authFetch<TestAttempt[]>("/attempts");
 }
+
+/** Haftalik yangilanishgacha o'tilgan mavzular (testSlug'lar) — natijalarsiz, faqat qulf uchun. */
+export function listPassedBeforeTopics(): Promise<string[]> {
+  return authFetch<string[]>("/attempts/passed-before");
+}
