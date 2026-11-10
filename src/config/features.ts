@@ -5,3 +5,9 @@ export const PAYMENTS_ENABLED = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === "tr
 
 /** Bosh sahifadagi o'quvchilar fikrlari — haqiqiy sharhlar kelguncha yopiq. */
 export const SHOW_TESTIMONIALS = process.env.NEXT_PUBLIC_SHOW_TESTIMONIALS === "true";
+
+/**
+ * Ro'yxatdan o'tishda telefon SMS-kod bilan tasdiqlanadimi. Vaqtincha o'chiq:
+ * OtpStep o'tkazib yuboriladi (kodi saqlangan). Backend: SMS_VERIFICATION_ENABLED.
+ */
+export const SMS_VERIFICATION_ENABLED = process.env.NEXT_PUBLIC_SMS_VERIFICATION_ENABLED === "true";

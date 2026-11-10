@@ -22,6 +22,7 @@ import { CollectionsModule } from "./collections/collections.module";
 import { EventsModule } from "./events/events.module";
 import { RandomTestsModule } from "./random-tests/random-tests.module";
 import { FinalExamModule } from "./final-exam/final-exam.module";
+import { WeeklyResetModule } from "./weekly-reset/weekly-reset.module";
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { FinalExamModule } from "./final-exam/final-exam.module";
     CollectionsModule,
     RandomTestsModule,
     FinalExamModule,
+    WeeklyResetModule,
     EventsModule,
   ],
   providers: [

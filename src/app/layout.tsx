@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { Toaster } from "@/components/shared/Toast";
 import AnalyticsTracker from "@/components/shared/AnalyticsTracker";
 import CenterSessionWatcher from "@/components/shared/CenterSessionWatcher";
+import ResetWatcher from "@/components/shared/ResetWatcher";
 import { BRAND_DARK, BRAND_NAME, OG_IMAGE, SITE_DESCRIPTION, SITE_KEYWORDS, SITE_TITLE, SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
@@ -101,6 +102,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <Script id="locale-init" strategy="beforeInteractive">
           {LOCALE_INIT_SCRIPT}
         </Script>
+        <ResetWatcher />
         {children}
         <Toaster />
         <AnalyticsTracker />

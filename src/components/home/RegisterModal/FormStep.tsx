@@ -12,7 +12,8 @@ import type { RegisterFormData } from "../types";
 interface FormStepProps {
   stepLabel: string;
   initialData: RegisterFormData;
-  onSubmit: (data: RegisterFormData) => void;
+  /** Xato matni qaytarsa — forma ostida ko'rsatiladi (masalan, raqam band). */
+  onSubmit: (data: RegisterFormData) => void | Promise<string | null>;
 }
 
 type FieldErrors = Partial<Record<keyof RegisterFormData, string>>;
@@ -43,6 +44,8 @@ export default function FormStep({ stepLabel, initialData, onSubmit }: FormStepP
     initialData.phone.replace(/^\+998/, ""),
   );
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const { t } = useLocale();
   const errorMessages: Dictionary["registerModal"]["form"]["errors"] = t.registerModal.form.errors;
 
@@ -75,8 +78,9 @@ export default function FormStep({ stepLabel, initialData, onSubmit }: FormStepP
     return next;
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (busy) return;
     const nextErrors = validate();
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
@@ -89,9 +93,14 @@ export default function FormStep({ stepLabel, initialData, onSubmit }: FormStepP
       examStatus: initialData.examStatus,
     };
 
-    // Hech qanday tarmoq so'rovi yo'q — faqat local state va dev log.
-    console.log("[FormStep] local submit:", data);
-    onSubmit(data);
+    setSubmitError(null);
+    setBusy(true);
+    try {
+      const failure = await onSubmit(data);
+      if (failure) setSubmitError(failure);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -150,8 +159,15 @@ export default function FormStep({ stepLabel, initialData, onSubmit }: FormStepP
           />
         </Field>
 
+        {submitError && (
+          <p role="alert" className="font-mono text-xs text-destructive" data-testid="register-error">
+            {submitError}
+          </p>
+        )}
+
         <Button
           type="submit"
+          disabled={busy}
           className="glow-orange-hover mt-1 h-auto self-start rounded-full border-0 bg-gradient-to-r from-neon-orange to-neon-orange-2 px-6 py-2.5 text-sm font-bold text-background"
         >
           {t.registerModal.form.cta}

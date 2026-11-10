@@ -223,7 +223,7 @@ export default function KeywordsPage({ params }: KeywordsPageProps) {
           <>
             {/* Kompyuterda: sarlavha ostiga yopishgan TO'Q (shaffof emas) chiziq — pastdagi kartalar
                 uning ostiga to'liq kirib yo'qoladi, oradan ko'rinib xalaqit bermaydi. */}
-            <div className="md:sticky md:top-[calc(4rem+env(safe-area-inset-top,0px))] md:z-20 md:-mx-6 md:-mt-3 md:bg-background md:px-6 md:py-3 md:after:pointer-events-none md:after:absolute md:after:inset-x-0 md:after:top-full md:after:h-5 md:after:bg-gradient-to-b md:after:from-background md:after:to-transparent">
+            <div className="md:sticky md:top-[calc(4rem+env(safe-area-inset-top,0px)+var(--reset-banner-h,0px))] md:z-20 md:-mx-6 md:-mt-3 md:bg-background md:px-6 md:py-3 md:after:pointer-events-none md:after:absolute md:after:inset-x-0 md:after:top-full md:after:h-5 md:after:bg-gradient-to-b md:after:from-background md:after:to-transparent">
               <Card className="flex flex-col gap-4 p-4 sm:p-5">
                 <div className="flex items-center gap-3">
                   <div

@@ -291,49 +291,11 @@ body::before {
     box-shadow: 0 0 30px -10px color-mix(in srgb, var(--brand) 50%, transparent);
   }
 
-  .road-perspective {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    perspective: 300px;
-    perspective-origin: 50% 0%;
-  }
-  .road-perspective::before {
-    content: "";
-    position: absolute;
-    left: -50%;
-    right: -50%;
-    top: 0;
-    bottom: -20%;
-    background-image: repeating-linear-gradient(
-      0deg,
-      transparent 0,
-      transparent 46px,
-      rgba(255, 255, 255, 0.5) 46px,
-      rgba(255, 255, 255, 0.5) 74px
-    );
-    transform: rotateX(72deg);
-    transform-origin: 50% 0%;
-    animation: road-move 1.4s linear infinite;
-  }
-
-  @keyframes road-move {
-    from {
-      background-position-y: 0;
-    }
-    to {
-      background-position-y: 120px;
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .reveal {
       opacity: 1;
       transform: none;
       transition: none;
-    }
-    .road-perspective::before {
-      animation: none;
     }
   }
 }
@@ -429,4 +391,17 @@ body::before {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
+}
+
+/* ---- Haftalik yangilanish lentasi (ResetWatcher): o'ngdan chapga aylanadi ---- */
+@keyframes reset-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.reset-banner-track {
+  animation: reset-marquee 28s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reset-banner-track { display: none; }
+  .reset-banner-static { display: block; }
 }

@@ -14,7 +14,7 @@ export function AppHeader({ children, width = "narrow", className }: AppHeaderPr
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 border-b border-border bg-background/75 pt-[env(safe-area-inset-top,0px)] backdrop-blur-xl",
+        "sticky top-[var(--reset-banner-h,0px)] z-30 border-b border-border bg-background/75 pt-[env(safe-area-inset-top,0px)] backdrop-blur-xl",
         className,
       )}
     >

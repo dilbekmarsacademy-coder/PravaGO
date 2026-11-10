@@ -36,10 +36,13 @@ export class TestAttemptsService {
     return { topicSlug: slug, correct, total, percent, createdAt: row.createdAt };
   }
 
-  /** Foydalanuvchining barcha urinishlari (eskidan yangiga) — kabinet progressi uchun. */
+  /**
+   * Foydalanuvchining joriy urinishlari (eskidan yangiga) — kabinet progressi uchun.
+   * Haftalik yangilanishda arxivlanganlari qaytmaydi (faqat admin ko'radi).
+   */
   async list(userId: string): Promise<TestAttemptDto[]> {
     const rows = await this.prisma.topicTestAttempt.findMany({
-      where: { userId },
+      where: { userId, archivedAt: null },
       orderBy: { createdAt: "asc" },
       take: 2000,
       include: { topic: { select: { slug: true } } },

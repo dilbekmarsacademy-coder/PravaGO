@@ -179,6 +179,7 @@ export interface Dictionary {
         ageRange: string;
         phoneIncomplete: string;
         phoneTaken: string;
+        rateLimited: string;
         serverError: string;
       };
     };
@@ -189,10 +190,6 @@ export interface Dictionary {
       placeholder: string;
       cta: string;
       errorInvalid: string;
-    };
-    success: {
-      title: string;
-      desc: string;
     };
   };
 

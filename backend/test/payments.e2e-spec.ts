@@ -3,6 +3,7 @@ import { INestApplication, ValidationPipe } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { OFFER_VERSION } from "../src/common/registration";
 import { AppModule } from "../src/app.module";
 import { AuthService } from "../src/auth/auth.service";
 import { PrismaService } from "../src/prisma/prisma.service";
@@ -96,6 +97,34 @@ describe("ro'yxatdan o'tish", () => {
     const auth = await newUser();
     const res = await http().post("/me/register").set(auth).send({ ...profile, phone: "900000002", legacyStatus: "active" }).expect(200);
     expect(res.body).toMatchObject({ payment: { status: "PENDING" }, access: false });
+  });
+});
+
+describe("ro'yxatdan o'tish: rozilik va IP limiti", () => {
+  it("rozilik vaqti va oferta versiyasi saqlanadi; consent faqat true", async () => {
+    const auth = await newUser();
+    await http().post("/me/register").set(auth).send({ ...profile, phone: "900000071", consent: false }).expect(400);
+    await http().post("/me/register").set(auth).send({ ...profile, phone: "900000071", consent: true }).expect(200);
+    const user = await prisma.user.findUniqueOrThrow({ where: { phone: "+998900000071" } });
+    expect(user.consentAt).not.toBeNull();
+    expect(user.offerVersion).toBe(OFFER_VERSION);
+    expect(user.registrationIp).toBeTruthy();
+  });
+
+  it("bir IP'dan soatiga limitdan ortiq yangi ro'yxatdan o'tish — 429; profilni yangilash hisobga kirmaydi", async () => {
+    const ip = (await prisma.user.findUniqueOrThrow({ where: { phone: "+998900000071" } })).registrationIp!;
+    const recent = await prisma.user.count({ where: { registrationIp: ip, registeredAt: { gte: new Date(Date.now() - 3600_000) } } });
+    process.env.REGISTER_LIMIT_PER_IP_HOUR = String(recent + 1);
+    try {
+      const a = await newUser();
+      await http().post("/me/register").set(a).send({ ...profile, phone: "900000072", consent: true }).expect(200);
+      // Allaqachon ro'yxatdan o'tgan — profilni yangilay oladi.
+      await http().post("/me/register").set(a).send({ ...profile, firstName: "Yangi", phone: "900000072" }).expect(200);
+      const b = await newUser();
+      expect((await http().post("/me/register").set(b).send({ ...profile, phone: "900000073", consent: true }).expect(429)).body.code).toBe("REGISTER_RATE_LIMITED");
+    } finally {
+      process.env.REGISTER_LIMIT_PER_IP_HOUR = "100000";
+    }
   });
 });
 

@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AwardIcon, BarChart3Icon, BookOpenCheckIcon, HistoryIcon, LogOutIcon, MenuIcon, SettingsIcon, ShuffleIcon, SparklesIcon, SquarePlusIcon, UsersIcon, WalletIcon, XIcon } from "lucide-react";
+import { AwardIcon, BarChart3Icon, BookOpenCheckIcon, CalendarSyncIcon, HistoryIcon, LogOutIcon, MenuIcon, SettingsIcon, ShuffleIcon, SparklesIcon, SquarePlusIcon, UsersIcon, WalletIcon, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { adminFetch } from "@/lib/admin/api";
 import ThemeToggle from "@/components/shared/ThemeToggle";
@@ -25,6 +25,7 @@ const NAV = [
   { href: "/admin/new-tests", label: "Yangi testlar", icon: SquarePlusIcon },
   { href: "/admin/random-tests", label: "Random testlar", icon: ShuffleIcon },
   { href: "/admin/final-exam", label: "Yakuniy imtihon", icon: AwardIcon },
+  { href: "/admin/weekly-results", label: "Haftalik natijalar", icon: CalendarSyncIcon },
   { href: "/admin/ai", label: "AI tahlil", icon: SparklesIcon },
   { href: "/admin/history", label: "Tarix", icon: HistoryIcon },
   { href: "/admin/settings", label: "Sozlamalar", icon: SettingsIcon },

@@ -180,6 +180,14 @@ model User {
   activeSessionId    String?               @db.VarChar(64)
   /// Oxirgi kirgan qurilma, masalan "Android · Chrome".
   lastDevice         String?               @db.VarChar(80)
+  /// Haftalik (dushanba 22:00) natijalar yangilanishi bu akkauntga tegmaydi. Admin yoqadi.
+  /// Bir martalik "initial-launch" yangilanishi buni hisobga olmaydi.
+  weeklyResetExempt  Boolean               @default(false)
+  /// Ro'yxatdan o'tishda oferta va maxfiylik siyosatiga rozilik vaqti va oferta versiyasi.
+  consentAt          DateTime?             @db.Timestamptz(3)
+  offerVersion       String?               @db.VarChar(20)
+  /// Ro'yxatdan o'tgan IP (SMS tasdig'isiz ro'yxatdan o'tishga IP bo'yicha limit uchun).
+  registrationIp     String?               @db.VarChar(100)
   sessions           Session[]
   transferCodes      SessionTransferCode[]
   examAttempts       ExamAttempt[]
@@ -197,6 +205,7 @@ model User {
   @@index([registeredAt])
   @@index([lastActiveAt])
   @@index([type])
+  @@index([registrationIp, registeredAt])
 }
 
 enum UserType {
@@ -315,17 +324,21 @@ model LessonVideo {
 /// Mavzu testi natijasi. Foiz serverda hisoblanadi (yuborilgan javoblar bazadagi
 /// to'g'ri javoblar bilan solishtiriladi) — kabinetdagi 98% qoidasi shunga tayanadi.
 model TopicTestAttempt {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  topicId   String
-  topic     Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  correct   Int
-  total     Int
-  percent   Int
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topicId        String
+  topic          Topic     @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  correct        Int
+  total          Int
+  percent        Int
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+  /// Haftalik yangilanishda arxivlangan: foydalanuvchiga ko'rinmaydi, admin uchun saqlanadi.
+  archivedAt     DateTime? @db.Timestamptz(3)
+  archiveWeekKey String?   @db.VarChar(40)
 
   @@index([userId, topicId])
+  @@index([userId, archivedAt])
 }
 
 // ───────────────────────── Admin panel ─────────────────────────
@@ -435,13 +448,16 @@ model Payment {
 
 /// Har bir javob tekshiruvi (check-answer) — eng ko'p xato qilinadigan savollar statistikasi uchun.
 model AnswerLog {
-  id         String   @id @default(uuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  questionId String
-  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  correct    Boolean
-  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionId     String
+  question       Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  correct        Boolean
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+  /// Haftalik yangilanishda arxivlangan (foydalanuvchi statistikasida hisobga olinmaydi).
+  archivedAt     DateTime? @db.Timestamptz(3)
+  archiveWeekKey String?   @db.VarChar(40)
 
   @@index([questionId, correct])
   @@index([userId, createdAt])
@@ -776,22 +792,25 @@ model SessionTransferCode {
 /// 20/50/100/200 talik test. Vaqt serverda: `deadlineAt` = boshlanish + har savolga 1 daqiqa.
 /// Bir foydalanuvchida bir vaqtda faqat bitta `in_progress` urinish (migratsiyadagi qisman unique indeks).
 model RandomTestAttempt {
-  id         String             @id @default(uuid())
-  userId     String
-  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String             @id @default(uuid())
+  userId         String
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// Tanlangan tur: 20, 50, 100 yoki 200.
-  size       Int
+  size           Int
   /// Haqiqiy savollar soni (bazada kam bo'lsa — size'dan kichik).
-  total      Int
+  total          Int
   /// in_progress | finished | expired
-  status     String             @default("in_progress") @db.VarChar(20)
-  startedAt  DateTime           @default(now()) @db.Timestamptz(3)
-  deadlineAt DateTime           @db.Timestamptz(3)
-  finishedAt DateTime?          @db.Timestamptz(3)
-  answered   Int                @default(0)
-  correct    Int                @default(0)
-  percent    Int                @default(0)
-  answers    RandomTestAnswer[]
+  status         String             @default("in_progress") @db.VarChar(20)
+  startedAt      DateTime           @default(now()) @db.Timestamptz(3)
+  deadlineAt     DateTime           @db.Timestamptz(3)
+  finishedAt     DateTime?          @db.Timestamptz(3)
+  answered       Int                @default(0)
+  correct        Int                @default(0)
+  percent        Int                @default(0)
+  answers        RandomTestAnswer[]
+  /// Haftalik yangilanishda arxivlangan (faqat tugallangan urinishlar).
+  archivedAt     DateTime?          @db.Timestamptz(3)
+  archiveWeekKey String?            @db.VarChar(40)
 
   @@index([userId, startedAt])
   @@index([startedAt])
@@ -881,4 +900,47 @@ model Certificate {
   celebratedAt      DateTime?     @db.Timestamptz(3)
 
   @@unique([userId, examType])
+}
+
+// ───────────────────────── Haftalik natijalar yangilanishi ─────────────────────────
+
+/// Bitta yangilanish (har dushanba 22:00 Asia/Tashkent, qo'lda yoki bir martalik
+/// "initial-launch"). weekKey unikal — bir kalit uchun ikki marta ishlamaydi.
+model WeeklyReset {
+  id            String    @id @default(uuid())
+  /// "2026-W46" | "initial-launch" | "manual-<ISO vaqt>"
+  weekKey       String    @unique @db.VarChar(40)
+  /// running | done | failed | covered ("initial-launch" shu haftani qoplagan)
+  status        String    @db.VarChar(20)
+  /// cron | catchup | manual | initial
+  triggeredBy   String    @db.VarChar(20)
+  startedAt     DateTime  @default(now()) @db.Timestamptz(3)
+  finishedAt    DateTime? @db.Timestamptz(3)
+  affectedUsers Int       @default(0)
+  /// Arxivlangan yozuvlar soni turlar bo'yicha.
+  counts        Json?
+  error         String?   @db.VarChar(500)
+  adminId       String?
+
+  @@index([status, finishedAt])
+}
+
+/// Arxivlangan natija (faqat admin ko'radi, hech qachon o'chirilmaydi). userId
+/// FK emas — foydalanuvchi o'chirilsa ham arxiv qoladi.
+model WeeklyResultArchive {
+  id              String   @id @default(uuid())
+  userId          String
+  /// topic_test | random_test | answer | ai_insight
+  kind            String   @db.VarChar(20)
+  /// Manba yozuv id'si (TopicTestAttempt, RandomTestAttempt, AnswerLog).
+  sourceId        String
+  weekKey         String   @db.VarChar(40)
+  /// Manba yozuv nusxasi (savol, javob, to'g'ri/noto'g'ri, vaqt, foiz).
+  data            Json
+  sourceCreatedAt DateTime @db.Timestamptz(3)
+  archivedAt      DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([kind, sourceId])
+  @@index([userId, weekKey])
+  @@index([weekKey, kind])
 }

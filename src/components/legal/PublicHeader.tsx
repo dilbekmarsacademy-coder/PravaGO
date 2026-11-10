@@ -16,7 +16,7 @@ const NAV = [
 export default function PublicHeader() {
   const pathname = usePathname();
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-xl">
+    <header className="sticky top-[var(--reset-banner-h,0px)] z-40 border-b border-border bg-background/95 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4 sm:px-8">
         <Link href="/" aria-label="PravaIshonch — bosh sahifa" className="flex shrink-0 items-center">
           <Logo priority className="h-8 sm:h-10" />

@@ -1,6 +1,8 @@
-import { Body, Controller, Get, HttpCode, Post, Put, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Post, Put, Req, UseGuards } from "@nestjs/common";
+import type { Request } from "express";
 import { Throttle } from "@nestjs/throttler";
 import { AuthGuard, CurrentUser } from "../auth/auth.guard";
+import { requestIp } from "../common/request-ip";
 import type { SessionUser } from "../auth/auth.service";
 import { PaymentsService, type MyPaymentDto } from "../payments/payments.service";
 import { LanguageDto, PaymentRequestDto, RegisterDto } from "./account.dto";
@@ -22,8 +24,8 @@ export class AccountController {
   @Post("me/register")
   @HttpCode(200)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  register(@CurrentUser() user: SessionUser, @Body() body: RegisterDto): Promise<MeDto> {
-    return this.account.register(user.id, body);
+  register(@CurrentUser() user: SessionUser, @Body() body: RegisterDto, @Req() req: Request): Promise<MeDto> {
+    return this.account.register(user.id, body, requestIp(req));
   }
 
   @Put("me/language")

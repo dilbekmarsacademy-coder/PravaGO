@@ -1,7 +1,8 @@
-import { BadRequestException, ConflictException, Injectable } from "@nestjs/common";
+import { BadRequestException, ConflictException, HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { normalizePhone } from "../common/phone";
+import { OFFER_VERSION, registrationsPerIpPerHour } from "../common/registration";
 import { coursePrice } from "../common/prices";
 import { computeCourseAccess, paymentEnforced } from "../access/access.service";
 import { syncUserPaymentStatus } from "../payments/payments.service";
@@ -63,7 +64,7 @@ export class AccountService {
    * qoladi. Raqam boshqa akkauntda bo'lsa — 409 (tasdiqlashsiz bog'lab bo'lmaydi;
    * telefon OTP qo'shilgach shu yerda akkauntga ulanadi).
    */
-  async register(userId: string, input: RegisterDto): Promise<MeDto> {
+  async register(userId: string, input: RegisterDto, ip?: string): Promise<MeDto> {
     const phone = normalizePhone(input.phone);
     if (!phone) throw new BadRequestException({ statusCode: 400, code: "PHONE_INVALID", message: "Telefon raqam noto'g'ri" });
 
@@ -78,6 +79,16 @@ export class AccountService {
     const current = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
     // Markaz o'quvchisining profilini admin boshqaradi.
     if (current.type === "CENTER") return this.me(userId);
+    // SMS tasdig'i yo'q — bir IP'dan yangi ro'yxatdan o'tishlar soni cheklanadi (profilni yangilash hisobga kirmaydi).
+    if (!current.registeredAt && ip) {
+      const recent = await this.prisma.user.count({ where: { registrationIp: ip, registeredAt: { gte: new Date(Date.now() - 3600_000) } } });
+      if (recent >= registrationsPerIpPerHour()) {
+        throw new HttpException(
+          { statusCode: 429, code: "REGISTER_RATE_LIMITED", message: "Bu tarmoqdan juda ko'p ro'yxatdan o'tildi. Birozdan keyin qayta urinib ko'ring." },
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+    }
     try {
       await this.prisma.$transaction(async (tx) => {
         await tx.user.update({
@@ -91,6 +102,8 @@ export class AccountService {
             preferredLanguage: input.preferredLanguage ?? current.preferredLanguage,
             registeredAt: current.registeredAt ?? new Date(),
             lastActiveAt: new Date(),
+            ...(current.registeredAt ? {} : { registrationIp: ip ?? null }),
+            ...(input.consent && !current.consentAt ? { consentAt: new Date(), offerVersion: OFFER_VERSION } : {}),
           },
         });
         if (input.legacyStatus === "active" && current.paymentStatus === "NONE") {

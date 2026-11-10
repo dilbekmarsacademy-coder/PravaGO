@@ -150,7 +150,8 @@ export class RandomTestsService {
 
   private async load(userId: string, id: string): Promise<AttemptRow> {
     const attempt = await this.prisma.randomTestAttempt.findFirst({
-      where: { id, userId },
+      // Arxivlangan (haftalik yangilanish) — foydalanuvchiga mavjud emas.
+      where: { id, userId, archivedAt: null },
       include: { answers: { select: { selectedOptionId: true, correct: true }, orderBy: { position: "asc" } } },
     });
     // Boshqa foydalanuvchining urinishi — mavjud emasdek (404).
@@ -176,7 +177,7 @@ export class RandomTestsService {
     await this.access.assertCourseAccess(userId);
     await this.expireOverdue(userId);
     const [rows, available] = await Promise.all([
-      this.prisma.randomTestAttempt.findMany({ where: { userId }, orderBy: { startedAt: "desc" }, take: 50 }),
+      this.prisma.randomTestAttempt.findMany({ where: { userId, archivedAt: null }, orderBy: { startedAt: "desc" }, take: 50 }),
       this.pool().then((p) => p.length),
     ]);
     const active = rows.find((r) => r.status === "in_progress");

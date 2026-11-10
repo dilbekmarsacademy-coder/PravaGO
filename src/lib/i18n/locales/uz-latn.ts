@@ -215,6 +215,7 @@ export const uzLatn: Dictionary = {
         ageRange: "Yosh 16 dan 90 gacha bo'lishi kerak",
         phoneIncomplete: "Telefon raqam to'liq emas (+998 XX XXX XX XX)",
         phoneTaken: "Bu raqam bilan avval ro'yxatdan o'tilgan. Yangi qurilmani ulash uchun administratorga murojaat qiling.",
+        rateLimited: "Bu tarmoqdan juda ko'p ro'yxatdan o'tildi. Birozdan keyin qayta urinib ko'ring.",
         serverError: "Ma'lumotni yuborib bo'lmadi. Internetni tekshirib, qayta urinib ko'ring.",
       },
     },
@@ -225,10 +226,6 @@ export const uzLatn: Dictionary = {
       placeholder: "Kodni kiriting",
       cta: "Tasdiqlash",
       errorInvalid: "Kod noto'g'ri",
-    },
-    success: {
-      title: "Muvaffaqiyatli yakunlandi",
-      desc: "Ro'yxatdan o'tish yakunlandi (demo rejim).",
     },
   },
 

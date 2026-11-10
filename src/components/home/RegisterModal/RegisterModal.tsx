@@ -13,8 +13,8 @@ import OfferStep from "./OfferStep";
 import StatusStep from "./StatusStep";
 import FormStep from "./FormStep";
 import OtpStep from "./OtpStep";
-import SuccessStep from "./SuccessStep";
 import type { ExamStatus, ModalStep, RegisterFormData } from "../types";
+import { SMS_VERIFICATION_ENABLED } from "@/config/features";
 
 interface RegisterModalProps {
   open: boolean;
@@ -48,9 +48,14 @@ export default function RegisterModal({
   // (masalan header/hero'dagi umumiy tugmalar orqali kirilganda) alohida
   // bosqich sifatida so'raladi.
   const needsStatusStep = examStatus === null;
-  const stepOrder: ModalStep[] = needsStatusStep
-    ? ["offer", "status", "form", "otp"]
-    : ["offer", "form", "otp"];
+  // SMS tasdig'i vaqtincha o'chiq (NEXT_PUBLIC_SMS_VERIFICATION_ENABLED) — forma
+  // yuborilishi bilan ro'yxatdan o'tiladi va /tariflar ochiladi.
+  const stepOrder: ModalStep[] = [
+    "offer",
+    ...(needsStatusStep ? (["status"] as const) : []),
+    "form",
+    ...(SMS_VERIFICATION_ENABLED ? (["otp"] as const) : []),
+  ];
   const stepLabel = t.registerModal.qadam(stepOrder.indexOf(step) + 1, stepOrder.length);
 
   function handleOpenChangeComplete(isOpen: boolean) {
@@ -58,6 +63,33 @@ export default function RegisterModal({
       setStep("offer");
       setFormData(INITIAL_FORM_DATA);
     }
+  }
+
+  /** Ro'yxatdan o'tish (backend). Xato matni qaytaradi yoki null. */
+  async function submitRegistration(data: RegisterFormData): Promise<string | null> {
+    if (!data.examStatus) return t.registerModal.form.errors.serverError;
+    const record = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      age: data.age,
+      phone: data.phone,
+      examStatus: data.examStatus,
+      preferredLanguage: locale,
+    };
+    // Ma'lumot backend'ga yoziladi va shu qurilma sessiyasiga bog'lanadi
+    // (mavjud progress shu foydalanuvchida qoladi). Rozilik OfferStep'da berilgan.
+    try {
+      await registerAccount({ ...record, consent: true });
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "PHONE_TAKEN") return t.registerModal.form.errors.phoneTaken;
+      if (err instanceof ApiError && err.code === "REGISTER_RATE_LIMITED") return t.registerModal.form.errors.rateLimited;
+      return t.registerModal.form.errors.serverError;
+    }
+    saveRegistration(record, { synced: true });
+    track("register");
+    onOpenChange(false);
+    router.push("/tariflar");
+    return null;
   }
 
   function handleOfferAccept() {
@@ -114,7 +146,11 @@ export default function RegisterModal({
               initialData={formData}
               onSubmit={(data) => {
                 setFormData(data);
-                setStep("otp");
+                if (SMS_VERIFICATION_ENABLED) {
+                  setStep("otp");
+                  return;
+                }
+                return submitRegistration(data);
               }}
             />
           )}
@@ -122,38 +158,7 @@ export default function RegisterModal({
             <OtpStep
               stepLabel={stepLabel}
               phone={formData.phone}
-              onVerified={async () => {
-                if (!formData.examStatus) return t.registerModal.form.errors.serverError;
-                const record = {
-                  firstName: formData.firstName,
-                  lastName: formData.lastName,
-                  age: formData.age,
-                  phone: formData.phone,
-                  examStatus: formData.examStatus,
-                  preferredLanguage: locale,
-                };
-                // Ma'lumot backend'ga yoziladi va shu qurilma sessiyasiga bog'lanadi
-                // (mavjud progress shu foydalanuvchida qoladi).
-                try {
-                  await registerAccount(record);
-                } catch (err) {
-                  return err instanceof ApiError && err.code === "PHONE_TAKEN"
-                    ? t.registerModal.form.errors.phoneTaken
-                    : t.registerModal.form.errors.serverError;
-                }
-                saveRegistration(record, { synced: true });
-                track("register");
-                setStep("success");
-                return null;
-              }}
-            />
-          )}
-          {step === "success" && (
-            <SuccessStep
-              onDone={() => {
-                onOpenChange(false);
-                router.push("/tolov");
-              }}
+              onVerified={() => submitRegistration(formData)}
             />
           )}
         </div>

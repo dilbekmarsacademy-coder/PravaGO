@@ -24,7 +24,8 @@ export default defineConfig({
     include: ["test/**/*.e2e-spec.ts"],
     globalSetup: ["test/global-setup.ts"],
     // To'lov sharti alohida testda yoqiladi (test/payments.e2e-spec.ts).
-    env: { DATABASE_URL: testDatabaseUrl, PAYMENT_ENFORCED: "false" },
+    // Ro'yxatdan o'tish IP limiti — barcha testlar bitta lokal IP'dan; o'z testida pasaytiriladi.
+    env: { DATABASE_URL: testDatabaseUrl, PAYMENT_ENFORCED: "false", REGISTER_LIMIT_PER_IP_HOUR: "100000" },
     fileParallelism: false,
     testTimeout: 30_000,
     hookTimeout: 120_000,

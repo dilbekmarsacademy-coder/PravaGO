@@ -1,4 +1,4 @@
-import { IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength } from "class-validator";
+import { Equals, IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength } from "class-validator";
 import { EXAM_STATUSES } from "../common/prices";
 
 const NAME = /^[\p{L}][\p{L}\s'ʻʼ‘’`-]*$/u;
@@ -42,6 +42,14 @@ export class RegisterDto {
   @IsOptional()
   @IsIn(["pending", "active"])
   legacyStatus?: "pending" | "active";
+
+  /**
+   * "16 yoshdan kattaman va oferta hamda maxfiylik siyosatiga roziman". Vaqt va
+   * oferta versiyasi serverda yoziladi. Eski klientlar yubormasligi mumkin — ixtiyoriy.
+   */
+  @IsOptional()
+  @Equals(true)
+  consent?: true;
 }
 
 export class LanguageDto {

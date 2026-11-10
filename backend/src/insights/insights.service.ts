@@ -68,13 +68,14 @@ export class InsightsService {
     const title = (t: { id: string; title: string; titleCyrl: string | null }) =>
       locale === "ru" && ru.get(t.id) ? ru.get(t.id)! : locale === "uz-cyrl" && t.titleCyrl ? t.titleCyrl : t.title;
     const [byTopic, last, recent, answers, wrongByTopic] = await Promise.all([
-      this.prisma.topicTestAttempt.groupBy({ by: ["topicId"], where: { userId }, _max: { percent: true }, _count: { _all: true } }),
-      this.prisma.topicTestAttempt.findFirst({ where: { userId }, orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
-      this.prisma.topicTestAttempt.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 10, select: { percent: true } }),
-      this.prisma.answerLog.groupBy({ by: ["correct"], where: { userId }, _count: { _all: true } }),
+      // Faqat joriy (haftalik yangilanishda arxivlanmagan) natijalar.
+      this.prisma.topicTestAttempt.groupBy({ by: ["topicId"], where: { userId, archivedAt: null }, _max: { percent: true }, _count: { _all: true } }),
+      this.prisma.topicTestAttempt.findFirst({ where: { userId, archivedAt: null }, orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
+      this.prisma.topicTestAttempt.findMany({ where: { userId, archivedAt: null }, orderBy: { createdAt: "desc" }, take: 10, select: { percent: true } }),
+      this.prisma.answerLog.groupBy({ by: ["correct"], where: { userId, archivedAt: null }, _count: { _all: true } }),
       this.prisma.$queryRaw<{ topicId: string; wrong: bigint }[]>`
         SELECT q."topicId", COUNT(*) AS wrong FROM "AnswerLog" a JOIN "Question" q ON q.id = a."questionId"
-        WHERE a."userId" = ${userId} AND NOT a.correct GROUP BY 1 ORDER BY 2 DESC LIMIT 3`,
+        WHERE a."userId" = ${userId} AND a."archivedAt" IS NULL AND NOT a.correct GROUP BY 1 ORDER BY 2 DESC LIMIT 3`,
     ]);
     const course = new Map(topics.map((t) => [t.id, t]));
     const rows = byTopic.flatMap((r) => {

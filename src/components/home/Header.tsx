@@ -28,7 +28,7 @@ export default function Header({ onRegisterClick }: HeaderProps) {
   ];
 
   return (
-    <header className="fixed inset-x-0 top-0 z-40 border-b border-border bg-background/95 backdrop-blur-xl">
+    <header className="fixed inset-x-0 top-[var(--reset-banner-h,0px)] z-40 border-b border-border bg-background/95 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-5 sm:px-8">
         <Link href="/" aria-label={t.header.brand} className="flex shrink-0 items-center">
           <Logo priority className="h-9 lg:h-11" />

@@ -28,6 +28,8 @@ export interface RegisterInput {
   preferredLanguage?: Locale;
   /** Faqat eski (localStorage) ro'yxatni bir martalik ko'chirishda. */
   legacyStatus?: "pending" | "active";
+  /** Oferta va maxfiylik siyosatiga rozilik (vaqt va versiya serverda yoziladi). */
+  consent?: boolean;
 }
 
 export function getMe(): Promise<Me> {
@@ -45,6 +47,7 @@ export function registerAccount(input: RegisterInput): Promise<Me> {
       examStatus: input.examStatus,
       ...(input.preferredLanguage ? { preferredLanguage: input.preferredLanguage } : {}),
       ...(input.legacyStatus ? { legacyStatus: input.legacyStatus } : {}),
+      ...(input.consent ? { consent: true } : {}),
     }),
   });
 }

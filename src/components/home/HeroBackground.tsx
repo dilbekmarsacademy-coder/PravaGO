@@ -30,9 +30,6 @@ export default function HeroBackground({ imageUrl }: HeroBackgroundProps) {
           <div className="absolute -top-24 -left-20 size-72 rounded-full bg-neon-orange/25 blur-[100px]" />
           <div className="absolute top-10 -right-16 size-80 rounded-full bg-neon-cyan/20 blur-[110px]" />
 
-          {/* Perspective road lines effect */}
-          <div className="road-perspective absolute inset-x-0 bottom-0 h-64 opacity-[0.22] [mask-image:linear-gradient(to_top,black,transparent)]" />
-
           {/* Moshina siluetining neon chizma tasviri */}
           <svg
             viewBox="0 0 24 24"
