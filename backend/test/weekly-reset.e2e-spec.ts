@@ -8,6 +8,7 @@ import { AuthService, hashToken } from "../src/auth/auth.service";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { INITIAL_WEEK_KEY, isBannerVisible, lastResetBoundary, nextResetAt, weekKeyOf } from "../src/weekly-reset/schedule";
 import { WeeklyResetService } from "../src/weekly-reset/weekly-reset.service";
+import { loadBestPercents } from "../src/admin/progress";
 import { adminHeaders, configureAdminEnv, createTestAdmin } from "./helpers/admin";
 
 // Haftalik natijalar yangilanishi: jadval (Asia/Tashkent), arxivlash + nollash,
@@ -251,6 +252,8 @@ describe("Haftalik yangilanish — admin", () => {
     await http().get(`/admin/users/${u.userId}/results-archive`).expect(403);
     let weeks = (await http().get(`/admin/users/${u.userId}/results-archive`).set(admin).expect(200)).body;
     expect(weeks.current).toMatchObject({ weekKey: "current", tests: 3, topicTests: 2, randomTests: 1, correct: 20, wrong: 1 });
+    expect((await http().get(`/admin/users/${u.userId}`).set(admin).expect(200)).body.mostWrong).toHaveLength(1);
+    expect((await loadBestPercents(prisma, [u.userId])).get(u.userId)?.get(topicId)).toBe(100);
 
     // Tasdiqsiz — 400; noto'g'ri so'z — 400; dryRun — hech narsa o'zgarmaydi.
     await http().post("/admin/weekly-resets/run").set(admin).send({}).expect(400);
@@ -266,6 +269,9 @@ describe("Haftalik yangilanish — admin", () => {
 
     weeks = (await http().get(`/admin/users/${u.userId}/results-archive`).set(admin).expect(200)).body;
     expect(weeks.current.tests).toBe(0);
+    // Admin ro'yxati va foydalanuvchi sahifasi ham joriy haftani ko'rsatadi (kabinet bilan bir xil).
+    expect((await http().get(`/admin/users/${u.userId}`).set(admin).expect(200)).body.mostWrong).toHaveLength(0);
+    expect((await loadBestPercents(prisma, [u.userId])).get(u.userId)).toBeUndefined();
     expect(weeks.weeks[0]).toMatchObject({ weekKey: run.weekKey, tests: 3, averagePercent: 96.7 });
     const detail = (await http().get(`/admin/users/${u.userId}/results-archive/${run.weekKey}`).set(admin).expect(200)).body;
     expect(detail.topicTests).toHaveLength(2);
