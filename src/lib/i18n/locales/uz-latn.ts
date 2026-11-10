@@ -45,7 +45,7 @@ export const uzLatn: Dictionary = {
       { value: "63", unit: "BILET", desc: "To'liq yangilangan bazasi" },
       { value: "1 260", unit: "SAVOL", desc: "YHXBB imtihon savollari asosida" },
       { value: "6+1", unit: "KUN", desc: "Bosqichma-bosqich tezlashtirilgan tizim" },
-      { value: "98%", unit: "PASSRATE", desc: "Keyingi bosqichga o'tish talabi" },
+      { value: "98%", unit: "O'TISH TALABI", desc: "Keyingi bosqichga o'tish uchun kerakli natija" },
     ],
   },
 
@@ -78,7 +78,7 @@ export const uzLatn: Dictionary = {
     steps: [
       { title: "Video darsni ko'ring", desc: "Mavzu bo'yicha qisqa video dars" },
       { title: "Mavzu testini ishlang", desc: "Bilimni testda mustahkamlang" },
-      { title: "98% natijaga yeting", desc: "Talab qilingan natijaga chiqing" },
+      { title: "Kamida 98% natijaga yeting", desc: "Yakuniy ichki imtihonga tayyor ekanligingizni isbotlang" },
       { title: "Keyingi mavzuni oching", desc: "Dastur avtomatik davom etadi" },
       { title: "7-kun yakuniy imtihon", desc: "Yakuniy nazorat imtihonini topshiring" },
     ],
@@ -104,6 +104,7 @@ export const uzLatn: Dictionary = {
     vazifaDesc: "Video dars + 20 savollik test",
     bilet: "Bilet",
     oxirgiNatija: "Oxirgi natija",
+    namuna: "namuna",
   },
 
   pricing: {

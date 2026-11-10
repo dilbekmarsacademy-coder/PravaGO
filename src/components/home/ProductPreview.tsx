@@ -136,7 +136,10 @@ export default function ProductPreview({ onStart }: ProductPreviewProps) {
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">{t.productPreview.bilet}</p>
             </div>
-            <div className="rounded-xl border border-border bg-foreground/[0.03] p-4">
+            <div className="relative rounded-xl border border-border bg-foreground/[0.03] p-4">
+              <span className="absolute top-3 right-3 rounded-full border border-border px-1.5 py-0.5 font-mono text-[0.6rem] leading-none tracking-wide text-muted-foreground uppercase" data-testid="demo-badge">
+                {t.productPreview.namuna}
+              </span>
               <GaugeIcon className="size-4 text-neon-cyan" />
               <p className="mt-2 font-mono text-xl font-bold text-foreground tabular-nums">
                 {DEMO_LAST_SCORE}

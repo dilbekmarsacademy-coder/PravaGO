@@ -72,6 +72,8 @@ export interface Dictionary {
     vazifaDesc: string;
     bilet: string;
     oxirgiNatija: string;
+    /** Maketdagi raqam namuna ekanini bildiruvchi belgi. */
+    namuna: string;
   };
 
   pricing: {
