@@ -174,7 +174,7 @@ export default function NewTopicQuestionForm({ slug, topicTitle, aiConfigured }:
       )}
 
       <Panel title="1. Rasm">
-        <p className="mb-3 text-xs text-muted-foreground">Ixtiyoriy. Yuklangan rasm avtomatik tozalanadi — oldin/keyin ko&apos;rinishida tasdiqlaysiz.</p>
+        <p className="mb-3 text-xs text-muted-foreground">Ixtiyoriy. Yuklangan rasm avtomatik tozalanadi va savolga biriktiriladi — oldin/keyin ko&apos;rinishida tekshirib, kerak bo&apos;lsa qayta tozalang.</p>
         <ImageField
           image={image}
           onChange={(img, previewUrl) => {

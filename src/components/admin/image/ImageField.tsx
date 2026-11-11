@@ -23,11 +23,16 @@ const JOB_LABEL: Record<ImageJob["type"], string> = {
 
 interface ImageFieldProps {
   image: QuestionImage | null;
-  /** Tasdiqlangan rasm (yoki `null` — olib tashlandi). */
+  /** Savolga biriktirilgan rasm (yoki `null` — olib tashlandi). */
   onChange: (image: QuestionImage | null, previewUrl?: string) => void;
 }
 
-/** Rasm: yuklash / drag-and-drop / kamera → avtomatik tozalash → "Oldin / Keyin" → tasdiqlash. */
+/**
+ * Rasm: yuklash / drag-and-drop / kamera → avtomatik tozalash → "Oldin / Keyin".
+ * Har bir tayyor natija darhol savolga biriktiriladi (alohida "qabul qilish"
+ * bosilmasa rasm yo'qolib qolardi); admin qayta tozalash, qo'lda tahrir yoki
+ * asl rasmni tanlasa — oxirgisi biriktiriladi.
+ */
 export default function ImageField({ image, onChange }: ImageFieldProps) {
   const [stage, setStage] = useState<Stage>("idle");
   const [originalId, setOriginalId] = useState<string | null>(null);
@@ -39,6 +44,7 @@ export default function ImageField({ image, onChange }: ImageFieldProps) {
   const [crop, setCrop] = useState<NormRect | null>(null);
   const [trim, setTrim] = useState(true);
   const [draft, setDraft] = useState<NormRect | null>(null);
+  const [attachedId, setAttachedId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const drawStart = useRef<{ x: number; y: number } | null>(null);
@@ -51,10 +57,11 @@ export default function ImageField({ image, onChange }: ImageFieldProps) {
       setJob(started);
       const done = await waitForJob(started.id, setJob);
       if (done.status === "failed") throw new Error(done.error ?? "Ishlov berilmadi");
+      await attach(done);
       setStage("review");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Xatolik");
-      setStage(originalId ? "review" : "idle");
+      setStage(originalId || job ? "review" : "idle");
     }
   }
 
@@ -74,6 +81,7 @@ export default function ImageField({ image, onChange }: ImageFieldProps) {
       setStage("processing");
       const done = await waitForJob(first.id, setJob);
       if (done.status === "failed") throw new Error(done.error ?? "Ishlov berilmadi");
+      await attach(done);
       setStage("review");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Yuklanmadi");
@@ -81,17 +89,19 @@ export default function ImageField({ image, onChange }: ImageFieldProps) {
     }
   }
 
-  async function accept() {
-    if (!job?.outputAssetId) return;
-    try {
-      const accepted = await acceptImage(job.outputAssetId);
-      onChange({ url: accepted.url, width: accepted.width, height: accepted.height, assetId: accepted.assetId }, adminAssetUrl(accepted.assetId));
-      setStage("idle");
-      setJob(null);
-      setOriginalId(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Tasdiqlanmadi");
-    }
+  /** Tayyor natijani savolga biriktirish (ommaga ochiladi; asl rasm yopiq qoladi). */
+  async function attach(done: ImageJob) {
+    if (!done.outputAssetId) throw new Error("Ishlov berilgan rasm topilmadi");
+    const accepted = await acceptImage(done.outputAssetId);
+    onChange({ url: accepted.url, width: accepted.width, height: accepted.height, assetId: accepted.assetId }, adminAssetUrl(accepted.assetId));
+    setAttachedId(accepted.assetId);
+  }
+
+  function close() {
+    setStage("idle");
+    setJob(null);
+    setOriginalId(null);
+    setAttachedId(null);
   }
 
   // Qo'lda hudud chizish (rasmga nisbatan 0..1).
@@ -120,6 +130,7 @@ export default function ImageField({ image, onChange }: ImageFieldProps) {
   }
 
   const busy = stage === "uploading" || stage === "processing";
+  const attached = Boolean(job?.outputAssetId && attachedId === job.outputAssetId);
   const steps = job?.result?.steps ?? [];
 
   if (stage === "idle") {
@@ -245,6 +256,11 @@ export default function ImageField({ image, onChange }: ImageFieldProps) {
           {stage === "review" && (
             <>
               <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                {attached && (
+                  <Badge tone="success" data-testid="image-attached">
+                    <CheckIcon className="size-3.5" /> Savolga biriktirildi
+                  </Badge>
+                )}
                 {job?.result?.aiConfigured === false && <Badge tone="muted">AI aniqlash: sozlanmagan</Badge>}
                 {steps.map((s) => (
                   <span key={s} className="rounded-full bg-foreground/5 px-2 py-0.5">
@@ -253,8 +269,8 @@ export default function ImageField({ image, onChange }: ImageFieldProps) {
                 ))}
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" onClick={accept} disabled={!job?.outputAssetId} data-testid="image-accept">
-                  <CheckIcon className="size-4" /> Qabul qilish
+                <Button size="sm" onClick={close} disabled={!attached} data-testid="image-accept">
+                  <CheckIcon className="size-4" /> Tayyor
                 </Button>
                 <Button size="sm" variant="secondary" onClick={() => run(originalId!, "auto")}>
                   <RotateCcwIcon className="size-4" /> Qayta urinish
@@ -280,12 +296,11 @@ export default function ImageField({ image, onChange }: ImageFieldProps) {
                   size="sm"
                   variant="ghost"
                   onClick={() => {
-                    setStage("idle");
-                    setJob(null);
-                    setOriginalId(null);
+                    onChange(null);
+                    close();
                   }}
                 >
-                  Bekor qilish
+                  <Trash2Icon className="size-4" /> Rasmni olib tashlash
                 </Button>
               </div>
             </>
