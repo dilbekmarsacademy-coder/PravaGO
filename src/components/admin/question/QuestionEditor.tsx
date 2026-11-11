@@ -253,7 +253,7 @@ export default function QuestionEditor({ initial, mode, onSave, onTranslate, aiC
   const sections = [
     {
       title: "Rasm",
-      hint: "Ixtiyoriy. Yuklangan rasm avtomatik tozalanadi — oldin/keyin ko'rinishida tasdiqlaysiz.",
+      hint: "Ixtiyoriy. Yuklangan rasm avtomatik tozalanadi va savolga biriktiriladi — oldin/keyin ko'rinishida tekshirib, kerak bo'lsa qayta tozalang.",
       body: (
         <ImageField
           image={draft.image}
