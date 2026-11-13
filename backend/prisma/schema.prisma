@@ -8,8 +8,8 @@ datasource db {
 }
 
 model Topic {
-  id              String             @id @default(uuid())
-  slug            String             @unique
+  id              String              @id @default(uuid())
+  slug            String              @unique
   title           String // o'zbek lotin
   titleCyrl       String?
   titleRu         String?
@@ -17,23 +17,24 @@ model Topic {
   day             Int?
   dayOrder        Int?
   /// "course" — kurs mavzusi (dayN-topicM); "collection" — admin qo'shgan "Yangi testlar" to'plami.
-  kind            String             @default("course") @db.VarChar(20)
+  kind            String              @default("course") @db.VarChar(20)
   /// Faqat "collection" uchun: nashr qilinganmi (qoralama foydalanuvchiga ko'rinmaydi).
-  published       Boolean            @default(true)
+  published       Boolean             @default(true)
   /// "Yangi testlar" ro'yxatidagi tartib (to'plam ichida).
-  sortOrder       Int                @default(0)
+  sortOrder       Int                 @default(0)
   /// Faqat "collection": qaysi to'plamga tegishli ("Yangi testlar" → to'plam → testlar).
   groupId         String?
-  group           TestGroup?         @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  group           TestGroup?          @relation(fields: [groupId], references: [id], onDelete: SetNull)
   /// Faqat "collection": kurs kuni va mavzusiga havola (masalan AI importidan). Kun testlariga va 98% qoidasiga ta'sir qilmaydi.
   linkedDay       Int?
-  linkedTopicSlug String?            @db.VarChar(64)
-  deletedAt       DateTime?          @db.Timestamptz(3)
+  linkedTopicSlug String?             @db.VarChar(64)
+  deletedAt       DateTime?           @db.Timestamptz(3)
   questions       Question[]
   savedQuestions  SavedQuestion[]
   testAttempts    TopicTestAttempt[]
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  keywordsViews   TopicKeywordsView[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
 
   @@index([groupId])
 }
@@ -59,6 +60,8 @@ model Question {
   order               Int
   /// Yumshoq o'chirish — o'chirilgan savol hech qayerda chiqmaydi.
   deletedAt           DateTime?          @db.Timestamptz(3)
+  /// Kim o'chirgan (Admin.id). Tiklash: deletedAt va deletedById'ni null qilish (backend/README.md).
+  deletedById         String?            @db.VarChar(64)
   /// Izoh (manbada bo'lsa): kirill / lotin / rus.
   explanation         String?
   explanationLatn     String?
@@ -145,62 +148,70 @@ model KeywordReview {
 /// Bitta foydalanuvchi — bir nechta qurilma sessiyasi (Session).
 /// Ustun nomlari telefon OTP (Eskiz) branch'i bilan bir xil.
 model User {
-  id                 String                @id @default(uuid())
+  id                     String                @id @default(uuid())
   /// +998XXXXXXXXX (normallashtirilgan). Faqat admin API'da qaytariladi.
-  phone              String?               @unique
-  firstName          String?
-  lastName           String?
-  age                Int?
+  phone                  String?               @unique
+  firstName              String?
+  lastName               String?
+  age                    Int?
   /// "first-time" | "failed-before" | "license-revoked"
-  examStatus         String?
+  examStatus             String?
   /// Telefon SMS-kod bilan tasdiqlangan vaqt (OTP branch'i to'ldiradi).
-  phoneVerifiedAt    DateTime?             @db.Timestamptz(3)
+  phoneVerifiedAt        DateTime?             @db.Timestamptz(3)
   /// "uz-latn" | "uz-cyrl" | "ru"
-  preferredLanguage  String?               @db.VarChar(10)
-  registeredAt       DateTime?             @db.Timestamptz(3)
-  lastActiveAt       DateTime?             @db.Timestamptz(3)
+  preferredLanguage      String?               @db.VarChar(10)
+  registeredAt           DateTime?             @db.Timestamptz(3)
+  lastActiveAt           DateTime?             @db.Timestamptz(3)
   /// To'lovlar jadvalidan hisoblanadi (PaymentsService.syncUserPaymentStatus).
-  paymentStatus      UserPaymentStatus     @default(NONE)
-  accessGrantedAt    DateTime?             @db.Timestamptz(3)
+  paymentStatus          UserPaymentStatus     @default(NONE)
+  accessGrantedAt        DateTime?             @db.Timestamptz(3)
   /// SELF — o'zi ro'yxatdan o'tgan; CENTER — o'quv markaz o'quvchisi (admin yaratadi, login + parol).
-  type               UserType              @default(SELF)
+  type                   UserType              @default(SELF)
   /// Faqat CENTER: kirish logini (kichik harf, unique) va parol xeshi (argon2id).
-  login              String?               @unique @db.VarChar(40)
-  passwordHash       String?
+  login                  String?               @unique @db.VarChar(40)
+  passwordHash           String?
   /// Faolsiz akkaunt kira olmaydi, eski sessiyalari ham 401 oladi.
-  isActive           Boolean               @default(true)
+  isActive               Boolean               @default(true)
   /// Faqat CENTER: kursga to'liq kirish (to'lov qilgan bilan teng). Admin o'chirib-yoqadi.
-  centerAccess       Boolean               @default(true)
+  centerAccess           Boolean               @default(true)
   /// Admin yoqadi (alohida o'quvchiga): barcha kun va mavzular ochiq, test videoni
   /// ko'rmasdan va kalit so'zlar bilan tanishmasdan yechiladi. Standart — o'chiq.
-  unlockAll          Boolean               @default(false)
-  createdByAdminId   String?
-  lastLoginAt        DateTime?             @db.Timestamptz(3)
+  unlockAll              Boolean               @default(false)
+  createdByAdminId       String?
+  lastLoginAt            DateTime?             @db.Timestamptz(3)
   /// Faqat CENTER: yagona faol sessiya (Session.id). Boshqa sessiyalar 401 SESSION_REPLACED oladi.
-  activeSessionId    String?               @db.VarChar(64)
+  activeSessionId        String?               @db.VarChar(64)
   /// Oxirgi kirgan qurilma, masalan "Android · Chrome".
-  lastDevice         String?               @db.VarChar(80)
+  lastDevice             String?               @db.VarChar(80)
   /// Haftalik (dushanba 22:00) natijalar yangilanishi bu akkauntga tegmaydi. Admin yoqadi.
   /// Bir martalik "initial-launch" yangilanishi buni hisobga olmaydi.
-  weeklyResetExempt  Boolean               @default(false)
+  weeklyResetExempt      Boolean               @default(false)
   /// Ro'yxatdan o'tishda oferta va maxfiylik siyosatiga rozilik vaqti va oferta versiyasi.
-  consentAt          DateTime?             @db.Timestamptz(3)
-  offerVersion       String?               @db.VarChar(20)
+  consentAt              DateTime?             @db.Timestamptz(3)
+  offerVersion           String?               @db.VarChar(20)
   /// Ro'yxatdan o'tgan IP (SMS tasdig'isiz ro'yxatdan o'tishga IP bo'yicha limit uchun).
-  registrationIp     String?               @db.VarChar(100)
-  sessions           Session[]
-  transferCodes      SessionTransferCode[]
-  examAttempts       ExamAttempt[]
-  savedQuestions     SavedQuestion[]
-  lessonProgress     LessonProgress[]
-  keywordReviews     KeywordReview[]
-  testAttempts       TopicTestAttempt[]
-  payments           Payment[]
-  answerLogs         AnswerLog[]
-  randomTestAttempts RandomTestAttempt[]
-  finalExamAttempts  FinalExamAttempt[]
-  certificates       Certificate[]
-  createdAt          DateTime              @default(now()) @db.Timestamptz(3)
+  registrationIp         String?               @db.VarChar(100)
+  /// Kunlik mavzu oqimi majburiy: video → kalit so'zlar ("Tanishib chiqdim") → test.
+  /// Yangi foydalanuvchilarda true; migratsiyadan oldingilarda false — ular navbatdagi
+  /// haftalik yangilanishda (exempt bo'lmasa) true bo'ladi.
+  topicFlowGatingEnabled Boolean               @default(true)
+  /// Shu foydalanuvchining progressi alohida nollangan vaqt (admin "Progressni to'liq
+  /// nolga tushirish" yoki "tester-reset") — ochiq sahifa jonli yangilanishi uchun.
+  progressResetAt        DateTime?             @db.Timestamptz(3)
+  sessions               Session[]
+  transferCodes          SessionTransferCode[]
+  examAttempts           ExamAttempt[]
+  savedQuestions         SavedQuestion[]
+  lessonProgress         LessonProgress[]
+  keywordReviews         KeywordReview[]
+  keywordsViews          TopicKeywordsView[]
+  testAttempts           TopicTestAttempt[]
+  payments               Payment[]
+  answerLogs             AnswerLog[]
+  randomTestAttempts     RandomTestAttempt[]
+  finalExamAttempts      FinalExamAttempt[]
+  certificates           Certificate[]
+  createdAt              DateTime              @default(now()) @db.Timestamptz(3)
 
   @@index([registeredAt])
   @@index([lastActiveAt])
@@ -291,23 +302,40 @@ model SavedQuestion {
 /// LessonsService.reportProgress) — klient faqat xom o'lchovlarni yuboradi.
 /// `lessonId` — src/lessons/lessons.config.ts dagi kalit.
 model LessonProgress {
-  id             String    @id @default(uuid())
-  userId         String
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lessonId       String
+  id               String    @id @default(uuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId         String
   /// Eng uzoq ko'rilgan nuqta (soniya) — oldinga faqat shu yergacha o'tish mumkin.
-  maxPosition    Float     @default(0)
+  maxPosition      Float     @default(0)
   /// PLAYING holatida haqiqatan ko'rilgan soniyalar (takroriy ko'rishlar ham kiradi).
-  watchedSeconds Float     @default(0)
+  watchedSeconds   Float     @default(0)
   /// Davom ettirish nuqtasi.
-  lastPosition   Float     @default(0)
-  completedAt    DateTime? @db.Timestamptz(3)
+  lastPosition     Float     @default(0)
+  completedAt      DateTime? @db.Timestamptz(3)
+  /// Birinchi marta ko'rilgan vaqt — haftalik yangilanishda nollanmaydi. Yakuniy
+  /// imtihon qulfi (faqat videoli mavzular) va boshlangan testni tugatish shunga tayanadi.
+  firstCompletedAt DateTime? @db.Timestamptz(3)
   /// Oxirgi qabul qilingan hisobot — keyingi hisobotda qancha soniya qo'shish mumkinligini cheklaydi.
-  lastReportAt   DateTime  @default(now()) @db.Timestamptz(3)
-  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt      DateTime  @updatedAt @db.Timestamptz(3)
+  lastReportAt     DateTime  @default(now()) @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @db.Timestamptz(3)
 
   @@unique([userId, lessonId])
+}
+
+/// Kalit so'zlar bilan tanishildi: mavzuning "Kalit so'zlar" sahifasi oxirigacha
+/// ko'rilib, "Tanishib chiqdim" bosilgan. topicFlowGatingEnabled foydalanuvchida
+/// test shundan keyin ochiladi. Haftalik yangilanishda arxivlanib o'chiriladi.
+model TopicKeywordsView {
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topicId  String
+  topic    Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  viewedAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@id([userId, topicId])
+  @@index([topicId])
 }
 
 /// Admin panelda almashtirilgan video dars. Standart qiymat —
@@ -908,11 +936,11 @@ model Certificate {
 /// "initial-launch"). weekKey unikal — bir kalit uchun ikki marta ishlamaydi.
 model WeeklyReset {
   id            String    @id @default(uuid())
-  /// "2026-W46" | "initial-launch" | "manual-<ISO vaqt>"
+  /// "2026-W46" | "initial-launch" | "manual-<ISO vaqt>" | "tester-reset" | "user-<ISO vaqt>"
   weekKey       String    @unique @db.VarChar(40)
   /// running | done | failed | covered ("initial-launch" shu haftani qoplagan)
   status        String    @db.VarChar(20)
-  /// cron | catchup | manual | initial
+  /// cron | catchup | manual | initial | tester | user
   triggeredBy   String    @db.VarChar(20)
   startedAt     DateTime  @default(now()) @db.Timestamptz(3)
   finishedAt    DateTime? @db.Timestamptz(3)
@@ -921,8 +949,12 @@ model WeeklyReset {
   counts        Json?
   error         String?   @db.VarChar(500)
   adminId       String?
+  /// Faqat bitta foydalanuvchi uchun yangilanish ("tester-reset", admin "Progressni
+  /// to'liq nolga tushirish"). null — umumiy (haftalik / qo'lda / initial).
+  userId        String?
 
   @@index([status, finishedAt])
+  @@index([userId])
 }
 
 /// Arxivlangan natija (faqat admin ko'radi, hech qachon o'chirilmaydi). userId
@@ -930,7 +962,7 @@ model WeeklyReset {
 model WeeklyResultArchive {
   id              String   @id @default(uuid())
   userId          String
-  /// topic_test | random_test | answer | ai_insight
+  /// topic_test | random_test | answer | ai_insight | video_progress | keywords_progress
   kind            String   @db.VarChar(20)
   /// Manba yozuv id'si (TopicTestAttempt, RandomTestAttempt, AnswerLog).
   sourceId        String

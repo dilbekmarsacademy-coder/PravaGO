@@ -4,6 +4,7 @@ import { BookOpenCheckIcon, FlagIcon, GaugeIcon, ListChecksIcon, VideoIcon } fro
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { useReveal } from "./useReveal";
+import EnrollButton from "./EnrollButton";
 
 const ICONS = [VideoIcon, ListChecksIcon, GaugeIcon, BookOpenCheckIcon, FlagIcon];
 
@@ -71,6 +72,9 @@ export default function HowItWorks() {
               </div>
             );
           })}
+        </div>
+        <div className="mt-10 flex justify-center">
+          <EnrollButton section="qanday-ishlaydi" />
         </div>
       </div>
     </section>

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Put, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Param, Post, Put, UseGuards } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { AuthGuard, CurrentUser } from "../auth/auth.guard";
 import type { SessionUser } from "../auth/auth.service";
@@ -34,6 +34,18 @@ export class KeywordsController {
   async progress(@CurrentUser() user: SessionUser, @Param() params: TopicSlugParamDto): Promise<KeywordProgressDto> {
     await this.lessons.assertTopicUnlocked(params.slug, user.id);
     return this.keywords.progress(user.id, params.slug);
+  }
+
+  /**
+   * "Tanishib chiqdim" — mavzuning kalit so'zlari bilan tanishildi (oqim
+   * yoqilgan foydalanuvchida test shundan keyin ochiladi). Video ko'rilmaguncha 403.
+   */
+  @Post("viewed")
+  @HttpCode(200)
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  async markViewed(@CurrentUser() user: SessionUser, @Param() params: TopicSlugParamDto): Promise<KeywordProgressDto> {
+    await this.lessons.assertTopicUnlocked(params.slug, user.id);
+    return this.keywords.markViewed(user.id, params.slug);
   }
 
   /** "Tanishdim" belgisi — foydalanuvchiga bog'lab serverda saqlanadi. */

@@ -151,6 +151,11 @@ export const uzLatn: Dictionary = {
     cta: "Tayyorlanishni boshlash",
   },
 
+  enroll: {
+    label: "Kursga yozilish",
+    aria: "Kursga yozilish — Telegram (yangi oynada ochiladi)",
+  },
+
   moved: {
     eyebrow: "Yangi manzil",
     titlePre: "Sayt yangi manzilga koʻchdi:",
@@ -511,6 +516,15 @@ export const uzLatn: Dictionary = {
       soonTitle: "Testlar hali toʻliq qoʻshilmadi",
       soonDesc: "Tez orada qoʻshiladi.",
       close: "Yopish",
+      flow: {
+        steps: { video: "Video dars", keywords: "Kalit soʻzlar", test: "Test" },
+        done: "bajarildi",
+        videoTitle: "1-qadam: videoni oxirigacha koʻring",
+        keywordsTitle: "2-qadam: kalit soʻzlar bilan tanishing",
+        readyTitle: "Video va kalit soʻzlar bajarildi — test ochildi",
+        lockedHint: "Avval videoni koʻring va kalit soʻzlar bilan tanishing",
+        keywordsButton: "Kalit soʻzlar bilan tanishish",
+      },
     },
   },
 
@@ -615,6 +629,16 @@ export const uzLatn: Dictionary = {
       intro: "Har bir savolni, uning toʻgʻri javobi va kalit soʻzlarini oʻqib chiqing va «Tanishdim» tugmasini bosing. Barcha savollar bilan tanishgach, test ochiladi.",
       startLocked: (left) => `Testni ochish uchun yana ${left} ta savol bilan tanishing`,
       allReviewed: "Barcha savollar bilan tanishdingiz — test ochildi",
+      flow: {
+        button: "Tanishib chiqdim",
+        saving: "Saqlanmoqda…",
+        scrollHint: "Tugma barcha kalit soʻzlar oxirigacha koʻrilgach yoqiladi",
+        searchHint: "Qidiruvni tozalab, roʻyxatni oxirigacha koʻring",
+        done: "Kalit soʻzlar bilan tanishib chiqdingiz — test ochildi",
+        error: "Saqlab boʻlmadi. Qayta urinib koʻring",
+        lockedHint: "Avval videoni koʻring va kalit soʻzlar bilan tanishing",
+        pressHint: "Kalit soʻzlarni oxirigacha koʻrdingiz — «Tanishib chiqdim»ni bosing, shunda test ochiladi",
+      },
       reviewError: "Belgini saqlab boʻlmadi. Qayta urinib koʻring.",
       noResultsTitle: "Hech narsa topilmadi",
       noResultsDesc: "Boshqa soʻz bilan qidirib koʻring.",

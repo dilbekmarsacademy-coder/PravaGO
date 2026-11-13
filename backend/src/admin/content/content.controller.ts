@@ -137,6 +137,13 @@ export class AdminContentController {
     return this.editor.update(admin, ip, params.id, body);
   }
 
+  /** Kun mavzusi savolini o'chirish (yumshoq) — tasdiqlash oynasidan keyin. */
+  @Delete("content/questions/:id")
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  deleteQuestion(@Param() params: IdParam, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    return this.editor.deleteCourseQuestion(admin, ip, params.id);
+  }
+
   @Post("questions/:id/reviewed")
   @HttpCode(200)
   reviewed(@Param() params: IdParam, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {

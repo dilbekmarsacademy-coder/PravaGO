@@ -34,13 +34,24 @@ export interface KeywordCardDto {
   reviewed: boolean;
 }
 
-export interface KeywordListDto {
+/** Kunlik mavzu oqimi holati (video → kalit so'zlar → test). */
+export interface TopicFlowDto {
+  /** User.topicFlowGatingEnabled: test faqat "Tanishib chiqdim"dan keyin ochiladi. */
+  gated: boolean;
+  /** "Tanishib chiqdim" bosilgan (sahifa oxirigacha ko'rilgan). */
+  viewed: boolean;
+  viewedAt: Date | null;
+  /** Admin hammasini ochgan — oqim talab qilinmaydi. */
+  unlockAll: boolean;
+}
+
+export interface KeywordListDto extends TopicFlowDto {
   total: number;
   reviewedCount: number;
   items: KeywordCardDto[];
 }
 
-export interface KeywordProgressDto {
+export interface KeywordProgressDto extends TopicFlowDto {
   total: number;
   reviewedCount: number;
 }

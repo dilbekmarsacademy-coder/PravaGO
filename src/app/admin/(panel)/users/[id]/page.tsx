@@ -3,12 +3,13 @@
 import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftIcon, MonitorIcon, SmartphoneIcon, TabletIcon } from "lucide-react";
+import { ArrowLeftIcon, MonitorIcon, RotateCcwIcon, SmartphoneIcon, TabletIcon } from "lucide-react";
 import { adminFetch } from "@/lib/admin/api";
 import { formatDate, formatDateTime, formatPhone, formatRelative, formatSom } from "@/lib/admin/format";
 import { EXAM_STATUS_LABEL, fullName, type AdminPayment, type UserPaymentStatus, type UserProgress } from "@/lib/admin/types";
 import { Badge } from "@/components/shared/Badge";
 import { Button } from "@/components/shared/Button";
+import { Modal } from "@/components/shared/Modal";
 import { showToast } from "@/components/shared/Toast";
 import DeleteButton from "@/components/admin/DeleteButton";
 import AddPaymentForm from "@/components/admin/AddPaymentForm";
@@ -17,7 +18,7 @@ import { PaymentBadge, ProgressBar, UserPaymentBadge } from "@/components/admin/
 import RandomTestsTable, { type AdminRandomTestRow } from "@/components/admin/RandomTestsTable";
 import { UserFinalExamPanel } from "@/components/admin/FinalExamPanel";
 import { UserWeeklyResultsPanel } from "@/components/admin/WeeklyResults";
-import { EmptyState, ErrorBlock, LoadingBlock, PageHeader, Panel, StatCard, Table, Td, Th } from "@/components/admin/ui";
+import { EmptyState, ErrorBlock, LoadingBlock, PageHeader, Panel, StatCard, Table, Td, TextInput, Th } from "@/components/admin/ui";
 
 interface TopicResult {
   slug: string;
@@ -32,6 +33,8 @@ interface TopicResult {
   passed: boolean;
   videoWatched: boolean | null;
   keywordsReviewed: number;
+  /** "Tanishib chiqdim" bosilgan (yangi oqim). */
+  keywordsViewed?: boolean;
 }
 
 interface UserDetail {
@@ -42,6 +45,10 @@ interface UserDetail {
   centerAccess?: boolean;
   /** Hamma narsa ochiq: kun/mavzu qulfi, video va kalit so'z sharti yo'q. */
   unlockAll?: boolean;
+  /** Yangi oqim (video → kalit so'zlar → test) majburiy. */
+  topicFlowGatingEnabled?: boolean;
+  weeklyResetExempt?: boolean;
+  progressResetAt?: string | null;
   lastLoginAt?: string | null;
   lastDevice?: string | null;
   firstName: string | null;
@@ -117,6 +124,7 @@ export default function AdminUserPage({ params }: { params: Promise<{ id: string
       </div>
 
       <UnlockAllPanel userId={data.id} enabled={Boolean(data.unlockAll)} onChange={(unlockAll) => setData((d) => (d ? { ...d, unlockAll } : d))} />
+      <ProgressResetPanel user={data} onDone={load} />
 
       <div className="mb-6 grid gap-6 lg:grid-cols-2">
         <Panel title="Shaxsiy ma'lumot">
@@ -254,8 +262,13 @@ export default function AdminUserPage({ params }: { params: Promise<{ id: string
                       <Td className="text-xs whitespace-nowrap">
                         {t.lastAttemptAt ? `${t.lastPercent}% · ${formatDateTime(t.lastAttemptAt)}` : "—"}
                       </Td>
-                      <Td className="font-mono text-xs">
+                      <Td className="font-mono text-xs whitespace-nowrap">
                         {t.keywordsReviewed} / {t.questionCount}
+                        {t.keywordsViewed && (
+                          <Badge tone="success" className="ml-1.5">
+                            tanishib chiqdi
+                          </Badge>
+                        )}
                       </Td>
                     </tr>
                   ))}
@@ -269,7 +282,8 @@ export default function AdminUserPage({ params }: { params: Promise<{ id: string
 
       <UserFinalExamPanel userId={data.id} />
 
-      <UserWeeklyResultsPanel userId={data.id} />
+      {/* Nollashdan keyin arxiv qayta yuklanadi. */}
+      <UserWeeklyResultsPanel key={data.progressResetAt ?? "none"} userId={data.id} />
 
       <Panel title="Eng ko'p xato qilgan savollari">
         {data.mostWrong.length === 0 ? (
@@ -355,6 +369,102 @@ function UnlockAllPanel({ userId, enabled, onChange }: { userId: string; enabled
           {enabled ? "O'chirish" : "Hammasini ochish"}
         </Button>
       </div>
+    </Panel>
+  );
+}
+
+interface ResetPreview {
+  affectedUsers: number;
+  counts: { topicTests: number; randomTests: number; answers: number; videoProgress: number; keywordReviews: number; keywordViews: number };
+}
+
+/**
+ * "Progressni to'liq nolga tushirish": shu o'quvchining test natijalari, video va
+ * kalit so'zlar progressi arxivlanib nollanadi va yangi oqim (video → kalit
+ * so'zlar → test) yoqiladi. Admin "NOLLASH" so'zini yozsagina ishlaydi. Yakuniy
+ * imtihon, sertifikat, to'lov va profilga tegilmaydi. Natijalar arxivda qoladi.
+ */
+function ProgressResetPanel({ user, onDone }: { user: UserDetail; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState<ResetPreview | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function openDialog() {
+    setOpen(true);
+    setConfirm("");
+    setError(null);
+    setPreview(null);
+    try {
+      setPreview(await adminFetch<ResetPreview>(`users/${user.id}/progress-reset`, { json: { confirm: "NOLLASH", dryRun: true } }));
+    } catch {
+      // Oldindan ko'rish bo'lmasa ham nollash mumkin.
+    }
+  }
+
+  async function run() {
+    if (busy || confirm !== "NOLLASH") return;
+    setBusy(true);
+    setError(null);
+    try {
+      await adminFetch(`users/${user.id}/progress-reset`, { json: { confirm } });
+      setOpen(false);
+      showToast({ tone: "success", message: "Progress nolga tushirildi — o'quvchi hammasini qaytadan ko'radi" });
+      onDone();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Bajarib bo'lmadi");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Panel className="mb-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" data-testid="progress-reset-panel">
+        <div>
+          <p className="flex flex-wrap items-center gap-2 font-semibold text-foreground">
+            Mavzu oqimi: video → kalit so&apos;zlar → test{" "}
+            {user.topicFlowGatingEnabled ? <Badge tone="success">majburiy</Badge> : <Badge tone="muted">eski tartib</Badge>}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Nollash: test natijalari, video va kalit so&apos;zlar progressi arxivlanib nolga tushadi, yangi oqim yoqiladi. Yakuniy imtihon, sertifikat va to&apos;lovlar saqlanadi.
+            {user.progressResetAt && ` Oxirgi nollash: ${formatDateTime(user.progressResetAt)}.`}
+          </p>
+        </div>
+        <Button variant="danger" size="sm" onClick={openDialog} data-testid="progress-reset-open">
+          <RotateCcwIcon className="size-4" /> Progressni to&apos;liq nolga tushirish
+        </Button>
+      </div>
+      <Modal
+        open={open}
+        onOpenChange={(next) => {
+          if (!busy) setOpen(next);
+        }}
+        title="Progressni to'liq nolga tushirish"
+        description={`${fullName(user)} — barcha test natijalari, video va kalit so'zlar progressi arxivlanib nolga tushadi. Tasdiqlash uchun NOLLASH deb yozing.`}
+      >
+        {preview && (
+          <p className="mb-3 rounded-xl bg-surface px-3 py-2 text-sm text-muted-foreground" data-testid="progress-reset-preview">
+            Mavzu testlari {preview.counts.topicTests}, random testlar {preview.counts.randomTests}, javoblar {preview.counts.answers}, video {preview.counts.videoProgress}, kalit so&apos;zlar belgilari{" "}
+            {preview.counts.keywordReviews + preview.counts.keywordViews}.
+          </p>
+        )}
+        <TextInput value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="NOLLASH" autoComplete="off" aria-label="Tasdiqlash so'zi" data-testid="progress-reset-input" />
+        {error && (
+          <p role="alert" className="mt-3 text-sm text-danger">
+            {error}
+          </p>
+        )}
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button variant="secondary" onClick={() => setOpen(false)} disabled={busy}>
+            Bekor qilish
+          </Button>
+          <Button variant="danger" className="bg-danger/10 font-bold" onClick={run} disabled={busy || confirm !== "NOLLASH"} data-testid="progress-reset-confirm">
+            {busy ? "Nollanmoqda…" : "Nolga tushirish"}
+          </Button>
+        </div>
+      </Modal>
     </Panel>
   );
 }

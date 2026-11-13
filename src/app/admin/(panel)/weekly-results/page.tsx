@@ -20,7 +20,7 @@ interface ResetItem {
   startedAt: string;
   finishedAt: string | null;
   affectedUsers: number;
-  counts: { topicTests: number; randomTests: number; answers: number; aiInsights: number } | null;
+  counts: { topicTests: number; randomTests: number; answers: number; aiInsights: number; videoProgress?: number; keywordReviews?: number; keywordViews?: number; flowEnabled?: number } | null;
   error: string | null;
 }
 
@@ -36,7 +36,7 @@ interface RunResult {
   skipped: boolean;
   dryRun: boolean;
   affectedUsers: number;
-  counts: { topicTests: number; randomTests: number; answers: number; aiInsights: number };
+  counts: { topicTests: number; randomTests: number; answers: number; aiInsights: number; videoProgress?: number; keywordReviews?: number; keywordViews?: number; flowEnabled?: number };
 }
 
 type UserRow = WeekSummary & {
@@ -109,7 +109,7 @@ export default function AdminWeeklyResultsPage() {
     <>
       <PageHeader
         title="Haftalik natijalar"
-        subtitle="Har dushanba 22:00 (Toshkent) da o'quvchilar natijalari nolga tushadi; eski natijalar shu yerda arxivda saqlanadi."
+        subtitle="Har dushanba 22:00 (Toshkent) da o'quvchilar test natijalari, video va kalit so'zlar progressi nolga tushadi; eskilari shu yerda arxivda saqlanadi."
         actions={
           <Button variant="danger" size="sm" onClick={() => setConfirmOpen(true)} data-testid="weekly-reset-now">
             <RefreshCwIcon className="size-4" />
@@ -212,7 +212,7 @@ export default function AdminWeeklyResultsPage() {
                   <Td className="whitespace-nowrap">{formatDateTime(r.finishedAt ?? r.startedAt)}</Td>
                   <Td className="font-mono">{r.status === "covered" ? "—" : r.affectedUsers}</Td>
                   <Td className="text-xs text-muted-foreground">
-                    {r.counts ? `mavzu ${r.counts.topicTests} · random ${r.counts.randomTests} · javob ${r.counts.answers}` : "—"}
+                    {r.counts ? `mavzu ${r.counts.topicTests} · random ${r.counts.randomTests} · javob ${r.counts.answers} · video ${r.counts.videoProgress ?? 0} · kalit so'zlar ${(r.counts.keywordReviews ?? 0) + (r.counts.keywordViews ?? 0)}` : "—"}
                   </Td>
                   <Td>
                     <Badge tone={STATUS[r.status]?.tone ?? "muted"}>{STATUS[r.status]?.label ?? r.status}</Badge>
@@ -278,7 +278,7 @@ function ResetNowDialog({ open, onOpenChange, onDone }: { open: boolean; onOpenC
       <div className="flex flex-col gap-3" data-testid="weekly-reset-dialog">
         <p className="text-sm text-muted-foreground">
           {preview
-            ? `Ta'sirlanadi: ${preview.affectedUsers} ta foydalanuvchi — mavzu testlari ${preview.counts.topicTests}, random testlar ${preview.counts.randomTests}, javoblar ${preview.counts.answers}.`
+            ? `Ta'sirlanadi: ${preview.affectedUsers} ta foydalanuvchi — mavzu testlari ${preview.counts.topicTests}, random testlar ${preview.counts.randomTests}, javoblar ${preview.counts.answers}, video progressi ${preview.counts.videoProgress ?? 0}, kalit so'zlar belgilari ${(preview.counts.keywordReviews ?? 0) + (preview.counts.keywordViews ?? 0)}; yangi oqim yoqiladi: ${preview.counts.flowEnabled ?? 0} ta foydalanuvchi.`
             : "Hisoblanmoqda…"}
         </p>
         <label className="text-sm text-foreground">

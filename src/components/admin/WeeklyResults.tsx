@@ -21,10 +21,17 @@ export interface WeekSummary {
   averagePercent: number | null;
   correct: number;
   wrong: number;
+  /** Oxirigacha ko'rilgan videolar / progressi bo'lgan darslar. */
+  videosWatched?: number;
+  videoLessons?: number;
+  /** "Tanishib chiqdim" bosilgan mavzular / kalit so'zlar bo'yicha harakat bo'lgan mavzular. */
+  keywordsViewed?: number;
+  keywordTopics?: number;
 }
 
 interface UserWeeks {
   exempt: boolean;
+  topicFlowGatingEnabled?: boolean;
   current: WeekSummary;
   weeks: WeekSummary[];
 }
@@ -33,6 +40,8 @@ interface WeekDetail {
   weekKey: string;
   topicTests: { id: string; topicSlug: string; topicTitle: string; correct: number; total: number; percent: number; createdAt: string }[];
   randomTests: { id: string; size: number; total: number; answered: number; correct: number; percent: number; status: string; startedAt: string; finishedAt: string | null }[];
+  videoProgress?: { lessonId: string; topicSlug: string; topicTitle: string; watchedPercent: number; completed: boolean; completedAt: string | null }[];
+  keywordsProgress?: { topicSlug: string; topicTitle: string; reviewedQuestions: number; viewedAt: string | null }[];
 }
 
 /** "2026-W46" | "initial-launch" | "manual-2026-11-10T09:00:00" → o'qiladigan nom. */
@@ -40,6 +49,8 @@ export function weekLabel(weekKey: string): string {
   if (weekKey === "current") return "Joriy hafta";
   if (weekKey === "initial-launch") return "Birinchi yangilanish";
   if (weekKey.startsWith("manual-")) return `Qo'lda · ${formatDateTime(`${weekKey.slice(7)}Z`)}`;
+  if (weekKey === "tester-reset") return "Tester nollashi";
+  if (weekKey.startsWith("user-")) return `Admin nollashi · ${formatDateTime(weekKey.slice(5))}`;
   return weekKey;
 }
 
@@ -111,6 +122,7 @@ export function UserWeeklyResultsPanel({ userId }: { userId: string }) {
                 <Th>Testlar</Th>
                 <Th>O&apos;rtacha</Th>
                 <Th>To&apos;g&apos;ri / xato</Th>
+                <Th>Video · kalit so&apos;zlar</Th>
                 <Th> </Th>
               </tr>
             </thead>
@@ -130,8 +142,11 @@ export function UserWeeklyResultsPanel({ userId }: { userId: string }) {
                     <Td className="font-mono whitespace-nowrap">
                       <span className="text-success">{w.correct}</span> / <span className="text-danger">{w.wrong}</span>
                     </Td>
+                    <Td className="text-xs whitespace-nowrap" data-testid="archive-week-progress">
+                      video {w.videosWatched ?? 0}/{w.videoLessons ?? 0} · kalit so&apos;zlar {w.keywordsViewed ?? 0}/{w.keywordTopics ?? 0}
+                    </Td>
                     <Td>
-                      {w.tests > 0 && (
+                      {(w.tests > 0 || (w.videoLessons ?? 0) > 0 || (w.keywordTopics ?? 0) > 0) && (
                         <Button variant="ghost" size="sm" onClick={() => setOpen(open === w.weekKey ? null : w.weekKey)} data-testid="archive-week-open">
                           Batafsil
                           {open === w.weekKey ? <ChevronUpIcon className="size-4" /> : <ChevronDownIcon className="size-4" />}
@@ -141,7 +156,7 @@ export function UserWeeklyResultsPanel({ userId }: { userId: string }) {
                   </tr>
                   {open === w.weekKey && (
                     <tr>
-                      <td colSpan={6} className="bg-surface/60 px-3 py-3">
+                      <td colSpan={7} className="bg-surface/60 px-3 py-3">
                         <WeekDetailView userId={userId} weekKey={w.weekKey} />
                       </td>
                     </tr>
@@ -223,6 +238,62 @@ function WeekDetailView({ userId, weekKey }: { userId: string; weekKey: string }
                     {t.correct}/{t.total} <span className="text-xs text-muted-foreground">({t.answered} javob)</span>
                   </Td>
                   <Td className="font-mono font-semibold">{t.percent}%</Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        )}
+      </div>
+      <div>
+        <p className="mb-2 text-sm font-semibold text-foreground">Video darslar · {data.videoProgress?.length ?? 0}</p>
+        {!data.videoProgress?.length ? (
+          <p className="text-sm text-muted-foreground">Yo&apos;q</p>
+        ) : (
+          <Table>
+            <thead>
+              <tr>
+                <Th>Mavzu</Th>
+                <Th>Ko&apos;rilgan</Th>
+                <Th>Holat</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.videoProgress.map((v) => (
+                <tr key={v.lessonId}>
+                  <Td>
+                    {v.topicTitle} <span className="font-mono text-xs text-muted-foreground">{v.topicSlug}</span>
+                  </Td>
+                  <Td className="font-mono">{v.watchedPercent}%</Td>
+                  <Td className="whitespace-nowrap">
+                    {v.completed ? <Badge tone="success">ko&apos;rilgan{v.completedAt ? ` · ${formatDateTime(v.completedAt)}` : ""}</Badge> : <Badge tone="muted">to&apos;liq emas</Badge>}
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        )}
+      </div>
+      <div>
+        <p className="mb-2 text-sm font-semibold text-foreground">Kalit so&apos;zlar · {data.keywordsProgress?.length ?? 0}</p>
+        {!data.keywordsProgress?.length ? (
+          <p className="text-sm text-muted-foreground">Yo&apos;q</p>
+        ) : (
+          <Table>
+            <thead>
+              <tr>
+                <Th>Mavzu</Th>
+                <Th>&ldquo;Tanishdim&rdquo; (savollar)</Th>
+                <Th>&ldquo;Tanishib chiqdim&rdquo;</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.keywordsProgress.map((k) => (
+                <tr key={k.topicSlug}>
+                  <Td>
+                    {k.topicTitle} <span className="font-mono text-xs text-muted-foreground">{k.topicSlug}</span>
+                  </Td>
+                  <Td className="font-mono">{k.reviewedQuestions}</Td>
+                  <Td className="whitespace-nowrap">{k.viewedAt ? <Badge tone="success">ha · {formatDateTime(k.viewedAt)}</Badge> : <Badge tone="muted">yo&apos;q</Badge>}</Td>
                 </tr>
               ))}
             </tbody>

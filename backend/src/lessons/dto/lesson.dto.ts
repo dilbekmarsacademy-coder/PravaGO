@@ -43,4 +43,9 @@ export interface LessonStatusDto {
   /** 0–100, butun son. */
   watchedPercent: number;
   completed: boolean;
+  /**
+   * Avval (haftalik yangilanishgacha) kamida bir marta oxirigacha ko'rilgan —
+   * faqat videoli mavzuda yakuniy imtihon qulfi qayta yopilmasligi uchun.
+   */
+  everCompleted: boolean;
 }

@@ -16,6 +16,8 @@ export const EVENT_TYPES = [
   "keywords_view",
   "register",
   "payment_request",
+  /** Landing'dagi "Kursga yozilish" (Telegram) tugmasi. `path` — bo'lim nomi. */
+  "enroll_click",
 ] as const;
 
 const ID = /^[A-Za-z0-9_-]{8,40}$/;

@@ -20,7 +20,9 @@ export type AnalyticsEventType =
   | "video_watched"
   | "keywords_view"
   | "register"
-  | "payment_request";
+  | "payment_request"
+  /** Landing'dagi "Kursga yozilish" (Telegram). `path` — bo'lim nomi. */
+  | "enroll_click";
 
 interface QueuedEvent {
   type: AnalyticsEventType;

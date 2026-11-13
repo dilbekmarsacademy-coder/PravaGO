@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { useReveal } from "./useReveal";
 import type { ExamStatus } from "./types";
+import EnrollButton from "./EnrollButton";
 
 interface CategorySectionProps {
   onSelect: (status: ExamStatus) => void;
@@ -89,6 +90,9 @@ export default function CategorySection({ onSelect }: CategorySectionProps) {
               </div>
             );
           })}
+        </div>
+        <div className="mt-8 flex justify-center">
+          <EnrollButton section="toifalar" />
         </div>
       </div>
     </section>

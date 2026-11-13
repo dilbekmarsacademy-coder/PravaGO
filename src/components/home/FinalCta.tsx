@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { useReveal } from "./useReveal";
+import EnrollButton from "./EnrollButton";
 
 interface FinalCtaProps {
   onStart: () => void;
@@ -60,6 +61,9 @@ export default function FinalCta({ onStart }: FinalCtaProps) {
           {t.finalCta.cta}
           <RocketIcon className="size-4" />
         </Button>
+        <div className="relative mt-4 flex justify-center">
+          <EnrollButton section="yakuniy" />
+        </div>
       </div>
     </section>
   );

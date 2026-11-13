@@ -117,6 +117,7 @@ export class AdminUsersService {
           include: { confirmedBy: { select: { login: true, name: true } }, createdBy: { select: { login: true, name: true } } },
         },
         lessonProgress: { select: { lessonId: true, completedAt: true, maxPosition: true } },
+        keywordsViews: { select: { topicId: true } },
       },
     });
     if (!user) throw new NotFoundException("Foydalanuvchi topilmadi");
@@ -145,6 +146,7 @@ export class AdminUsersService {
       for (const q of qs) reviewedByTopic.set(q.topicId, (reviewedByTopic.get(q.topicId) ?? 0) + 1);
     }
     const lessonsDone = new Map(user.lessonProgress.map((l) => [l.lessonId, l]));
+    const viewedTopics = new Set(user.keywordsViews.map((v) => v.topicId));
 
     const topicResults = topics.map((t: CourseTopic) => {
       const own = attempts.filter((a) => a.topicId === t.id);
@@ -162,6 +164,7 @@ export class AdminUsersService {
         passed: own.some((a) => a.percent >= PASS_PERCENT),
         videoWatched: lesson ? lesson.completedAt !== null : null,
         keywordsReviewed: reviewedByTopic.get(t.id) ?? 0,
+        keywordsViewed: viewedTopics.has(t.id),
       };
     });
 
@@ -180,6 +183,9 @@ export class AdminUsersService {
       isActive: user.isActive,
       centerAccess: user.centerAccess,
       unlockAll: user.unlockAll,
+      topicFlowGatingEnabled: user.topicFlowGatingEnabled,
+      weeklyResetExempt: user.weeklyResetExempt,
+      progressResetAt: user.progressResetAt,
       lastLoginAt: user.lastLoginAt,
       lastDevice: user.lastDevice,
       firstName: user.firstName,

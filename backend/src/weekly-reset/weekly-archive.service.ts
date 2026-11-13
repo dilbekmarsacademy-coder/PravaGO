@@ -4,6 +4,7 @@ import type { AdminUser } from "../admin/admin-request";
 import { AuditService } from "../admin/audit.service";
 import { userSearch } from "../payments/payments.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { LESSONS, lessonTopicSlug } from "../lessons/lessons.config";
 import { lastResetBoundary, nextResetAt } from "./schedule";
 
 // Admin: natijalar arxivi (faqat o'qish). Foydalanuvchi API'lari bu yerga
@@ -23,6 +24,22 @@ export interface WeekSummary {
   averagePercent: number | null;
   correct: number;
   wrong: number;
+  /** Shu haftada oxirigacha ko'rilgan videolar soni. */
+  videosWatched: number;
+  /** Video progressi bo'lgan darslar (qisman ko'rilganlar ham). */
+  videoLessons: number;
+  /** "Tanishib chiqdim" bosilgan mavzular. */
+  keywordsViewed: number;
+  /** Kalit so'zlar bo'yicha biror harakat bo'lgan mavzular. */
+  keywordTopics: number;
+}
+
+interface ProgressAggRow {
+  weekKey: string;
+  videos: bigint;
+  videoLessons: bigint;
+  keywords: bigint;
+  keywordTopics: bigint;
 }
 
 interface AggRow {
@@ -44,9 +61,16 @@ export class WeeklyArchiveService {
     private readonly audit: AuditService,
   ) {}
 
-  /** Bajarilgan yangilanishlar (eskidan yangiga) — hafta oraliqlari uchun. */
-  private async doneResets() {
-    return this.prisma.weeklyReset.findMany({ where: { status: "done" }, orderBy: { startedAt: "asc" }, select: { weekKey: true, startedAt: true, finishedAt: true } });
+  /**
+   * Bajarilgan yangilanishlar (eskidan yangiga) — hafta oraliqlari uchun.
+   * Umumiy yangilanishlar + (foydalanuvchi sahifasida) faqat shu foydalanuvchining alohida nollanishlari.
+   */
+  private async doneResets(userId?: string) {
+    return this.prisma.weeklyReset.findMany({
+      where: { status: "done", OR: [{ userId: null }, ...(userId ? [{ userId }] : [])] },
+      orderBy: { startedAt: "asc" },
+      select: { weekKey: true, startedAt: true, finishedAt: true },
+    });
   }
 
   private ranges(resets: { weekKey: string; startedAt: Date }[]) {
@@ -55,9 +79,13 @@ export class WeeklyArchiveService {
     return map;
   }
 
-  private summary(row: AggRow, range: { from: Date | null; to: Date | null }): WeekSummary {
+  private summary(row: AggRow, range: { from: Date | null; to: Date | null }, progress?: ProgressAggRow): WeekSummary {
     const correct = Number(row.correct ?? 0);
     return {
+      videosWatched: Number(progress?.videos ?? 0),
+      videoLessons: Number(progress?.videoLessons ?? 0),
+      keywordsViewed: Number(progress?.keywords ?? 0),
+      keywordTopics: Number(progress?.keywordTopics ?? 0),
       weekKey: row.weekKey,
       from: range.from,
       to: range.to,
@@ -82,10 +110,10 @@ export class WeeklyArchiveService {
   // ── Foydalanuvchi sahifasi ──
 
   async userWeeks(userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, weeklyResetExempt: true } });
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, weeklyResetExempt: true, topicFlowGatingEnabled: true } });
     if (!user) throw new NotFoundException("Foydalanuvchi topilmadi");
-    const [resets, archived, current] = await Promise.all([
-      this.doneResets(),
+    const [resets, archived, current, archivedProgress, currentProgress] = await Promise.all([
+      this.doneResets(userId),
       this.prisma.$queryRaw<AggRow[]>`
         SELECT "weekKey", COUNT(*) AS tests,
           COUNT(*) FILTER (WHERE kind = 'topic_test') AS topic, COUNT(*) FILTER (WHERE kind = 'random_test') AS random,
@@ -97,21 +125,112 @@ export class WeeklyArchiveService {
           COUNT(*) FILTER (WHERE kind = 'topic_test') AS topic, COUNT(*) FILTER (WHERE kind = 'random_test') AS random,
           AVG(percent) AS avg, SUM("correct") AS correct, SUM("total") AS total
         FROM (${this.currentRowsSql(userId)}) x`,
+      // Video va kalit so'zlar progressi (arxivlangan haftalar).
+      this.prisma.$queryRaw<ProgressAggRow[]>`
+        SELECT "weekKey",
+          COUNT(*) FILTER (WHERE kind = 'video_progress' AND data->>'completedAt' IS NOT NULL) AS videos,
+          COUNT(*) FILTER (WHERE kind = 'video_progress') AS "videoLessons",
+          COUNT(*) FILTER (WHERE kind = 'keywords_progress' AND data->>'viewedAt' IS NOT NULL) AS keywords,
+          COUNT(*) FILTER (WHERE kind = 'keywords_progress') AS "keywordTopics"
+        FROM "WeeklyResultArchive" WHERE "userId" = ${userId} AND kind IN ('video_progress', 'keywords_progress')
+        GROUP BY 1`,
+      // Joriy (hali nollanmagan) progress.
+      this.prisma.$queryRaw<ProgressAggRow[]>`
+        SELECT ${CURRENT}::text AS "weekKey",
+          (SELECT COUNT(*) FROM "LessonProgress" WHERE "userId" = ${userId} AND "completedAt" IS NOT NULL) AS videos,
+          (SELECT COUNT(*) FROM "LessonProgress" WHERE "userId" = ${userId} AND ("maxPosition" > 0 OR "completedAt" IS NOT NULL)) AS "videoLessons",
+          (SELECT COUNT(*) FROM "TopicKeywordsView" WHERE "userId" = ${userId}) AS keywords,
+          (SELECT COUNT(*) FROM (
+            SELECT q."topicId" FROM "KeywordReview" k JOIN "Question" q ON q."id" = k."questionId" WHERE k."userId" = ${userId}
+            UNION SELECT "topicId" FROM "TopicKeywordsView" WHERE "userId" = ${userId}) t) AS "keywordTopics"`,
     ]);
     const ranges = this.ranges(resets);
     const lastReset = resets.at(-1)?.startedAt ?? null;
-    const weeks = archived
-      .map((r) => this.summary(r, ranges.get(r.weekKey) ?? { from: null, to: null }))
+    const empty = (weekKey: string): AggRow => ({ weekKey, tests: 0n, topic: 0n, random: 0n, avg: null, correct: 0n, total: 0n });
+    const testsByWeek = new Map(archived.map((r) => [r.weekKey, r]));
+    const progressByWeek = new Map(archivedProgress.map((r) => [r.weekKey, r]));
+    const weekKeys = [...new Set([...testsByWeek.keys(), ...progressByWeek.keys()])];
+    const weeks = weekKeys
+      .map((key) => this.summary(testsByWeek.get(key) ?? empty(key), ranges.get(key) ?? { from: null, to: null }, progressByWeek.get(key)))
       .sort((a, b) => (b.to?.getTime() ?? 0) - (a.to?.getTime() ?? 0));
     return {
       exempt: user.weeklyResetExempt,
-      current: this.summary(current[0] ?? { weekKey: CURRENT, tests: 0n, topic: 0n, random: 0n, avg: null, correct: 0n, total: 0n }, { from: lastReset, to: null }),
+      topicFlowGatingEnabled: user.topicFlowGatingEnabled,
+      current: this.summary(current[0] ?? empty(CURRENT), { from: lastReset, to: null }, currentProgress[0]),
       weeks,
     };
   }
 
-  /** Bitta hafta (yoki "current") batafsil: mavzu testlari va random testlar alohida. */
+  /** Darslar: lessonId → { mavzu slug'i, davomiylik }, mavzu nomlari bilan. */
+  private async lessonInfo(lessonIds: string[]) {
+    const slugs = [...new Set(lessonIds.map((id) => lessonTopicSlug(id)))];
+    const topics = slugs.length ? await this.prisma.topic.findMany({ where: { slug: { in: slugs } }, select: { slug: true, title: true } }) : [];
+    const titles = new Map(topics.map((t) => [t.slug, t.title]));
+    return (lessonId: string) => {
+      const topicSlug = lessonTopicSlug(lessonId);
+      return { topicSlug, topicTitle: titles.get(topicSlug) ?? topicSlug, durationSec: LESSONS[lessonId]?.durationSec ?? null };
+    };
+  }
+
+  private videoItem(
+    info: (lessonId: string) => { topicSlug: string; topicTitle: string; durationSec: number | null },
+    row: { lessonId: string; maxPosition: number; watchedSeconds: number; completedAt: Date | string | null },
+  ) {
+    const meta = info(row.lessonId);
+    const completed = row.completedAt !== null;
+    const percent = completed ? 100 : meta.durationSec ? Math.min(99, Math.floor((row.maxPosition / meta.durationSec) * 100)) : 0;
+    return { lessonId: row.lessonId, topicSlug: meta.topicSlug, topicTitle: meta.topicTitle, watchedPercent: percent, completed, completedAt: row.completedAt };
+  }
+
+  /** Video va kalit so'zlar progressi (hafta yoki "current"). */
+  private async progressDetail(userId: string, weekKey: string) {
+    if (weekKey === CURRENT) {
+      const [videos, reviews, views] = await Promise.all([
+        this.prisma.lessonProgress.findMany({
+          where: { userId, OR: [{ maxPosition: { gt: 0 } }, { completedAt: { not: null } }] },
+          select: { lessonId: true, maxPosition: true, watchedSeconds: true, completedAt: true },
+          orderBy: { lessonId: "asc" },
+        }),
+        this.prisma.$queryRaw<{ topicId: string; reviewed: number }[]>`
+          SELECT q."topicId", COUNT(*)::int AS reviewed FROM "KeywordReview" k JOIN "Question" q ON q."id" = k."questionId"
+          WHERE k."userId" = ${userId} GROUP BY 1`,
+        this.prisma.topicKeywordsView.findMany({ where: { userId }, select: { topicId: true, viewedAt: true } }),
+      ]);
+      const info = await this.lessonInfo(videos.map((v) => v.lessonId));
+      const topicIds = [...new Set([...reviews.map((r) => r.topicId), ...views.map((v) => v.topicId)])];
+      const topics = topicIds.length ? await this.prisma.topic.findMany({ where: { id: { in: topicIds } }, select: { id: true, slug: true, title: true } }) : [];
+      const reviewedBy = new Map(reviews.map((r) => [r.topicId, r.reviewed]));
+      const viewedBy = new Map(views.map((v) => [v.topicId, v.viewedAt]));
+      return {
+        videoProgress: videos.map((v) => this.videoItem(info, v)),
+        keywordsProgress: topics
+          .map((t) => ({ topicSlug: t.slug, topicTitle: t.title, reviewedQuestions: reviewedBy.get(t.id) ?? 0, viewedAt: viewedBy.get(t.id) ?? null }))
+          .sort((a, b) => a.topicSlug.localeCompare(b.topicSlug, undefined, { numeric: true })),
+      };
+    }
+    const rows = await this.prisma.weeklyResultArchive.findMany({
+      where: { userId, weekKey, kind: { in: ["video_progress", "keywords_progress"] } },
+      select: { kind: true, data: true },
+    });
+    type VideoData = { lessonId: string; maxPosition: number; watchedSeconds: number; completedAt: string | null };
+    type KeywordsData = { topicSlug: string; topicTitle: string; reviewedQuestions: number; viewedAt: string | null };
+    const videoRows = rows.filter((r) => r.kind === "video_progress").map((r) => r.data as unknown as VideoData);
+    const info = await this.lessonInfo(videoRows.map((v) => v.lessonId));
+    return {
+      videoProgress: videoRows.map((v) => this.videoItem(info, v)).sort((a, b) => a.topicSlug.localeCompare(b.topicSlug, undefined, { numeric: true })),
+      keywordsProgress: rows
+        .filter((r) => r.kind === "keywords_progress")
+        .map((r) => {
+          const d = r.data as unknown as KeywordsData;
+          return { topicSlug: d.topicSlug, topicTitle: d.topicTitle, reviewedQuestions: d.reviewedQuestions, viewedAt: d.viewedAt };
+        })
+        .sort((a, b) => a.topicSlug.localeCompare(b.topicSlug, undefined, { numeric: true })),
+    };
+  }
+
+  /** Bitta hafta (yoki "current") batafsil: mavzu testlari, random testlar, video va kalit so'zlar progressi. */
   async userWeekDetail(userId: string, weekKey: string) {
+    const progress = await this.progressDetail(userId, weekKey);
     if (weekKey === CURRENT) {
       const [topic, random] = await Promise.all([
         this.prisma.topicTestAttempt.findMany({
@@ -129,6 +248,7 @@ export class WeeklyArchiveService {
         weekKey,
         topicTests: topic.map((t) => ({ id: t.id, topicSlug: t.topic.slug, topicTitle: t.topic.title, correct: t.correct, total: t.total, percent: t.percent, createdAt: t.createdAt })),
         randomTests: random,
+        ...progress,
       };
     }
     const rows = await this.prisma.weeklyResultArchive.findMany({
@@ -145,7 +265,17 @@ export class WeeklyArchiveService {
         const { size, total, answered, correct, percent, status, startedAt, finishedAt } = r.data as unknown as RandomData;
         return { id: r.sourceId, size, total, answered, correct, percent, status, startedAt, finishedAt };
       }),
+      ...progress,
     };
+  }
+
+  async logUserReset(admin: AdminUser, ip: string, userId: string, result: { weekKey: string; skipped: boolean; affectedUsers: number; counts: unknown }) {
+    await this.audit.log(admin, ip, { action: "user.progress_reset", entityType: "user", entityId: userId, after: result as unknown as Prisma.InputJsonValue });
+  }
+
+  async assertUser(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!user) throw new NotFoundException("Foydalanuvchi topilmadi");
   }
 
   async setExempt(admin: AdminUser, ip: string, userId: string, enabled: boolean) {
@@ -164,7 +294,8 @@ export class WeeklyArchiveService {
 
   async resets(now = new Date()) {
     const items = await this.prisma.weeklyReset.findMany({ orderBy: { startedAt: "desc" }, take: 100 });
-    const last = items.find((r) => r.status === "done");
+    // Umumiy yangilanish (bitta foydalanuvchi nollashlari — userId bilan — hisobga olinmaydi).
+    const last = items.find((r) => r.status === "done" && !r.userId);
     return {
       serverNow: now,
       lastResetAt: last?.finishedAt ?? null,
@@ -179,6 +310,7 @@ export class WeeklyArchiveService {
         affectedUsers: r.affectedUsers,
         counts: r.counts,
         error: r.error,
+        userId: r.userId,
       })),
     };
   }

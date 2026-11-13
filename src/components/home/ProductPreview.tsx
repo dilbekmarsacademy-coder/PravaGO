@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { useReveal } from "./useReveal";
+import EnrollButton from "./EnrollButton";
 
 // NOTE: Hardcoded mock numbers for UI preview functionality — real hisob-kitob emas.
 const DEMO_DAY_PROGRESS = 4;
@@ -58,12 +59,15 @@ export default function ProductPreview({ onStart }: ProductPreviewProps) {
             ))}
           </ul>
 
-          <Button
-            onClick={onStart}
-            className="glow-orange-hover mt-8 h-auto rounded-full border-0 bg-gradient-to-r from-neon-orange to-neon-orange-2 px-6 py-3 text-sm font-bold text-background"
-          >
-            {t.productPreview.cta}
-          </Button>
+          <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+            <Button
+              onClick={onStart}
+              className="glow-orange-hover h-auto rounded-full border-0 bg-gradient-to-r from-neon-orange to-neon-orange-2 px-6 py-3 text-sm font-bold text-background"
+            >
+              {t.productPreview.cta}
+            </Button>
+            <EnrollButton section="dastur" />
+          </div>
         </div>
 
         <div className="glass rounded-2xl p-6 sm:p-7">

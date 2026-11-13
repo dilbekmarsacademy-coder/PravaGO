@@ -4,6 +4,7 @@ import { StarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { useReveal } from "./useReveal";
+import EnrollButton from "./EnrollButton";
 
 export default function Testimonials() {
   const { ref, visible } = useReveal<HTMLDivElement>();
@@ -49,6 +50,9 @@ export default function Testimonials() {
               </div>
             </div>
           ))}
+        </div>
+        <div className="mt-8 flex justify-center">
+          <EnrollButton section="fikrlar" />
         </div>
       </div>
     </section>

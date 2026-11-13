@@ -15,6 +15,8 @@ export interface LessonStatus {
   watchedSeconds: number;
   watchedPercent: number;
   completed: boolean;
+  /** Avval (haftalik yangilanishgacha) kamida bir marta ko'rilgan — faqat yakuniy imtihon qulfi uchun. */
+  everCompleted?: boolean;
 }
 
 export interface ProgressReport {

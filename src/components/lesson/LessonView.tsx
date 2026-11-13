@@ -16,6 +16,7 @@ import { getKeywordProgress, type KeywordProgress } from "@/lib/api/keywords";
 import { localize } from "@/lib/i18n/localized";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { getRegistration, getUnlockAll } from "@/lib/registration-store";
+import { getMe } from "@/lib/api/account";
 import { AppHeader } from "@/components/shared/AppHeader";
 import { buttonClasses } from "@/components/shared/Button";
 import LanguageSwitcher from "@/components/shared/LanguageSwitcher";
@@ -52,6 +53,21 @@ export function LessonView({ topic }: LessonViewProps) {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setUnlockAll(getUnlockAll());
+  }, []);
+  // Yangi oqim (video → kalit so'zlar → test) — serverdan (GET /me); backend ham tekshiradi.
+  const [flowGating, setFlowGating] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    getMe()
+      .then((me) => {
+        if (cancelled) return;
+        setFlowGating(Boolean(me.topicFlowGating));
+        if (me.unlockAll !== undefined) setUnlockAll(Boolean(me.unlockAll));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
   }, []);
   const videoCompleted = Boolean(status?.completed);
   useEffect(() => {
@@ -144,6 +160,7 @@ export function LessonView({ topic }: LessonViewProps) {
           keywordsHref={hasTest ? keywordsHref(topic) : null}
           keywordProgress={keywordProgress}
           unlockAll={unlockAll}
+          flowGating={flowGating}
         />
       </main>
     </>

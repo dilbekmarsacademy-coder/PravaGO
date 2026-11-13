@@ -46,6 +46,17 @@ export class AccessService {
     return user?.unlockAll ?? false;
   }
 
+  /**
+   * Kunlik mavzu oqimi bayroqlari: `unlockAll` (admin hammasini ochgan — oqim
+   * talab qilinmaydi) va `gated` (User.topicFlowGatingEnabled: video →
+   * "Tanishib chiqdim" → test majburiy).
+   */
+  async flowFlags(userId: string | undefined): Promise<{ unlockAll: boolean; gated: boolean }> {
+    if (!userId) return { unlockAll: false, gated: false };
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { unlockAll: true, topicFlowGatingEnabled: true } });
+    return { unlockAll: user?.unlockAll ?? false, gated: user?.topicFlowGatingEnabled ?? false };
+  }
+
   async assertCourseAccess(userId: string | undefined): Promise<void> {
     if (await this.hasCourseAccess(userId)) return;
     if (userId) {

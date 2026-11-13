@@ -11,6 +11,12 @@ import { findLessonIdForTopic, lessonTopicSlug, type LessonConfig } from "./less
  * VA video oxirigacha yetib kelingan (END_TOLERANCE_SEC).
  */
 export const COMPLETION_RATIO = 0.98;
+/**
+ * Kunlik mavzu oqimi yoqilgan (topicFlowGatingEnabled) foydalanuvchi uchun
+ * qo'shimcha yo'l: videoning kamida 90% i haqiqatan tomosha qilingan
+ * (watchedSeconds — real vaqt bilan cheklangan) VA eng uzoq nuqta ham 90% dan kam emas.
+ */
+export const GATED_WATCH_RATIO = 0.9;
 /** Oxirigacha yetib kelindi deb hisoblash chegarasi (soniya). */
 const END_TOLERANCE_SEC = 3;
 /** Klientdagi eng yuqori tezlik (2x) — bir soniya real vaqtda shuncha video soniyasi o'tadi. */
@@ -30,9 +36,9 @@ const REPORT_SLACK_SEC = 2;
  */
 const LESSON_SKIP_ENABLED = process.env.LESSON_SKIP_ENABLED === "true";
 
-type ProgressRow = Pick<LessonProgress, "maxPosition" | "watchedSeconds" | "lastPosition" | "completedAt">;
+type ProgressRow = Pick<LessonProgress, "maxPosition" | "watchedSeconds" | "lastPosition" | "completedAt" | "firstCompletedAt">;
 
-const EMPTY_PROGRESS: ProgressRow = { maxPosition: 0, watchedSeconds: 0, lastPosition: 0, completedAt: null };
+const EMPTY_PROGRESS: ProgressRow = { maxPosition: 0, watchedSeconds: 0, lastPosition: 0, completedAt: null, firstCompletedAt: null };
 
 /** Foiz = eng uzoq ko'rilgan nuqta / davomiylik (real vaqt emas — tezlikka bog'liq emas). */
 function toStatus(lessonId: string, lesson: LessonConfig, row: ProgressRow): LessonStatusDto {
@@ -46,6 +52,7 @@ function toStatus(lessonId: string, lesson: LessonConfig, row: ProgressRow): Les
     watchedSeconds: row.watchedSeconds,
     watchedPercent: completed ? 100 : Math.min(99, Math.floor((row.maxPosition / lesson.durationSec) * 100)),
     completed,
+    everCompleted: completed || row.firstCompletedAt !== null,
   };
 }
 
@@ -115,9 +122,20 @@ export class LessonsService {
     );
     const lastPosition = Math.min(report.position, maxPosition);
     const reachedEnd = maxPosition >= lesson.durationSec - END_TOLERANCE_SEC;
-    const completedAt = reachedEnd && maxPosition >= lesson.durationSec * COMPLETION_RATIO ? now : null;
+    let done = reachedEnd && maxPosition >= lesson.durationSec * COMPLETION_RATIO;
+    if (!done && watchedSeconds >= lesson.durationSec * GATED_WATCH_RATIO && maxPosition >= lesson.durationSec * GATED_WATCH_RATIO) {
+      done = (await this.access.flowFlags(userId)).gated;
+    }
+    const completedAt = done ? now : null;
 
-    const data = { maxPosition, watchedSeconds, lastPosition, completedAt, lastReportAt: now };
+    const data = {
+      maxPosition,
+      watchedSeconds,
+      lastPosition,
+      completedAt,
+      lastReportAt: now,
+      ...(completedAt && !row.firstCompletedAt ? { firstCompletedAt: completedAt } : {}),
+    };
 
     if (!existing) {
       const created = await this.prisma.lessonProgress
@@ -138,12 +156,15 @@ export class LessonsService {
 
   /**
    * Mavzu kontentiga (test, javob tekshiruvi, "Kalit so'zlar") kirish huquqi.
+   * `allowEverCompleted` — javob tekshiruvi va natijani saqlash uchun: video
+   * avval bir marta ko'rilgan bo'lsa yetarli (boshlangan testni haftalik
+   * yangilanish to'xtatib qo'ymasligi uchun). Testni BOSHLASH esa joriy holatni talab qiladi.
    * Hamma joyda shu bitta tekshiruv ishlatiladi: sessiya (AuthGuard) + to'lov
    * (AccessService) + video sharti. Darsi yo'q mavzular uchun va admin
  * "hammasini ochgan" o'quvchi (User.unlockAll) uchun video sharti yo'q.
    * "Yangi testlar" to'plami faqat nashr qilingan bo'lsa ochiladi.
    */
-  async assertTopicUnlocked(topicSlug: string, userId: string | undefined): Promise<void> {
+  async assertTopicUnlocked(topicSlug: string, userId: string | undefined, opts: { allowEverCompleted?: boolean } = {}): Promise<void> {
     await this.access.assertCourseAccess(userId);
     if (topicSlug.startsWith("new-")) {
       const topic = await this.prisma.topic.findUnique({ where: { slug: topicSlug }, select: { published: true, deletedAt: true } });
@@ -159,7 +180,7 @@ export class LessonsService {
     const completed =
       userId !== undefined &&
       (await this.prisma.lessonProgress.count({
-        where: { userId, lessonId, completedAt: { not: null } },
+        where: { userId, lessonId, ...(opts.allowEverCompleted ? { OR: [{ completedAt: { not: null } }, { firstCompletedAt: { not: null } }] } : { completedAt: { not: null } }) },
       })) > 0;
     if (!completed) {
       throw new ForbiddenException({

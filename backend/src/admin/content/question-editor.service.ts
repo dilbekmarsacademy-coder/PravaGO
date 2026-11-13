@@ -343,6 +343,42 @@ export class QuestionEditorService {
   }
 
   /** "Tekshirildi": AI tarjima va kalit so'z belgilari qo'lda ko'rib chiqildi. */
+  /**
+   * Kun mavzusi savolini YUMSHOQ o'chirish (deletedAt + deletedById). Savol
+   * natijalar, arxiv, random test va yakuniy imtihon urinishlariga bog'langan —
+   * qattiq o'chirish ularni (cascade) buzardi. O'quvchi tomonidagi barcha
+   * ro'yxat/pul/hisoblagichlar STUDENT_QUESTION_WHERE (deletedAt: null) orqali
+   * uni darhol chiqarib tashlaydi; "Saqlanganlar" ham deletedAt'ni filtrlaydi.
+   * Saqlanganlar yozuvlari o'chirilmaydi — savolni bazada tiklash mumkin bo'lsin.
+   *
+   * Parallel ikki so'rov: faqat bittasi o'chiradi (updateMany ... deletedAt IS
+   * NULL), ikkinchisi 404 oladi. Audit — o'sha tranzaksiyada (kim, qachon, id, matn).
+   */
+  async deleteCourseQuestion(admin: AdminUser, ip: string, id: string): Promise<{ id: string; deletedAt: Date }> {
+    const current = await this.load(id);
+    if (current.topic.kind !== "course") throw new BadRequestException("Bu yerda faqat kun mavzusi savolini o'chirish mumkin");
+    this.assertEditable(current.topic);
+    if (current.deletedAt) throw new NotFoundException("Savol topilmadi (allaqachon o'chirilgan)");
+    const deletedAt = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.question.updateMany({ where: { id, deletedAt: null }, data: { deletedAt, deletedById: admin.id } });
+      if (count === 0) throw new NotFoundException("Savol topilmadi (allaqachon o'chirilgan)");
+      await this.audit.log(
+        admin,
+        ip,
+        {
+          action: "question.deleted",
+          entityType: "question",
+          entityId: id,
+          before: { topicSlug: current.topic.slug, order: current.order, text: current.textLatn ?? current.text, question: toEditable(current) },
+          after: { deletedAt, deletedById: admin.id },
+        },
+        tx,
+      );
+    });
+    return { id, deletedAt };
+  }
+
   async markReviewed(admin: AdminUser, ip: string, id: string): Promise<EditableQuestionDto> {
     const current = await this.load(id);
     this.assertEditable(current.topic);

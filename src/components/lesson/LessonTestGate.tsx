@@ -7,11 +7,15 @@
 // Holat faqat serverdan keladi (LessonStatus) — localStorage'ga ishonilmaydi.
 // Backend ham test savollarini shu holatga qarab beradi (403
 // LESSON_NOT_COMPLETED / KEYWORDS_NOT_REVIEWED) — bu yerdagi qulf faqat UI.
+//
+// Yangi oqim (User.topicFlowGatingEnabled, `flowGating`): uch qadam — 1) video,
+// 2) kalit so'zlar ("Tanishib chiqdim"), 3) test. Bajarilgan qadamlar ✓ bilan;
+// test ikkalasidan keyin ochiladi (FlowGate).
 
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRightIcon, CheckCircle2Icon, ClockIcon, KeyRoundIcon, ListChecksIcon, LockIcon } from "lucide-react";
+import { ArrowRightIcon, CheckCircle2Icon, CheckIcon, ClockIcon, KeyRoundIcon, ListChecksIcon, LockIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/useLocale";
 import type { LessonStatus } from "@/lib/api/lessons";
@@ -32,6 +36,8 @@ interface LessonTestGateProps {
   keywordProgress?: KeywordProgress | null;
   /** Admin hamma narsani ochib qo'ygan: test videosiz va kalit so'zlarsiz ochiq. */
   unlockAll?: boolean;
+  /** Yangi oqim majburiy (GET /me → topicFlowGating). */
+  flowGating?: boolean;
   className?: string;
 }
 
@@ -42,11 +48,16 @@ export function LessonTestGate({
   keywordsHref,
   keywordProgress = null,
   unlockAll = false,
+  flowGating = false,
   className,
 }: LessonTestGateProps) {
   const { t } = useLocale();
   const gate = t.lesson.gate;
   const [soonOpen, setSoonOpen] = useState(false);
+
+  if (flowGating && !unlockAll && status && testHref && keywordsHref) {
+    return <FlowGate status={status} testHref={testHref} keywordsHref={keywordsHref} keywordProgress={keywordProgress} className={className} />;
+  }
 
   if (!status && !unavailable) {
     return (
@@ -210,6 +221,138 @@ export function LessonTestGate({
           {gate.close}
         </button>
       </Modal>
+    </Card>
+  );
+}
+
+type StepState = "done" | "current" | "locked";
+
+/** Yangi oqim: video → kalit so'zlar → test. Holat faqat serverdan (dars holati va kalit so'zlar progressi). */
+function FlowGate({
+  status,
+  testHref,
+  keywordsHref,
+  keywordProgress,
+  className,
+}: {
+  status: LessonStatus;
+  testHref: string;
+  keywordsHref: string;
+  keywordProgress: KeywordProgress | null;
+  className?: string;
+}) {
+  const { t } = useLocale();
+  const flow = t.lesson.gate.flow;
+  const videoDone = status.completed;
+  const keywordsDone = videoDone && Boolean(keywordProgress?.viewed);
+  const ready = videoDone && keywordsDone;
+  const steps: { key: string; label: string; state: StepState }[] = [
+    { key: "video", label: flow.steps.video, state: videoDone ? "done" : "current" },
+    { key: "keywords", label: flow.steps.keywords, state: keywordsDone ? "done" : videoDone ? "current" : "locked" },
+    { key: "test", label: flow.steps.test, state: ready ? "current" : "locked" },
+  ];
+  const title = ready ? flow.readyTitle : videoDone ? flow.keywordsTitle : flow.videoTitle;
+  const lockedButton = (
+    <button
+      type="button"
+      disabled
+      aria-disabled="true"
+      title={flow.lockedHint}
+      className={buttonClasses({ variant: "secondary", size: "lg", className: "w-full sm:w-auto" })}
+      data-testid="flow-test-locked"
+    >
+      <LockIcon className="size-4" />
+      {t.lesson.gate.startTest}
+    </button>
+  );
+
+  return (
+    <Card className={cn("flex flex-col gap-4 p-5", ready && "border-success/30", className)} data-testid="flow-gate">
+      <div className="flex min-w-0 items-start gap-3">
+        <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-full", ready ? "bg-success/15 text-success" : "bg-brand/10 text-brand")}>
+          {ready ? <CheckCircle2Icon className="size-5" /> : videoDone ? <KeyRoundIcon className="size-5" /> : <LockIcon className="size-5" />}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-display text-sm font-bold text-foreground sm:text-base" role="status" aria-live="polite">
+            {title}
+          </p>
+          {!videoDone && (
+            <div className="mt-2 flex items-center gap-3">
+              <div
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={status.watchedPercent}
+                aria-label={t.lesson.gate.progress(status.watchedPercent)}
+                className="h-2 flex-1 overflow-hidden rounded-full bg-surface-2"
+              >
+                <div className="h-full rounded-full bg-gradient-to-r from-brand to-brand-2 transition-[width] duration-500" style={{ width: `${status.watchedPercent}%` }} />
+              </div>
+              <span className="shrink-0 font-mono text-xs font-semibold text-muted-foreground tabular-nums">{t.lesson.gate.progress(status.watchedPercent)}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <ol className="grid grid-cols-3 gap-2" aria-label={title}>
+        {steps.map((step, i) => (
+          <li
+            key={step.key}
+            data-testid={`flow-step-${step.key}`}
+            data-state={step.state}
+            className={cn(
+              "flex min-w-0 flex-col items-center gap-1.5 rounded-xl border px-2 py-2.5 text-center text-xs font-semibold sm:flex-row sm:justify-center sm:text-sm",
+              step.state === "done" && "border-success/30 bg-success/10 text-success",
+              step.state === "current" && "border-brand/40 bg-brand/10 text-foreground",
+              step.state === "locked" && "border-border text-muted-foreground",
+            )}
+          >
+            <span
+              aria-hidden="true"
+              className={cn(
+                "flex size-6 shrink-0 items-center justify-center rounded-full font-mono text-[0.7rem] font-bold",
+                step.state === "done" ? "bg-success text-background" : step.state === "current" ? "bg-brand text-background" : "bg-foreground/10",
+              )}
+            >
+              {step.state === "done" ? <CheckIcon className="size-3.5" /> : step.state === "locked" ? <LockIcon className="size-3" /> : i + 1}
+            </span>
+            <span className="min-w-0 break-words">{step.label}</span>
+            {step.state === "done" && <span className="sr-only">— {flow.done}</span>}
+          </li>
+        ))}
+      </ol>
+
+      {!ready && (
+        <p className="text-sm text-muted-foreground" data-testid="flow-locked-hint">
+          {flow.lockedHint}
+        </p>
+      )}
+
+      <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-end">
+        {!videoDone ? (
+          lockedButton
+        ) : !keywordsDone ? (
+          <>
+            {lockedButton}
+            <Link href={keywordsHref} className={buttonClasses({ variant: "primary", size: "lg", className: "w-full sm:w-auto" })} data-testid="gate-keywords">
+              <KeyRoundIcon className="size-4" />
+              {flow.keywordsButton}
+              <ArrowRightIcon className="size-4" />
+            </Link>
+          </>
+        ) : (
+          <>
+            <Link href={keywordsHref} className={buttonClasses({ variant: "secondary", size: "lg", className: "w-full sm:w-auto" })}>
+              <KeyRoundIcon className="size-4" />
+              {t.keywords.open}
+            </Link>
+            <Link href={testHref} className={buttonClasses({ variant: "primary", size: "lg", className: "w-full sm:w-auto" })} data-testid="flow-start-test">
+              {t.lesson.gate.startTest}
+              <ArrowRightIcon className="size-4" />
+            </Link>
+          </>
+        )}
+      </div>
     </Card>
   );
 }

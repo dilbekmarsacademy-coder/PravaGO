@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { COURSE_TOPICS, nextCourseTopic } from "@/data/curriculum";
-import { withReadyCounts, withTestAttempts } from "./course";
+import { withLessonProgress, withReadyCounts, withTestAttempts } from "./course";
+import type { Topic } from "@/lib/course-types";
 
 describe("withTestAttempts", () => {
   it("adds server attempts to the topic with the matching test bank", () => {
@@ -43,5 +44,23 @@ describe("withReadyCounts", () => {
 
   it("server javob bermasa — o'zgarishsiz", () => {
     expect(withReadyCounts(COURSE_TOPICS, null)).toBe(COURSE_TOPICS);
+  });
+});
+
+describe("withLessonProgress", () => {
+  const base = COURSE_TOPICS.find((t) => t.lessonId)!;
+  const lesson = { lessonId: base.lessonId!, topicSlug: base.id, durationSec: 100, position: 0, maxPosition: 0, watchedSeconds: 0, watchedPercent: 0, completed: false, everCompleted: true };
+
+  it("faqat videoli mavzu avval ko'rilgan bo'lsa — passedBefore (yakuniy imtihon qulfi qayta yopilmaydi)", () => {
+    const videoOnly: Topic = { ...base, testSlug: undefined };
+    const [p] = withLessonProgress([], [videoOnly], [lesson]);
+    expect(p).toMatchObject({ videoWatched: false, videoPercent: 0, passedBefore: true });
+  });
+
+  it("testli mavzuda video avval ko'rilgani testni o'tilgan qilmaydi", () => {
+    const withTest: Topic = { ...base, testSlug: base.testSlug ?? base.id };
+    const [p] = withLessonProgress([], [withTest], [lesson]);
+    expect(p.passedBefore).toBeUndefined();
+    expect(p.videoWatched).toBe(false);
   });
 });

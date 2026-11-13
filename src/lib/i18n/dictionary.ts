@@ -114,6 +114,13 @@ export interface Dictionary {
     cta: string;
   };
 
+  /** "Kursga yozilish" — Telegram'dagi akademiya akkauntiga (BUSINESS.telegram). */
+  enroll: {
+    label: string;
+    /** Ekran o'quvchilar uchun: havola yangi oynada ochiladi. */
+    aria: string;
+  };
+
   /** Eski manzildagi "Sayt ko'chdi" sahifasi. */
   moved: {
     eyebrow: string;
@@ -467,6 +474,16 @@ export interface Dictionary {
       soonTitle: string;
       soonDesc: string;
       close: string;
+      /** Yangi oqim (video → kalit so'zlar → test) — topicFlowGatingEnabled. */
+      flow: {
+        steps: { video: string; keywords: string; test: string };
+        done: string;
+        videoTitle: string;
+        keywordsTitle: string;
+        readyTitle: string;
+        lockedHint: string;
+        keywordsButton: string;
+      };
     };
   };
 
@@ -577,6 +594,18 @@ export interface Dictionary {
       intro: string;
       startLocked: (left: number) => string;
       allReviewed: string;
+      /** Yangi oqim: "Tanishib chiqdim" (sahifa oxirigacha ko'rilgach yoqiladi). */
+      flow: {
+        button: string;
+        saving: string;
+        scrollHint: string;
+        searchHint: string;
+        done: string;
+        error: string;
+        lockedHint: string;
+        /** Oxiriga yetildi — tugmani bosish kerak. */
+        pressHint: string;
+      };
       reviewError: string;
       noResultsTitle: string;
       noResultsDesc: string;

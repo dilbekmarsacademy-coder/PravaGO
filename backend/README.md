@@ -133,6 +133,56 @@ urinishlari, video progress; foydalanuvchilar qoladi):
 npm run content:clear   # DATABASE_URL dagi bazada
 ```
 
+## Savolni o'chirish, mavzu oqimi va progressni nollash
+
+### Kun mavzusi savolini o'chirish (yumshoq)
+- Admin: Kontent → mavzu → savol ostidagi "Savolni o'chirish" → tasdiqlash oynasi →
+  `DELETE /admin/content/questions/:id` (AdminGuard, `content` ruxsati).
+- Bazada `Question.deletedAt` va `deletedById` yoziladi; savol, variantlar, kalit
+  so'zlar, natijalar va arxiv o'chirilmaydi. Audit: `AuditLog` (`question.deleted`,
+  savol matni va to'liq nusxasi bilan).
+- O'quvchi tomoni `STUDENT_QUESTION_WHERE` (`deletedAt: null`) orqali savolni
+  darhol ko'rmaydi: mavzu testi, kalit so'zlar, savollar soni (`/topics/ready-counts`),
+  random test va yakuniy imtihon puli, "Saqlanganlar". Boshlangan test 6 soat
+  davomida javobni tekshira oladi (`DELETED_GRACE_MS`), random/yakuniy imtihon
+  urinishlari savolni id bo'yicha oladi — buzilmaydi.
+- **Tiklash** (UI yo'q, faqat bazada):
+  ```sql
+  -- qaysi savollar o'chirilgan:
+  SELECT q.id, t.slug, q."order", q."deletedAt", q."deletedById", left(coalesce(q."textLatn", q.text), 80)
+  FROM "Question" q JOIN "Topic" t ON t.id = q."topicId"
+  WHERE q."deletedAt" IS NOT NULL ORDER BY q."deletedAt" DESC;
+  -- tiklash:
+  UPDATE "Question" SET "deletedAt" = NULL, "deletedById" = NULL WHERE id = '<savol id>';
+  ```
+
+### Kunlik mavzu oqimi: video → kalit so'zlar → test
+- `User.topicFlowGatingEnabled = true` bo'lsa: test (`GET /topics/:slug/questions`)
+  faqat video ko'rilgan (`LessonProgress.completedAt`) VA "Tanishib chiqdim"
+  bosilgan (`TopicKeywordsView`, `POST /topics/:slug/keywords/viewed`) bo'lsa
+  ochiladi; aks holda 403 `LESSON_NOT_COMPLETED` / `KEYWORDS_NOT_REVIEWED`
+  (`flow: true`). Kalit so'zlar sahifasi video ko'rilmaguncha 403.
+- "Video ko'rildi": eng uzoq nuqta >= 98% va oxirigacha yetilgan; oqim yoqilgan
+  foydalanuvchida qo'shimcha — haqiqiy tomosha (`watchedSeconds`, real vaqt × 2
+  bilan cheklangan) va eng uzoq nuqta >= 90%.
+- `false` bo'lsa — eski qoida (har savolga "Tanishdim"). `unlockAll` — oqim talab qilinmaydi.
+- Yangi foydalanuvchilar `true`; migratsiyadan oldingilar `false` → navbatdagi haftalik
+  yangilanishda `true` (exempt'dan tashqari).
+
+### Haftalik yangilanish (kengaytirilgan)
+- Test natijalaridan tashqari video progress (`video_progress`) va kalit so'zlar
+  progressi (`keywords_progress`) ham `WeeklyResultArchive`ga yoziladi, keyin
+  nollanadi — hammasi bitta tranzaksiyada. `LessonProgress.firstCompletedAt`
+  nollanmaydi (yakuniy imtihon qulfi va boshlangan testni tugatish uchun).
+- `weeklyResetExempt` akkauntga video/kalit so'zlar va oqim bayrog'i hech qachon tegmaydi.
+
+### Bitta foydalanuvchini nollash
+- Admin: foydalanuvchi sahifasi → "Progressni to'liq nolga tushirish" ("NOLLASH") →
+  `POST /admin/users/:id/progress-reset` (`dryRun` ham bor).
+- Bir martalik `TESTER_RESET_ON_DEPLOY=true`: ishga tushishda ism/familiya/login
+  aynan "tester" bo'lgan BITTA akkaunt nollanadi (`WeeklyReset.weekKey = "tester-reset"`,
+  idempotent). Bir nechta yoki umuman topilmasa — hech narsa qilinmaydi, nomzodlar logga yoziladi.
+
 ## Bepul deploy: Render (API) + Supabase (Postgres)
 
 ### 1. Supabase'da Postgres yaratish
@@ -190,3 +240,4 @@ Javobda `correctOptionId` yoki `keyword` yo'qligiga ishonch hosil qiling.
 | `ALLOWED_ORIGIN` | CORS uchun ruxsat etilgan frontend domen(lar), vergul bilan |
 | `PORT` | Server porti (Render avtomatik beradi) |
 | `PUBLIC_BASE_URL` | Seed skripti rasm URL'larini shu asosda yasaydi |
+| `TESTER_RESET_ON_DEPLOY` | `true` — ishga tushishda bir marta "tester" akkauntini nollaydi (yuqoriga qarang). Standart `false`; ishlagandan keyin `false` qiling |
