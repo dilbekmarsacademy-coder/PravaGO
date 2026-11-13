@@ -6,9 +6,13 @@
 // 2) yangilanish bo'lishi bilan ochiq turgan sahifa ham yangilanadi: holat har
 //    45 s da va tab qayta ko'ringanda so'raladi, `lastResetAt` o'zgarsa — sahifa
 //    qayta yuklanadi (barcha ma'lumot serverdan qaytadan olinadi) va "Natijalar
-//    yangilandi" xabari chiqadi. Natijalar brauzerda keshlanmaydi (kabinet ularni
-//    har ochilishda serverdan oladi), shuning uchun qayta yuklash yetarli. Faol test (/test/...) to'xtatilmaydi: yangilash
-//    test sahifasidan chiqilganda bajariladi. Admin panelda ishlamaydi.
+//    yangilandi" xabari chiqadi. Test natijalari, video va kalit so'zlar progressi
+//    brauzerda keshlanmaydi (kabinet, mavzu, kalit so'zlar sahifalari ularni har
+//    ochilishda serverdan oladi), shuning uchun qayta yuklash yetarli; to'xtatilgan
+//    test sessiyalari (sessionStorage) ham tozalanadi. Faol test (/test/...) va
+//    o'ynayotgan video to'xtatilmaydi: yangilash test sahifasidan chiqilganda yoki
+//    video to'xtaganda bajariladi. `lastResetAt` — umumiy yangilanish yoki shu
+//    foydalanuvchining alohida nollanishi (admin / tester). Admin panelda ishlamaydi.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -16,24 +20,33 @@ import { getResetStatus } from "@/lib/api/reset-status";
 import { isCenterSession } from "@/lib/api/session";
 import { getRegistration } from "@/lib/registration-store";
 import { showToast } from "@/components/shared/Toast";
+import { isVideoPlaying, onVideoPlayingChange } from "@/lib/playback-activity";
 
 const INTERVAL_MS = 45_000;
 const MIN_GAP_MS = 5_000;
 /** Qayta yuklangandan keyin xabar ko'rsatish belgisi. */
 const TOAST_KEY = "pt_reset_toast";
-const BANNER_TEXT = "Bugun soat 22:00 da barcha test natijalari yangilanadi (nolga tushadi). Iltimos, shunga tayyorlaning.";
+const BANNER_TEXT = "Bugun soat 22:00 da test natijalari, video va kalit so'zlar progressi yangilanadi (nolga tushadi). Iltimos, shunga tayyorlaning.";
+/** To'xtatilgan mavzu testi sessiyalari (lib/test/storage.ts) — yangilanishdan keyin eskirgan. */
+const TEST_SESSION_PREFIX = "pt_test_session:";
 
 /** Faol test sahifalari (mavzu testi, random test, yakuniy imtihon) — yangilash kechiktiriladi. */
 const isActiveTestRoute = (path: string) => path.startsWith("/test/");
 
 function reloadWithToast(): void {
   try {
+    for (const key of Object.keys(sessionStorage)) {
+      if (key.startsWith(TEST_SESSION_PREFIX)) sessionStorage.removeItem(key);
+    }
     sessionStorage.setItem(TOAST_KEY, "1");
   } catch {
     // ignore
   }
   window.location.reload();
 }
+
+/** Hozir yangilab bo'lmaydi: faol test yoki o'ynayotgan video. */
+const isBusy = (path: string) => isActiveTestRoute(path) || isVideoPlaying();
 
 export default function ResetWatcher() {
   const pathname = usePathname();
@@ -46,8 +59,17 @@ export default function ResetWatcher() {
 
   useEffect(() => {
     pathRef.current = pathname;
-    if (pending.current && !isActiveTestRoute(pathname)) reloadWithToast();
+    if (pending.current && !isBusy(pathname)) reloadWithToast();
   }, [pathname]);
+
+  // Video to'xtagach (pauza, tugash) — kechiktirilgan yangilash.
+  useEffect(
+    () =>
+      onVideoPlayingChange((playing) => {
+        if (!playing && pending.current && !isBusy(pathRef.current)) reloadWithToast();
+      }),
+    [],
+  );
 
   // Qayta yuklangandan keyin.
   useEffect(() => {
@@ -69,7 +91,7 @@ export default function ResetWatcher() {
     }
     if (!lastResetAt || lastResetAt === known.current) return;
     known.current = lastResetAt;
-    if (isActiveTestRoute(pathRef.current)) pending.current = true;
+    if (isBusy(pathRef.current)) pending.current = true;
     else reloadWithToast();
   }, []);
 

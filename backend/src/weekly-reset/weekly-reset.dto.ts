@@ -12,6 +12,16 @@ export class ManualResetDto {
   dryRun?: boolean;
 }
 
+/** "Progressni to'liq nolga tushirish": admin "NOLLASH" so'zini yozishi shart. */
+export class ProgressResetDto {
+  @IsIn(["NOLLASH"], { message: "Tasdiqlash uchun NOLLASH so'zini yozing" })
+  confirm: string;
+
+  @IsOptional()
+  @IsBoolean()
+  dryRun?: boolean;
+}
+
 export class ExemptDto {
   @IsBoolean()
   enabled: boolean;

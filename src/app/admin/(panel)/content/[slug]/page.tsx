@@ -7,6 +7,7 @@ import { adminFetch } from "@/lib/admin/api";
 import { buttonClasses } from "@/components/shared/Button";
 import LessonPanel from "@/components/admin/LessonPanel";
 import QuestionList, { type QuestionSummary } from "@/components/admin/QuestionList";
+import { DeleteQuestionButton } from "@/components/admin/DeleteQuestionDialog";
 import { ErrorBlock, LoadingBlock, PageHeader, Panel, Tabs } from "@/components/admin/ui";
 
 type Filter = "all" | "needsReview" | "noKeywords" | "noCorrect" | "pending";
@@ -69,7 +70,25 @@ export default function AdminTopicPage({ params }: { params: Promise<{ slug: str
         ]}
       />
       {error && <ErrorBlock message={error} onRetry={load} />}
-      <Panel>{!data ? <LoadingBlock /> : <QuestionList items={data.items} hrefFor={(id) => `/admin/questions/${id}${filter !== "all" ? `?filter=${filter}` : ""}`} />}</Panel>
+      <Panel>
+        {!data ? (
+          <LoadingBlock />
+        ) : (
+          <QuestionList
+            items={data.items}
+            hrefFor={(id) => `/admin/questions/${id}${filter !== "all" ? `?filter=${filter}` : ""}`}
+            below={(q) => (
+              <DeleteQuestionButton
+                question={q}
+                onDeleted={(id) =>
+                  // Ro'yxatdan darhol olib tashlanadi; jami soni ham kamayadi.
+                  setData((prev) => (prev ? { ...prev, total: prev.total - 1, items: prev.items.filter((item) => item.id !== id) } : prev))
+                }
+              />
+            )}
+          />
+        )}
+      </Panel>
     </>
   );
 }

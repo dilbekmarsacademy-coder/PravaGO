@@ -134,7 +134,8 @@ export class FinalExamService {
         distinct: ["topicId"],
       }),
       lessonOnly.length
-        ? this.prisma.lessonProgress.findMany({ where: { userId, lessonId: { in: lessonOnly }, completedAt: { not: null } }, select: { lessonId: true } })
+        ? // firstCompletedAt — haftalik yangilanishda nollanmaydi: bir marta ochilgan imtihon qayta yopilmaydi.
+          this.prisma.lessonProgress.findMany({ where: { userId, lessonId: { in: lessonOnly }, OR: [{ completedAt: { not: null } }, { firstCompletedAt: { not: null } }] }, select: { lessonId: true } })
         : Promise.resolve([]),
     ]);
     const remaining = testTopics.length - passed.length + (lessonOnly.length - new Set(watched.map((w) => w.lessonId)).size);

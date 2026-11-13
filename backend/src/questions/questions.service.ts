@@ -5,6 +5,13 @@ import { toLocalizedText } from "../common/localized-text";
 import { toKeywordsDto, approvedExplanation } from "../common/question-content";
 import { CheckAnswerResultDto } from "./dto/check-answer.dto";
 
+/**
+ * Admin o'chirgan savol shu vaqt ichida hali javob tekshiruvidan o'tadi: test
+ * savollari boshlanishida bir marta olinadi, shuning uchun o'chirishdan oldin
+ * boshlangan (tugallanmagan) test buzilmay tugaydi. Ro'yxatlarda u darhol yo'q.
+ */
+export const DELETED_GRACE_MS = 6 * 3600_000;
+
 @Injectable()
 export class QuestionsService {
   constructor(
@@ -19,11 +26,12 @@ export class QuestionsService {
     });
 
     // Javobi hali belgilanmagan savol testda yo'q — tekshirib ham bo'lmaydi.
-    if (!question || question.deletedAt || question.answerPending || !question.options.some((o) => o.isCorrect)) {
+    const deletedLongAgo = question?.deletedAt && Date.now() - question.deletedAt.getTime() > DELETED_GRACE_MS;
+    if (!question || deletedLongAgo || question.answerPending || !question.options.some((o) => o.isCorrect)) {
       throw new NotFoundException(`Savol topilmadi: ${questionId}`);
     }
     // Testga kirish huquqi bo'lmasa, javob ham tekshirilmaydi (video sharti va h.k.).
-    await this.lessons.assertTopicUnlocked(question.topic.slug, userId);
+    await this.lessons.assertTopicUnlocked(question.topic.slug, userId, { allowEverCompleted: true });
 
     const submittedOption = question.options.find((o) => o.id === optionId);
     if (!submittedOption) {

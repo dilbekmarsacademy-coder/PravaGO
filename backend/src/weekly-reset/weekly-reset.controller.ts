@@ -5,7 +5,7 @@ import { safeEqual } from "../admin/admin-config";
 import { AdminGuard, CurrentAdmin, RequestIp, RequirePermission } from "../admin/admin.guard";
 import type { RequestWithUser } from "../auth/session.middleware";
 import { PrismaService } from "../prisma/prisma.service";
-import { ArchiveUserParamDto, ArchiveWeekParamDto, ExemptDto, ManualResetDto, WeekParamDto, WeekUsersQueryDto } from "./weekly-reset.dto";
+import { ArchiveUserParamDto, ArchiveWeekParamDto, ExemptDto, ManualResetDto, ProgressResetDto, WeekParamDto, WeekUsersQueryDto } from "./weekly-reset.dto";
 import { WeeklyArchiveService } from "./weekly-archive.service";
 import { WeeklyResetService } from "./weekly-reset.service";
 
@@ -84,7 +84,25 @@ export class AdminWeeklyResetController {
 @UseGuards(AdminGuard)
 @RequirePermission("users")
 export class AdminUserArchiveController {
-  constructor(private readonly archive: WeeklyArchiveService) {}
+  constructor(
+    private readonly archive: WeeklyArchiveService,
+    private readonly reset: WeeklyResetService,
+  ) {}
+
+  /**
+   * "Progressni to'liq nolga tushirish": shu foydalanuvchining test natijalari,
+   * video va kalit so'zlar progressi arxivlanib nollanadi, yangi oqim yoqiladi.
+   * "NOLLASH" so'zisiz 400. Yakuniy imtihon, sertifikat, to'lov va profilga tegilmaydi.
+   */
+  @Post("progress-reset")
+  @HttpCode(200)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  async progressReset(@Param() params: ArchiveUserParamDto, @Body() body: ProgressResetDto, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    await this.archive.assertUser(params.id);
+    const result = await this.reset.resetUser(params.id, admin.id, Boolean(body.dryRun));
+    if (!result.dryRun) await this.archive.logUserReset(admin, ip, params.id, result);
+    return result;
+  }
 
   @Get("results-archive")
   weeks(@Param() params: ArchiveUserParamDto) {

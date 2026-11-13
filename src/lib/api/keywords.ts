@@ -23,7 +23,17 @@ export interface KeywordCard {
   reviewed: boolean;
 }
 
-export interface KeywordList {
+/** Kunlik mavzu oqimi holati (server hisoblaydi). */
+export interface TopicFlowState {
+  /** Yangi oqim majburiy: test "Tanishib chiqdim"dan keyin ochiladi. */
+  gated?: boolean;
+  /** "Tanishib chiqdim" bosilgan. */
+  viewed?: boolean;
+  viewedAt?: string | null;
+  unlockAll?: boolean;
+}
+
+export interface KeywordList extends TopicFlowState {
   total: number;
   reviewedCount: number;
   items: KeywordCard[];
@@ -31,7 +41,7 @@ export interface KeywordList {
 
 export const KEYWORDS_LOCKED_CODE = "KEYWORDS_NOT_REVIEWED";
 
-export interface KeywordProgress {
+export interface KeywordProgress extends TopicFlowState {
   total: number;
   reviewedCount: number;
 }
@@ -53,6 +63,11 @@ export function setKeywordReviewed(topicSlug: string, questionId: string, review
     method: "PUT",
     body: JSON.stringify({ reviewed }),
   });
+}
+
+/** "Tanishib chiqdim" — kalit so'zlar sahifasi oxirigacha ko'rilgach (idempotent). */
+export function markKeywordsViewed(topicSlug: string): Promise<KeywordProgress> {
+  return authFetch<KeywordProgress>(`/topics/${topicSlug}/keywords/viewed`, { method: "POST" });
 }
 
 export function getKeywordProgress(topicSlug: string): Promise<KeywordProgress> {

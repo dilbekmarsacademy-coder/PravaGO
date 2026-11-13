@@ -23,6 +23,8 @@ export interface MeDto {
   type: "SELF" | "CENTER";
   /** Admin hamma narsani ochib qo'ygan: kunlar/mavzular qulfsiz, test video va kalit so'zsiz. */
   unlockAll: boolean;
+  /** Kunlik mavzu oqimi majburiy: video → kalit so'zlar → test. */
+  topicFlowGating: boolean;
 }
 
 @Injectable()
@@ -55,6 +57,7 @@ export class AccountService {
       paymentRequired: user.type === "CENTER" ? false : paymentEnforced(),
       type: user.type,
       unlockAll: user.unlockAll,
+      topicFlowGating: user.topicFlowGatingEnabled,
     };
   }
 
@@ -102,7 +105,8 @@ export class AccountService {
             preferredLanguage: input.preferredLanguage ?? current.preferredLanguage,
             registeredAt: current.registeredAt ?? new Date(),
             lastActiveAt: new Date(),
-            ...(current.registeredAt ? {} : { registrationIp: ip ?? null }),
+            // Yangi ro'yxatdan o'tgan foydalanuvchi — yangi oqim (video → kalit so'zlar → test).
+            ...(current.registeredAt ? {} : { registrationIp: ip ?? null, topicFlowGatingEnabled: true }),
             ...(input.consent && !current.consentAt ? { consentAt: new Date(), offerVersion: OFFER_VERSION } : {}),
           },
         });

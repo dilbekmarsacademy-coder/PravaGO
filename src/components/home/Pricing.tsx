@@ -10,6 +10,7 @@ import DurationSwitch from "@/components/tariffs/DurationSwitch";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { useReveal } from "./useReveal";
+import EnrollButton from "./EnrollButton";
 
 interface PricingProps {
   onStart: () => void;
@@ -129,6 +130,7 @@ function PlanCard({ tariff, plan, onStart }: { tariff: Tariff; plan: Dictionary[
         {t.pricing.tanlash}
         <RocketIcon className="size-4" />
       </Button>
+      <EnrollButton section={`narxlar-${tariff.id}`} block className="mt-2.5" />
     </div>
   );
 }

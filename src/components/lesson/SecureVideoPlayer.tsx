@@ -58,6 +58,7 @@ import { useRegistration } from "@/lib/registration-store";
 import { track } from "@/lib/analytics";
 import { PlayerState, embedSrc, loadEmbedApi, type EmbedPlayer } from "./embedApi";
 import { useCaptureGuard } from "./captureGuard";
+import { setVideoPlaying } from "@/lib/playback-activity";
 
 interface SecureVideoPlayerProps {
   lessonId: string;
@@ -483,6 +484,11 @@ export function SecureVideoPlayer({
   }, [fullscreen]);
 
   const isPlaying = playerState === PlayerState.PLAYING || playerState === PlayerState.BUFFERING;
+  // Haftalik yangilanish sahifani video o'ynayotganda qayta yuklamasin (ResetWatcher).
+  useEffect(() => {
+    setVideoPlaying(isPlaying);
+  }, [isPlaying]);
+  useEffect(() => () => setVideoPlaying(false), []);
   const ended = playerState === PlayerState.ENDED;
   const showCover = phase === "ready" && (!hasStarted || !isPlaying || veil);
   /** Ijro so'raldi, qopqoq hali turibdi — tugma o'rnida yuklanish belgisi. */

@@ -103,7 +103,9 @@ export function withLessonProgress(
     const lesson = topic.lessonId ? byLesson.get(topic.lessonId) : undefined;
     if (!lesson) continue;
     const base = byTopic.get(topic.id) ?? { topicId: topic.id, videoWatched: false, pdfOpened: false, attempts: [] };
-    byTopic.set(topic.id, { ...base, videoWatched: lesson.completed, videoPercent: lesson.watchedPercent });
+    // Faqat videoli mavzu haftalik yangilanishgacha ko'rilgan bo'lsa — yakuniy imtihon qulfi qayta yopilmaydi.
+    const passedBefore = base.passedBefore || (!topic.testSlug && Boolean(lesson.everCompleted));
+    byTopic.set(topic.id, { ...base, videoWatched: lesson.completed, videoPercent: lesson.watchedPercent, ...(passedBefore ? { passedBefore } : {}) });
   }
   return [...byTopic.values()];
 }

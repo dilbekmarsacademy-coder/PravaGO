@@ -7,6 +7,7 @@ import { Logo } from "@/components/shared/Logo";
 import { BUSINESS, EMAIL_HREF, INSTAGRAM_URL, PHONE_HREF } from "@/config/business";
 import type { Requisites } from "@/config/requisites.server";
 import PaymentLogos from "@/components/legal/PaymentLogos";
+import EnrollButton from "./EnrollButton";
 
 /** Ommaviy sahifalar — footer'da har doim ko'rinadi (to'lov tizimlari talabi). */
 export const LEGAL_LINKS = [
@@ -107,6 +108,9 @@ export default function Footer({ requisites }: { requisites: Pick<Requisites, "s
       <PaymentLogos className="mx-auto mt-8 max-w-6xl justify-center sm:justify-start" />
 
       <p className="mx-auto mt-8 max-w-3xl text-center text-sm leading-relaxed text-muted-foreground">{t.footer.about}</p>
+      <div className="mt-4 flex justify-center">
+        <EnrollButton section="biz-haqimizda" />
+      </div>
 
       <p className="mx-auto mt-6 max-w-4xl text-center text-xs leading-relaxed text-muted-foreground" data-testid="footer-requisites">
         {requisites.sellerName}

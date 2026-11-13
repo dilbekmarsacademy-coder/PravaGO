@@ -5,8 +5,10 @@
 // berkitish" rejimi va har savolga "Tanishdim" belgisi. Test barcha savollar
 // bilan tanishilgach ochiladi (backend: 403 KEYWORDS_NOT_REVIEWED). Ma'lumotlar
 // va progress — faqat backend'dan; kirish huquqi video sharti bilan bir xil.
+// Yangi oqim (topicFlowGatingEnabled): pastdagi "Tanishib chiqdim" tugmasi ro'yxat
+// OXIRIGACHA aylantirilgandagina yoqiladi; bosilgach test ochiladi (backend ham tekshiradi).
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
 import { MotionConfig } from "framer-motion";
@@ -21,7 +23,7 @@ import LanguageSwitcher from "@/components/shared/LanguageSwitcher";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import { showToast } from "@/components/shared/Toast";
 import { KeywordCard } from "@/components/keywords/KeywordCard";
-import { getTopicKeywords, setKeywordReviewed, type KeywordCard as KeywordCardData } from "@/lib/api/keywords";
+import { getTopicKeywords, markKeywordsViewed, setKeywordReviewed, type KeywordCard as KeywordCardData } from "@/lib/api/keywords";
 import { LESSON_LOCKED_CODE } from "@/lib/api/lessons";
 import { ApiError } from "@/lib/api/session";
 import type { Locale } from "@/lib/i18n/dictionary";
@@ -68,6 +70,11 @@ export default function KeywordsPage({ params }: KeywordsPageProps) {
   const [reloadKey, setReloadKey] = useState(0);
   const [search, setSearch] = useState("");
   const [hideAnswers, setHideAnswers] = useState(false);
+  // Yangi oqim holati (serverdan): majburiymi va "Tanishib chiqdim" bosilganmi.
+  const [flow, setFlow] = useState<{ gated: boolean; viewed: boolean }>({ gated: false, viewed: false });
+  const [reachedEnd, setReachedEnd] = useState(false);
+  const [markingViewed, setMarkingViewed] = useState(false);
+  const endRef = useRef<HTMLDivElement>(null);
 
   // Kabinet bilan bir xil: ro'yxatdan o'tmagan / to'lovi faol bo'lmagan foydalanuvchi kirmaydi.
   // TODO(auth): real login qo'shilganda bu tekshiruv server sessiyasiga ko'chadi.
@@ -87,6 +94,7 @@ export default function KeywordsPage({ params }: KeywordsPageProps) {
       .then((list) => {
         if (cancelled) return;
         setItems(list.items);
+        setFlow({ gated: Boolean(list.gated), viewed: Boolean(list.viewed) });
         setStatus("ready");
       })
       .catch((error: unknown) => {
@@ -130,6 +138,33 @@ export default function KeywordsPage({ params }: KeywordsPageProps) {
     setUnlockAll(getUnlockAll());
   }, []);
   const allReviewed = reviewedCount === items.length;
+  const fullList = !query && visible.length === items.length;
+  // Ro'yxat oxiri ko'rindi (qidiruvsiz, to'liq ro'yxatda) — "Tanishib chiqdim" yoqiladi.
+  const needsEnd = status === "ready" && flow.gated && !flow.viewed && items.length > 0;
+  useEffect(() => {
+    if (!needsEnd || !fullList || reachedEnd) return;
+    const el = endRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) setReachedEnd(true);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [needsEnd, fullList, reachedEnd]);
+
+  async function confirmViewed() {
+    if (markingViewed || !reachedEnd) return;
+    setMarkingViewed(true);
+    try {
+      const res = await markKeywordsViewed(testSlug);
+      setFlow({ gated: Boolean(res.gated), viewed: Boolean(res.viewed) });
+      showToast({ tone: "success", message: labels.flow.done });
+    } catch {
+      showToast({ tone: "danger", message: labels.flow.error });
+    } finally {
+      setMarkingViewed(false);
+    }
+  }
   // Mavzuda savollar bor, lekin birortasida kalit so'z yo'q (masalan, 2-kun 6-mavzu).
   const topicHasNoKeywords = items.length > 0 && items.every((item) => !item.keywords);
   const title = localize(topic.title, locale);
@@ -339,7 +374,53 @@ export default function KeywordsPage({ params }: KeywordsPageProps) {
               </section>
             )}
 
-            {allReviewed || unlockAll ? (
+            {/* Ro'yxat oxiri — "Tanishib chiqdim" shu ko'ringandagina yoqiladi. */}
+            <div ref={endRef} aria-hidden="true" className="h-px" data-testid="keywords-end" />
+
+            {flow.gated && !unlockAll ? (
+              flow.viewed ? (
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <p role="status" className="flex items-center gap-2 text-sm font-semibold text-success" data-testid="keywords-viewed-done">
+                    <CheckCircle2Icon className="size-4.5" aria-hidden="true" />
+                    {labels.flow.done}
+                  </p>
+                  <Link href={testHref(testSlug)} className={buttonClasses({ variant: "primary", size: "lg" })} data-testid="keywords-start-test">
+                    <ListChecksIcon className="size-4.5" />
+                    {labels.startTest}
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <p role="status" className="text-sm font-medium text-muted-foreground" data-testid="keywords-viewed-hint">
+                    {reachedEnd ? labels.flow.pressHint : fullList ? labels.flow.scrollHint : labels.flow.searchHint}
+                  </p>
+                  <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                    <button
+                      type="button"
+                      disabled
+                      aria-disabled="true"
+                      title={labels.flow.lockedHint}
+                      className={buttonClasses({ variant: "secondary", size: "lg", className: "w-full sm:w-auto" })}
+                      data-testid="keywords-start-test"
+                    >
+                      <LockIcon className="size-4.5" />
+                      {labels.startTest}
+                    </button>
+                    <Button
+                      size="lg"
+                      className="w-full sm:w-auto"
+                      onClick={confirmViewed}
+                      disabled={!reachedEnd || markingViewed}
+                      aria-disabled={!reachedEnd || markingViewed}
+                      data-testid="keywords-viewed"
+                    >
+                      <CheckCircle2Icon className="size-4.5" />
+                      {markingViewed ? labels.flow.saving : labels.flow.button}
+                    </Button>
+                  </div>
+                </div>
+              )
+            ) : allReviewed || unlockAll ? (
               <div className="flex flex-col items-center gap-3 text-center">
                 {allReviewed && (
                   <p role="status" className="flex items-center gap-2 text-sm font-semibold text-success">

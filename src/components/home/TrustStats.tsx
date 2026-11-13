@@ -4,6 +4,7 @@ import { FlagIcon, TargetIcon, TrophyIcon, ZapIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { useReveal } from "./useReveal";
+import EnrollButton from "./EnrollButton";
 
 const ICONS = [FlagIcon, TargetIcon, ZapIcon, TrophyIcon];
 const GLOWS = [
@@ -54,6 +55,9 @@ export default function TrustStats() {
             </div>
           );
         })}
+      </div>
+      <div className="mt-8 flex justify-center">
+        <EnrollButton section="afzalliklar" />
       </div>
     </section>
   );

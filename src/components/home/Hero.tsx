@@ -5,6 +5,7 @@ import { GraduationCapIcon, RocketIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/lib/i18n/useLocale";
 import HeroBackground from "./HeroBackground";
+import EnrollButton from "./EnrollButton";
 
 interface HeroProps {
   onStart: () => void;
@@ -94,6 +95,11 @@ export default function Hero({ onStart, onCenterLogin }: HeroProps) {
           >
             {t.hero.ctaSecondary}
           </a>
+        </motion.div>
+
+        {/* Qo'shimcha: Telegram orqali kursga yozilish (asosiy tugmalar o'zgarmagan). */}
+        <motion.div variants={item} className="mt-4">
+          <EnrollButton section="hero" />
         </motion.div>
 
         <motion.div variants={item} className="mt-6 flex flex-col items-center gap-1.5">

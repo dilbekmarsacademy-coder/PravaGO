@@ -17,6 +17,8 @@ export interface Me {
   type?: "SELF" | "CENTER";
   /** Admin hamma narsani ochib qo'ygan: kun/mavzu qulfi, video va kalit so'z sharti yo'q. */
   unlockAll?: boolean;
+  /** Kunlik mavzu oqimi majburiy: video → kalit so'zlar ("Tanishib chiqdim") → test. */
+  topicFlowGating?: boolean;
 }
 
 export interface RegisterInput {

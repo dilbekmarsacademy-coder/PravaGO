@@ -145,9 +145,17 @@ describe("progress va test qulfi", () => {
     expect(res.body.maxPosition).toBeLessThan(13);
   });
 
-  it("oxirigacha yetmasa — ko'rilmagan", async () => {
+  it("oxirigacha yetmasa — ko'rilmagan (eski qoida: topicFlowGatingEnabled=false)", async () => {
     const { auth, userId } = await newUser();
+    await prisma.user.update({ where: { id: userId }, data: { topicFlowGatingEnabled: false } });
     const body = await watchHonestly(auth, userId, LESSON.durationSec - 60);
+    expect(body.completed).toBe(false);
+    await request(app.getHttpServer()).get(`/topics/${LESSON.topicSlug}/questions`).set(auth).expect(403);
+  });
+
+  it("yangi oqim: 90% ga yetmasa — ko'rilmagan", async () => {
+    const { auth, userId } = await newUser();
+    const body = await watchHonestly(auth, userId, Math.floor(LESSON.durationSec * 0.85));
     expect(body.completed).toBe(false);
     await request(app.getHttpServer()).get(`/topics/${LESSON.topicSlug}/questions`).set(auth).expect(403);
   });

@@ -22,7 +22,8 @@ export class TestAttemptsController {
     @Param() params: TopicSlugParamDto,
     @Body() body: CreateTestAttemptDto,
   ): Promise<TestAttemptDto> {
-    await this.lessons.assertTopicUnlocked(params.slug, user.id);
+    // Boshlangan test oxirigacha saqlanadi (haftalik yangilanish video holatini nollagan bo'lsa ham).
+    await this.lessons.assertTopicUnlocked(params.slug, user.id, { allowEverCompleted: true });
     return this.attempts.create(user.id, params.slug, body.answers);
   }
 
