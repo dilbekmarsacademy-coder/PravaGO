@@ -1,15 +1,23 @@
 // Rasmga ishlov berish (tashqi pullik servissiz):
-//  - OpenCV (WASM) inpainting — watermark/logotip joylarini atrofidagi piksellar bilan to'ldirish;
-//  - sharp — burish (EXIF), chetlarni kesish (trim), qirqish, WebP 1280px / 80;
+//  - watermark: ai-import/watermark/clean.ts — aniq niqob (ma'lum shablon yoki quti ichidagi piksellar)
+//    va faqat niqob ichida patch-inpainting; niqobdan tashqari piksellar o'zgarmaydi;
+//  - sharp — burish (EXIF), chetlarni kesish (trim), qirqish; natija lossless WebP (qayta siqish yo'q;
+//    faqat 1600 px dan katta rasmlar bir marta kichraytiriladi);
 //  - @imgly/background-removal-node — fonni kesish (faqat alohida tugma bilan).
 
 import sharp from "sharp";
 import type { ImageBox } from "../ai/ai.service";
+import { cleanWatermarks } from "../ai-import/watermark/clean";
 
-export const OUTPUT_MAX_SIDE = 1280;
-export const OUTPUT_QUALITY = 80;
-/** Inpainting shu o'lchamgacha kichraytirilgan nusxada bajariladi (tezlik uchun). */
+/**
+ * Saytdagi rasmning eng uzun tomoni: faqat undan KATTA rasmlar (masalan telefon fotosi 4000 px)
+ * bir marta Lanczos bilan kichraytiriladi; bilet rasmlari (~600 px) o'z o'lchamida qoladi.
+ */
+export const OUTPUT_MAX_SIDE = 1600;
+/** Fonni kesish modeli uchun ishchi o'lcham (faqat shu alohida funksiyada). */
 const WORK_MAX_SIDE = 1600;
+/** Bitta rasmning eng ko'p piksellari (serverless xotira). */
+const MAX_INPUT_PIXELS = 40_000_000;
 
 export interface NormRect {
   x: number;
@@ -60,44 +68,20 @@ export async function getCv(): Promise<{ cv: CV }> {
   return { cv: cvModule! };
 }
 
-/** EXIF bo'yicha burilgan va ishchi o'lchamga keltirilgan RGB piksellar. */
+/** EXIF bo'yicha burilgan RGB piksellar — ASL o'lchamda (kichraytirilmaydi). */
 export async function toWorking(input: Buffer): Promise<{ data: Buffer; width: number; height: number }> {
-  const { data, info } = await sharp(input)
-    .rotate()
-    .resize({ width: WORK_MAX_SIDE, height: WORK_MAX_SIDE, fit: "inside", withoutEnlargement: true })
-    .flatten({ background: "#ffffff" })
-    .removeAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
+  const { data, info } = await sharp(input, { limitInputPixels: MAX_INPUT_PIXELS }).rotate().flatten({ background: "#ffffff" }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
   return { data, width: info.width, height: info.height };
 }
 
-/** Belgilangan hududlarni (0..1) OpenCV TELEA inpainting bilan o'chiradi. */
+/**
+ * Belgilangan hududlardagi (0..1) watermarkni o'chiradi: hudud ichida watermark piksellari aniq
+ * ajratiladi (ma'lum shablon bo'lsa — uning shakli), faqat shu niqob patch-inpainting bilan to'ldiriladi.
+ */
 export async function inpaint(img: { data: Buffer; width: number; height: number }, rects: NormRect[]): Promise<Buffer> {
   if (rects.length === 0) return img.data;
-  await loadCv();
-  const cv = cvModule!;
-  const src = new cv.Mat(img.height, img.width, cv.CV_8UC3);
-  src.data.set(img.data);
-  const mask = cv.Mat.zeros(img.height, img.width, cv.CV_8UC1);
-  const dst = new cv.Mat();
-  try {
-    // Chetlarda yozuv qoldig'i qolmasligi uchun hududni biroz kengaytiramiz.
-    const pad = Math.max(2, Math.round(Math.min(img.width, img.height) * 0.006));
-    for (const r of rects) {
-      const x = Math.max(0, Math.floor(r.x * img.width) - pad);
-      const y = Math.max(0, Math.floor(r.y * img.height) - pad);
-      const x2 = Math.min(img.width - 1, Math.ceil((r.x + r.w) * img.width) + pad);
-      const y2 = Math.min(img.height - 1, Math.ceil((r.y + r.h) * img.height) + pad);
-      cv.rectangle(mask, new cv.Point(x, y), new cv.Point(x2, y2), new cv.Scalar(255), -1);
-    }
-    cv.inpaint(src, mask, dst, 5, cv.INPAINT_TELEA);
-    return Buffer.from(dst.data);
-  } finally {
-    src.delete();
-    mask.delete();
-    dst.delete();
-  }
+  const result = await cleanWatermarks(img, { boxes: rects });
+  return result.image.data;
 }
 
 export interface Encoded {
@@ -106,7 +90,7 @@ export interface Encoded {
   height: number;
 }
 
-/** Yakuniy WebP: ixtiyoriy qirqish (0..1) va chetlarni avtomatik kesish. */
+/** Yakuniy lossless WebP: ixtiyoriy qirqish (0..1) va chetlarni avtomatik kesish. */
 export async function encode(img: { data: Buffer; width: number; height: number }, options: { crop?: NormRect; trim?: boolean }): Promise<Encoded> {
   let pipeline = sharp(img.data, { raw: { width: img.width, height: img.height, channels: 3 } });
   if (options.crop) {
@@ -126,10 +110,10 @@ export async function encode(img: { data: Buffer; width: number; height: number 
       pipeline = sharp(trimmed); // butun rasm bir xil rangda — kesilmaydi
     }
   }
+  // Kattalashtirish yo'q; lossless — bir marta, sifat yo'qolmaydi.
   const { data, info } = await pipeline
-    .resize({ width: OUTPUT_MAX_SIDE, height: OUTPUT_MAX_SIDE, fit: "inside", withoutEnlargement: true })
-    .webp({ quality: OUTPUT_QUALITY })
-    .toBuffer({ resolveWithObject: true });
+    .resize({ width: OUTPUT_MAX_SIDE, height: OUTPUT_MAX_SIDE, fit: "inside", withoutEnlargement: true, kernel: "lanczos3" })
+    .webp({ lossless: true, effort: 4 }).toBuffer({ resolveWithObject: true });
   return { data, width: info.width, height: info.height };
 }
 
@@ -152,8 +136,8 @@ export async function removeBackground(input: Buffer): Promise<Encoded> {
   const { data, info } = await sharp(cut)
     .flatten({ background: "#ffffff" })
     .trim({ threshold: 10 })
-    .resize({ width: OUTPUT_MAX_SIDE, height: OUTPUT_MAX_SIDE, fit: "inside", withoutEnlargement: true })
-    .webp({ quality: OUTPUT_QUALITY })
+    .resize({ width: OUTPUT_MAX_SIDE, height: OUTPUT_MAX_SIDE, fit: "inside", withoutEnlargement: true, kernel: "lanczos3" })
+    .webp({ lossless: true, effort: 4 })
     .toBuffer({ resolveWithObject: true });
   return { data, width: info.width, height: info.height };
 }

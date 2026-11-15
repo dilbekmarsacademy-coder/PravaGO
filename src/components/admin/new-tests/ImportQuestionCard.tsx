@@ -11,6 +11,7 @@ import { Badge } from "@/components/shared/Badge";
 import { Button } from "@/components/shared/Button";
 import { showToast } from "@/components/shared/Toast";
 import { Field, Select, Spinner, TextArea, TextInput } from "@/components/admin/ui";
+import ImageBeforeAfter from "./ImageBeforeAfter";
 import WatermarkBoxEditor from "./WatermarkBoxEditor";
 
 type Lang = keyof Texts;
@@ -229,8 +230,15 @@ export default function ImportQuestionCard({
         <div>
           {img ? (
             <div data-testid="ai-image">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imageUrl(img.id, img.selected === "crop" && !img.hasCrop ? "original" : img.selected, `${imgVersion}-${img.selected}`)} alt="" className="mb-2 w-full rounded-xl border border-border object-contain" />
+              {img.hasCleaned ? (
+                <ImageBeforeAfter imageId={img.id} version={imgVersion} boxes={img.boxes} width={img.width} height={img.height} />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={imageUrl(img.id, img.selected === "crop" && !img.hasCrop ? "original" : img.selected, `${imgVersion}-${img.selected}`)} alt="" className="mb-2 w-full rounded-xl border border-border object-contain" />
+              )}
+              <p className="mb-1 text-xs text-muted-foreground">
+                Saytga chiqadi: <b>{VARIANTS.find((v) => v.value === img.selected)?.label ?? img.selected}</b>
+              </p>
               <div className="mb-2 grid grid-cols-3 gap-1.5">
                 {VARIANTS.filter((v) => v.value === "original" || (v.value === "cleaned" ? img.hasCleaned : img.hasCrop)).map((v) => (
                   <button
@@ -249,6 +257,11 @@ export default function ImportQuestionCard({
               {img.note && <p className="mb-2 text-xs text-danger">{img.note}</p>}
               {!locked && (
                 <div className="flex flex-wrap gap-1.5">
+                  {img.selected !== "original" && (
+                    <Button size="sm" variant="secondary" disabled={busy} onClick={() => post(`ai-imports/images/${img.id}/select`, { variant: "original" })} data-testid="use-original-image">
+                      <UndoIcon className="size-4" /> Original rasmni ishlat
+                    </Button>
+                  )}
                   <Button size="sm" variant="secondary" disabled={busy} onClick={() => setBoxEditor(true)}>
                     <EraserIcon className="size-4" /> Qayta tozalash
                   </Button>

@@ -25,6 +25,7 @@ import { Button } from "@/components/shared/Button";
 import { Modal } from "@/components/shared/Modal";
 import { showToast } from "@/components/shared/Toast";
 import { EmptyState, Field, Panel, Select, Spinner, Table, Td, TextInput, Th } from "@/components/admin/ui";
+import ImageReprocessPanel from "./ImageReprocessPanel";
 import WatermarkSampleSetting from "./WatermarkSampleSetting";
 
 const NEW_GROUP = "__new__";
@@ -306,6 +307,7 @@ export default function AiImportPanel() {
       </Panel>
 
       <WatermarkSampleSetting />
+      <ImageReprocessPanel />
 
       <Modal
         open={Boolean(toDelete)}

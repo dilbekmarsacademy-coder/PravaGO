@@ -9,8 +9,8 @@ import type { QuestionInputDto } from "../admin/content/question-input.dto";
 import { latinToCyrillic } from "../common/translit";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
-import { makeMaster, makeVariants, sha256, toRgb, type Box } from "./image-ops";
-import { ImportService, WATERMARK_SAMPLE_KEY, needsReview } from "./import.service";
+import { decodeRgb, makeMaster, makeVariants, sha256, type Box } from "./image-ops";
+import { ImportService, WATERMARK_SAMPLE_KEY, imageMaskKey, needsReview } from "./import.service";
 import { findPhraseRange } from "./normalize";
 import type { QDraft, Texts } from "./types";
 
@@ -203,11 +203,14 @@ export class ReviewService {
     return img;
   }
 
-  async imageFile(id: string, variant: "original" | "cleaned" | "crop"): Promise<{ data: Buffer; mime: string }> {
+  async imageFile(id: string, variant: "original" | "cleaned" | "crop" | "mask"): Promise<{ data: Buffer; mime: string }> {
     const img = await this.image(id);
-    const key = variant === "cleaned" ? img.cleanedKey : variant === "crop" ? img.cropKey : img.originalKey;
+    // Niqob faqat yangi usulda tozalanganlarda bor (eski tozalashlarda — 404).
+    const key = variant === "mask" ? (img.cleanedKey ? imageMaskKey(img.batchId, img.id) : null) : variant === "cleaned" ? img.cleanedKey : variant === "crop" ? img.cropKey : img.originalKey;
     if (!key) throw new NotFoundException("Bu variant yo'q");
-    const data = await this.storage.get(key);
+    const data = await this.storage.get(key).catch(() => {
+      throw new NotFoundException("Bu variant yo'q");
+    });
     const meta = await sharp(data).metadata();
     return { data, mime: `image/${meta.format === "jpeg" ? "jpeg" : meta.format ?? "png"}` };
   }
@@ -254,6 +257,28 @@ export class ReviewService {
   // ───────── Tasdiqlash va "Yangi testlar"ga yozish ─────────
 
   /**
+   * Tanlangan variant (asl / tozalangan / kesilgan) → master (lossless WebP, asl o'lcham, storage) va
+   * saytdagi MediaAsset'lar. Rasm 800 px dan kichik bo'lsa ikkala variant ham bitta asset (bir xil bayt).
+   */
+  async publishImageAssets(adminId: string | null, batchId: string, img: ImportImage): Promise<{ large: string; small: string }> {
+    const key = img.selected === "cleaned" && img.cleanedKey ? img.cleanedKey : img.selected === "crop" && img.cropKey ? img.cropKey : img.originalKey;
+    const master = await makeMaster(await decodeRgb(await this.storage.get(key)));
+    const masterKey = `imports/${batchId}/images/${img.id}-master.webp`;
+    await this.storage.put(masterKey, master.data, "image/webp");
+    await this.prisma.importImage.update({ where: { id: img.id }, data: { masterKey } });
+    const [small, large] = await makeVariants(master.data);
+    const create = async (v: typeof small) =>
+      (
+        await this.prisma.mediaAsset.create({
+          data: { kind: "processed", mime: "image/webp", width: v.width, height: v.height, size: v.data.length, sha256: sha256(v.data), public: true, data: new Uint8Array(v.data), sourceId: null, createdById: adminId },
+        })
+      ).id;
+    const largeId = await create(large);
+    const smallId = small.data === large.data ? largeId : await create(small);
+    return { large: largeId, small: smallId };
+  }
+
+  /**
    * Test tasdiqlanadi: barcha savollar admin tasdiqlagan bo'lishi shart. Savollar
    * "Yangi testlar"ga (tanlangan to'plamga) oddiy test sifatida yoziladi: kalit so'z
    * belgilari, rasm (WebP 1600 + 800 srcset), tasdiqlangan izoh. Audit'ga yoziladi.
@@ -270,23 +295,10 @@ export class ReviewService {
     const notApproved = rows.filter((r) => !r.approved).length;
     if (notApproved) throw new BadRequestException({ statusCode: 400, code: "NOT_ALL_APPROVED", message: `${notApproved} ta savol hali tasdiqlanmagan`, notApproved });
 
-    // Rasmlar: tanlangan variantdan master (storage) va WebP variantlar (MediaAsset) — tranzaksiyadan oldin.
+    // Rasmlar: tanlangan variantdan master (storage) va saytdagi variantlar (MediaAsset) — tranzaksiyadan oldin.
     const assets = new Map<string, { large: string; small: string }>();
     for (const imageId of [...new Set(rows.map((r) => r.imageId).filter((x): x is string => Boolean(x)))]) {
-      const img = await this.image(imageId);
-      const key = img.selected === "cleaned" && img.cleanedKey ? img.cleanedKey : img.selected === "crop" && img.cropKey ? img.cropKey : img.originalKey;
-      const master = await makeMaster(await toRgb(await this.storage.get(key), 4000));
-      const masterKey = `imports/${batchId}/images/${img.id}-master.webp`;
-      await this.storage.put(masterKey, master.data, "image/webp");
-      await this.prisma.importImage.update({ where: { id: img.id }, data: { masterKey } });
-      const [small, large] = await makeVariants(master.data);
-      const create = async (v: typeof small) =>
-        (
-          await this.prisma.mediaAsset.create({
-            data: { kind: "processed", mime: "image/webp", width: v.width, height: v.height, size: v.data.length, sha256: sha256(v.data), public: true, data: new Uint8Array(v.data), sourceId: null, createdById: admin.id },
-          })
-        ).id;
-      assets.set(imageId, { large: await create(large), small: await create(small) });
+      assets.set(imageId, await this.publishImageAssets(admin.id, batchId, await this.image(imageId)));
     }
 
     const titleLatn = test.title;
