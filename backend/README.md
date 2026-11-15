@@ -241,3 +241,21 @@ Javobda `correctOptionId` yoki `keyword` yo'qligiga ishonch hosil qiling.
 | `PORT` | Server porti (Render avtomatik beradi) |
 | `PUBLIC_BASE_URL` | Seed skripti rasm URL'larini shu asosda yasaydi |
 | `TESTER_RESET_ON_DEPLOY` | `true` — ishga tushishda bir marta "tester" akkauntini nollaydi (yuqoriga qarang). Standart `false`; ishlagandan keyin `false` qiling |
+
+## Bilet rasmlari: watermark va sifat (2026-11-15)
+
+- Rasm o'lchami o'zgarmaydi, qayta siqish yo'q: asl → xom RGB → tozalangan PNG → saytga lossless WebP
+  (`ai-import/image-ops.ts`: `decodeRgb`, `makeMaster`, `makeVariants`; 800/1600 dan kattalargina kichraytiriladi).
+- Watermark (`ai-import/watermark/clean.ts`): ma'lum "rulionline.uz" shabloni (`watermark/rulionline.ts` —
+  yarim shaffof matn α-xaritasi + 60×60 logo, masshtab 1) rasmda qidiriladi va AYNAN harf/logo shaklida
+  niqob olinadi (+2 px); boshqa (AI/qo'lda) qutilarda — quti ichidagi fondan ajralgan piksellar. Faqat niqob
+  ichi patch-inpainting (`watermark/exemplar.ts`) bilan to'ldiriladi, chekkasi 2 px feather; niqobdan
+  tashqari piksellar asl bilan bir xil (kodda tekshiriladi — farq bo'lsa xato).
+- Storage: asl (`originalKey`) o'zgarmaydi; `-cleaned.png`, `-mask.png`, `-crop.png`, `-master.webp` alohida.
+- Admin: savol kartasida "Oldin / Keyin", niqob, 300% zoom, "Original rasmni ishlat".
+- Eski (saytdagi) rasmlar: "Yangi testlar" → "Saytdagi rasmlarni yangi usul bilan qayta ishlash"
+  (`POST /admin/ai-imports/images/reprocess` `{ dryRun: true }` — faqat reja; `{ dryRun: false, limit }` —
+  bo'laklab). Eski MediaAsset o'chirilmaydi, audit `ai_import.image_reprocessed` da eski URL bor
+  (orqaga qaytarish: `Question.imageUrl/imageSmallUrl/imageAssetId` ni audit `before` qiymatiga qaytarish).
+- Lokal sinov: `npm run images:watermark-check -- <rasmlar-papkasi> <natija-papkasi>` (oldin/keyin, 300% zoom,
+  niqobdan tashqarida o'zgargan piksellar = 0 isboti).

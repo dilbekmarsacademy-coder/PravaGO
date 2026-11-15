@@ -1,10 +1,12 @@
-// AI import rasmlariga ishlov berish — to'liq backend ichida, bepul kutubxonalar bilan:
-//  - watermark joylari bo'yicha niqob (biroz kengaytiriladi — dilate) va OpenCV inpainting:
-//    INPAINT_TELEA va INPAINT_NS, natijasi fonga eng mos kelgani tanlanadi;
-//  - chetdagi watermark (rasmning ≤ 12% qismida) — kesish (crop) varianti;
-//  - "watermark namunasi" bo'lsa — template matching (bir necha masshtabda);
-//  - master nusxa: Lanczos3 + yengil sharpen, eng uzun tomoni ≤ 3840 px va asldan ≤ 2×;
-//  - saytda ko'rsatish uchun WebP 800 va 1600 px (sifat ~82); AI uchun JPEG ≤ 1568 px.
+// AI import rasmlariga ishlov berish — to'liq backend ichida, bepul kutubxonalar bilan.
+// SIFAT QOIDASI: rasm o'lchami o'zgarmaydi (kichraytirish/kattalashtirish yo'q), oraliq va yakuniy
+// nusxalar faqat yo'qotishsiz (PNG / lossless WebP) — rasm bir marta ham qayta siqilmaydi.
+//  - watermark: watermark/clean.ts — ma'lum shablon (aniq harf/logo shakli) yoki quti ichidagi aniq
+//    niqob, niqob ichida patch-inpainting; niqobdan tashqari piksellar asl bilan bir xil;
+//  - chetdagi watermark (rasmning ≤ 12% qismida) — kesish (crop) varianti (kesilgandan keyin resize yo'q);
+//  - "watermark namunasi" bo'lsa — template matching (bir necha masshtabda) — AI qutisi sifatida;
+//  - saytdagi variantlar: lossless WebP; 1600 / 800 px dan katta rasmlargina kichraytiriladi (Lanczos3).
+//    AI uchun alohida JPEG ≤ 1568 px (faqat tahlil uchun, saytga chiqmaydi).
 
 import { createHash } from "crypto";
 import sharp from "sharp";
@@ -27,12 +29,11 @@ export interface RgbImage {
 }
 
 export const AI_MAX_SIDE = 1568;
-export const MASTER_MAX_SIDE = 3840;
-export const MASTER_MAX_SCALE = 2;
 export const VARIANT_SIZES = [800, 1600] as const;
-export const VARIANT_QUALITY = 82;
 /** Crop faqat watermark chetdagi shu qismda bo'lsa (12%). */
 export const EDGE_BAND = 0.12;
+/** Bitta rasmning eng ko'p piksellari (xotira — serverless; 40 MP ≈ 120 MB RGB). */
+export const MAX_INPUT_PIXELS = 40_000_000;
 /** Ishlov uchun eng katta o'lcham (xotira — serverless). */
 const WORK_MAX_SIDE = 2400;
 
@@ -48,6 +49,12 @@ export async function toRgb(input: Buffer, maxSide = WORK_MAX_SIDE): Promise<Rgb
     .removeAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
+  return { data, width: info.width, height: info.height };
+}
+
+/** Asl o'lchamda (kichraytirmasdan) RGB: EXIF burilishi, shaffof fon → oq. Sifat yo'qotilmaydi. */
+export async function decodeRgb(input: Buffer): Promise<RgbImage> {
+  const { data, info } = await sharp(input, { limitInputPixels: MAX_INPUT_PIXELS }).rotate().flatten({ background: "#ffffff" }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
   return { data, width: info.width, height: info.height };
 }
 
@@ -84,74 +91,6 @@ export function boxMask(width: number, height: number, boxes: Box[], dilatePx = 
     for (let y = y0; y < y1; y++) mask.fill(255, y * width + x0, y * width + x1);
   }
   return mask;
-}
-
-/** Niqob atrofidagi halqa (fon namunasi) — niqobdan `ring` px uzoqlikkacha. */
-function ringMask(width: number, height: number, boxes: Box[], dilatePx: number, ring: number): Uint8Array {
-  const inner = boxMask(width, height, boxes, dilatePx);
-  const outer = boxMask(width, height, boxes, dilatePx + ring);
-  for (let i = 0; i < inner.length; i++) if (inner[i]) outer[i] = 0;
-  return outer;
-}
-
-/** Hududdagi yorqinlik gradientining o'rtachasi — tekstura "darajasi". */
-function gradientEnergy(img: RgbImage, mask: Uint8Array): number {
-  const { data, width, height } = img;
-  const lum = (i: number) => (data[i * 3] * 299 + data[i * 3 + 1] * 587 + data[i * 3 + 2] * 114) / 1000;
-  let sum = 0;
-  let n = 0;
-  for (let y = 1; y < height - 1; y++) {
-    for (let x = 1; x < width - 1; x++) {
-      const i = y * width + x;
-      if (!mask[i]) continue;
-      sum += Math.abs(lum(i + 1) - lum(i - 1)) + Math.abs(lum(i + width) - lum(i - width));
-      n++;
-    }
-  }
-  return n ? sum / n : 0;
-}
-
-export interface InpaintResult {
-  image: RgbImage;
-  method: "telea" | "ns";
-  /** |tekstura(ichkari) − tekstura(atrof)| — kichigi fonga mosroq. */
-  score: number;
-}
-
-/**
- * TELEA va NS bilan inpaint; atrofdagi fonga teksturasi yaqinrog'i tanlanadi
- * (silliq fonda — dog' qolmasligi, murakkab fonda — "yuvilib" qolmasligi).
- */
-export async function inpaintBest(img: RgbImage, boxes: Box[]): Promise<InpaintResult> {
-  const { cv } = await getCv();
-  const dilatePx = Math.max(3, Math.round(Math.min(img.width, img.height) * 0.012));
-  const maskBytes = boxMask(img.width, img.height, boxes, dilatePx);
-  const ring = ringMask(img.width, img.height, boxes, dilatePx, Math.max(6, dilatePx * 3));
-  const target = gradientEnergy(img, ring);
-  const src = new cv.Mat(img.height, img.width, cv.CV_8UC3);
-  src.data.set(img.data);
-  const mask = new cv.Mat(img.height, img.width, cv.CV_8UC1);
-  mask.data.set(maskBytes);
-  const radius = Math.max(3, Math.round(dilatePx * 1.5));
-  const results: InpaintResult[] = [];
-  try {
-    for (const method of ["telea", "ns"] as const) {
-      const dst = new cv.Mat();
-      try {
-        cv.inpaint(src, mask, dst, radius, method === "telea" ? cv.INPAINT_TELEA : cv.INPAINT_NS);
-        const image = { data: Buffer.from(dst.data), width: img.width, height: img.height };
-        results.push({ image, method, score: Math.abs(gradientEnergy(image, maskBytes) - target) });
-      } finally {
-        dst.delete();
-      }
-    }
-  } finally {
-    src.delete();
-    mask.delete();
-  }
-  const preferNs = boxes.some((b) => b.background === "complex");
-  results.sort((a, b) => a.score - b.score || (preferNs ? (a.method === "ns" ? -1 : 1) : 0));
-  return results[0];
 }
 
 /**
@@ -223,25 +162,27 @@ export async function templateMatch(img: RgbImage, template: Buffer, threshold =
   return best?.box ?? null;
 }
 
-/** Master: Lanczos3 + yengil sharpen; ≤ 3840 px va asldan ≤ 2×. WebP (sifat 92). */
+/** Master: asl o'lchamdagi lossless WebP (resize, sharpen va qayta siqish yo'q). */
 export async function makeMaster(img: RgbImage): Promise<{ data: Buffer; width: number; height: number }> {
-  const longest = Math.max(img.width, img.height);
-  const scale = Math.min(MASTER_MAX_SCALE, MASTER_MAX_SIDE / longest);
-  const width = Math.round(img.width * Math.max(1, scale));
-  const height = Math.round(img.height * Math.max(1, scale));
-  let pipeline = sharp(img.data, { raw: { width: img.width, height: img.height, channels: 3 } });
-  if (scale > 1) pipeline = pipeline.resize(width, height, { kernel: "lanczos3" }).sharpen({ sigma: 0.8, m1: 0.5, m2: 1.5 });
-  const data = await pipeline.webp({ quality: 92 }).toBuffer();
-  return { data, width: scale > 1 ? width : img.width, height: scale > 1 ? height : img.height };
+  const data = await sharp(img.data, { raw: { width: img.width, height: img.height, channels: 3 } }).webp({ lossless: true, effort: 4 }).toBuffer();
+  return { data, width: img.width, height: img.height };
 }
 
-/** Saytdagi WebP variantlar (800 va 1600 px). */
+/**
+ * Saytdagi variantlar (800 va 1600): lossless WebP. Rasm shu o'lchamdan kichik bo'lsa — kattalashtirilmaydi
+ * va master baytlari o'zgarishsiz ishlatiladi (qayta encode ham yo'q).
+ */
 export async function makeVariants(master: Buffer): Promise<{ size: number; data: Buffer; width: number; height: number }[]> {
+  const meta = await sharp(master).metadata();
   const out: { size: number; data: Buffer; width: number; height: number }[] = [];
   for (const size of VARIANT_SIZES) {
+    if (Math.max(meta.width ?? 0, meta.height ?? 0) <= size) {
+      out.push({ size, data: master, width: meta.width ?? 0, height: meta.height ?? 0 });
+      continue;
+    }
     const { data, info } = await sharp(master)
       .resize({ width: size, height: size, fit: "inside", withoutEnlargement: true, kernel: "lanczos3" })
-      .webp({ quality: VARIANT_QUALITY })
+      .webp({ lossless: true, effort: 4 })
       .toBuffer({ resolveWithObject: true });
     out.push({ size, data, width: info.width, height: info.height });
   }

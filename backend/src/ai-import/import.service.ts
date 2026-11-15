@@ -1,3 +1,4 @@
+import sharp from "sharp";
 import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { Prisma, type ImportBatch, type ImportFile, type ImportImage } from "@prisma/client";
 import { AiService, type UsageMeta } from "../ai/ai.service";
@@ -9,7 +10,8 @@ import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
 import { MAX_IMPORT_FILE_BYTES } from "../storage/storage";
 import { analyzeQuestions, classifyFile, confirmMatches, detectWatermarkBoxes, estimateCostUsd, transcribeScreen, verifyCleaned, type AnalyzeInput } from "./ai-steps";
-import { aiJpeg, cropRgb, edgeCrop, inpaintBest, rgbToPng, sha256, templateMatch, toRgb, type Box } from "./image-ops";
+import { aiJpeg, cropRgb, decodeRgb, edgeCrop, rgbToPng, sha256, templateMatch, type Box } from "./image-ops";
+import { cleanWatermarks, locateKnown } from "./watermark/clean";
 import { applyEntry, findDuplicates, findExisting, matchQuestion, optionByText, prepareSite, type KeySource, type MatchResult, type RawQuestion } from "./matching";
 import { detectScript, findPhraseRange, textSimilarity } from "./normalize";
 import { extractFile, fileType, SUPPORTED_EXTENSIONS, unzip } from "./parse";
@@ -476,7 +478,7 @@ export class ImportService {
   private async saveScreenCrop(batch: ImportBatch, file: ImportFile, item: ScreenItem): Promise<string | null> {
     const box = item.result?.picture;
     if (!box) return null;
-    const img = await toRgb(await this.storage.get(item.key));
+    const img = await decodeRgb(await this.storage.get(item.key));
     const png = await rgbToPng(await cropRgb(img, { x: Math.min(box.x, 0.95), y: Math.min(box.y, 0.95), w: Math.min(box.w, 1 - box.x), h: Math.min(box.h, 1 - box.y) }));
     const hash = sha256(png);
     const existing = await this.prisma.importImage.findUnique({ where: { batchId_sha256: { batchId: batch.id, sha256: hash } } });
@@ -831,16 +833,20 @@ export class ImportService {
   }
 
   /**
-   * Bitta rasm: watermark aniqlash (namuna → template matching, keyin AI) → TELEA/NS inpaint
-   * (yaxshisi) → chetda bo'lsa crop varianti → AI qayta tekshiruv. `manualBoxes` — admin
-   * rasm ustida chizgan to'rtburchaklar (AI aniqlashsiz).
+   * Bitta rasm: watermark aniqlash (ma'lum shablon → namuna template matching → AI) → aniq niqob
+   * ichida patch-inpainting (watermark/clean.ts) → chetda bo'lsa crop varianti → AI qayta tekshiruv.
+   * `manualBoxes` — admin rasm ustida chizgan to'rtburchaklar (AI aniqlashsiz; ichida aniq niqob).
+   * Asl fayl (`originalKey`) hech qachon o'zgarmaydi; tozalangan — alohida PNG (lossless, asl o'lcham),
+   * niqob — `imageMaskKey()` (Oldin/Keyin ko'rinishi va qayta ishlash uchun).
    */
   async processImage(batch: ImportBatch, img: ImportImage, manualBoxes: Box[] | null): Promise<void> {
     const original = await this.storage.get(img.originalKey);
-    const rgb = await toRgb(original);
+    const rgb = await decodeRgb(original);
     let boxes: Box[] = manualBoxes ?? [];
     const notes: string[] = [];
-    if (!manualBoxes && batch.removeWatermarks) {
+    const auto = !manualBoxes && batch.removeWatermarks;
+    if (auto) {
+      const known = await locateKnown(rgb);
       const sample = await this.prisma.appSetting.findUnique({ where: { key: WATERMARK_SAMPLE_KEY } });
       let hint: string | undefined;
       const sampleValue = sample?.value as { storageKey?: string } | undefined;
@@ -851,29 +857,40 @@ export class ImportService {
           hint = `a known watermark logo was found by template matching near x=${Math.round(found.x * 100)}%, y=${Math.round(found.y * 100)}%`;
         }
       }
-      if (this.ai.configured()) {
+      // Ma'lum watermark (matn + logo) to'liq topilgan bo'lsa — AI aniqlash shart emas (xarajat tejaladi).
+      const knownComplete = known.some((k) => k.kind === "text") && known.some((k) => k.kind === "logo");
+      if (this.ai.configured() && !knownComplete) {
         const jpeg = await aiJpeg(original);
         const ai = await detectWatermarkBoxes(this.ai, jpeg, this.meta(batch), hint);
         const aiBoxes = ai.map((b) => ({ x: b.x / jpeg.width, y: b.y / jpeg.height, w: b.w / jpeg.width, h: b.h / jpeg.height, background: b.background }));
         // AI tasdiqlamagan namuna topilmasi ham qoladi (namuna — ishonchli manba).
         boxes = [...boxes, ...aiBoxes];
-      } else if (!boxes.length) notes.push("AI sozlanmagan — watermark avtomatik aniqlanmadi");
+      } else if (!this.ai.configured() && !boxes.length && !known.length) notes.push("AI sozlanmagan — watermark avtomatik aniqlanmadi");
     }
-    const data: Prisma.ImportImageUpdateInput = { width: rgb.width, height: rgb.height, boxes: boxes as unknown as Prisma.InputJsonValue, error: notes.join("; ") || null };
-    if (!boxes.length) {
+    // Ma'lum shablonlar har doim qidiriladi (qo'lda chizilgan qutilar atrofida ham).
+    const result = auto || manualBoxes ? await cleanWatermarks(rgb, { boxes }) : null;
+    const regions = result?.regions ?? [];
+    if (result && result.changedOutside !== 0) throw new Error("Ichki xato: niqobdan tashqaridagi piksellar o'zgardi");
+    // Saqlanadigan qutilar: haqiqatda tozalangan hududlar (admin muharriri shularni ko'rsatadi).
+    const savedBoxes: Box[] = regions.map((r) => ({ x: r.x / rgb.width, y: r.y / rgb.height, w: r.w / rgb.width, h: r.h / rgb.height }));
+    const data: Prisma.ImportImageUpdateInput = { width: rgb.width, height: rgb.height, boxes: savedBoxes as unknown as Prisma.InputJsonValue, error: notes.join("; ") || null };
+    if (!result || !regions.length) {
+      await this.storage.delete(imageMaskKey(batch.id, img.id)).catch(() => undefined);
       await this.prisma.importImage.update({ where: { id: img.id }, data: { ...data, status: "done", needsReview: false, selected: "original", cleanedKey: null, cropKey: null } });
       return;
     }
-    const cleaned = await inpaintBest(rgb, boxes);
-    const cleanedPng = await rgbToPng(cleaned.image);
+    const cleanedPng = await rgbToPng(result.image);
     const cleanedKey = `imports/${batch.id}/images/${img.id}-cleaned.png`;
     await this.storage.put(cleanedKey, cleanedPng, "image/png");
-    const crop = edgeCrop(boxes);
+    await this.storage.put(imageMaskKey(batch.id, img.id), await maskPng(result.mask, rgb.width, rgb.height), "image/png");
+    const crop = edgeCrop(savedBoxes);
     let cropKey: string | null = null;
     if (crop) {
       cropKey = `imports/${batch.id}/images/${img.id}-crop.png`;
       await this.storage.put(cropKey, await rgbToPng(await cropRgb(rgb, crop)), "image/png");
     }
+    const kinds = regions.map((r) => (r.kind === "box" ? (r.detail === "precise" ? "aniq niqob" : "quti") : r.kind === "text" ? "matn shabloni" : "logo shabloni"));
+    notes.push(`Tozalandi: ${kinds.join(", ")}; o'zgargan piksellar ${((result.changed / (rgb.width * rgb.height)) * 100).toFixed(1)}%`);
     let needsReview = false;
     if (this.ai.configured()) {
       const check = await verifyCleaned(this.ai, (await aiJpeg(cleanedPng)).data, this.meta(batch)).catch(() => null);
@@ -882,10 +899,10 @@ export class ImportService {
         needsReview = true;
         notes.push(check.note ?? (check.residue ? "Watermark qoldig'i qoldi" : "Ko'zga tashlanadigan dog' qoldi"));
       }
-    } else needsReview = !manualBoxes; // AI'siz: avtomatik tozalashni admin ko'radi; qo'lda chizganini — o'zi ko'rgan
+    } else needsReview = !manualBoxes && regions.some((r) => r.kind === "box"); // AI'siz: shablonsiz avtomatik tozalashni admin ko'radi
     await this.prisma.importImage.update({
       where: { id: img.id },
-      data: { ...data, cleanedKey, cropKey, selected: "cleaned", status: needsReview ? "needs_review" : "done", needsReview, error: notes.join("; ") || null },
+      data: { ...data, cleanedKey, cropKey, selected: "cleaned", status: needsReview ? "needs_review" : "done", needsReview, error: notes.join("; ").slice(0, 1000) || null },
     });
   }
 
@@ -1176,4 +1193,13 @@ function keyFromRange(text: string, [start, end]: [number, number]): string {
 
 function emptyScreenQuestion(i: number, ticket: number | null, note: string): ExtractedQuestion {
   return { number: i + 1, text: `(${i + 1}-ekran o'qilmadi — matnni qo'lda kiriting)`, options: [], correctIndex: null, correctBy: null, imageRefs: [], day: null, topicNumber: null, topicTitle: ticket ? `${ticket}-bilet` : null, questionKey: null, answerKey: null, explanation: null, notes: [note], doubt: null };
+}
+
+/** Tozalash niqobi (oq — o'zgargan hudud) — storage kaliti. */
+export function imageMaskKey(batchId: string, imageId: string): string {
+  return `imports/${batchId}/images/${imageId}-mask.png`;
+}
+
+function maskPng(mask: Uint8Array, width: number, height: number): Promise<Buffer> {
+  return sharp(Buffer.from(mask), { raw: { width, height, channels: 1 } }).png({ compressionLevel: 9 }).toBuffer();
 }

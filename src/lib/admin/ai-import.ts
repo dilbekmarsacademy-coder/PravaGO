@@ -170,7 +170,8 @@ export function fileExtension(name: string): string {
   return i < 0 ? "" : name.slice(i).toLowerCase();
 }
 
-export function imageUrl(imageId: string, variant: ImageVariant, version?: number | string): string {
+/** "mask" — tozalashda o'zgargan piksellar (oq), faqat yangi usulda tozalangan rasmlarda. */
+export function imageUrl(imageId: string, variant: ImageVariant | "mask", version?: number | string): string {
   return `/admin/api/ai-imports/images/${imageId}/${variant}${version ? `?v=${version}` : ""}`;
 }
 

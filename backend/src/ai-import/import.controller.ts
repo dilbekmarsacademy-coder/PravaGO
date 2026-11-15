@@ -8,6 +8,7 @@ import { AdminGuard, CurrentAdmin, RequestIp, RequirePermission } from "../admin
 import type { AdminUser } from "../admin/admin-request";
 import { MAX_IMPORT_FILE_BYTES } from "../storage/storage";
 import { ImportService } from "./import.service";
+import { ImageReprocessService } from "./reprocess.service";
 import { ReviewService } from "./review.service";
 
 class FileSpec {
@@ -192,6 +193,17 @@ class SelectDto {
   variant: "original" | "cleaned" | "crop";
 }
 
+class ReprocessDto {
+  @IsBoolean()
+  dryRun: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(25)
+  limit?: number;
+}
+
 class SampleDto {
   @IsOptional()
   @IsString()
@@ -213,6 +225,7 @@ export class AiImportController {
   constructor(
     private readonly imports: ImportService,
     private readonly review: ReviewService,
+    private readonly reprocessor: ImageReprocessService,
   ) {}
 
   @Get()
@@ -281,11 +294,21 @@ export class AiImportController {
 
   @Get("images/:imgId/:variant")
   async image(@Param("imgId", ParseUUIDPipe) imgId: string, @Param("variant") variant: string, @Res() res: Response) {
-    if (!["original", "cleaned", "crop"].includes(variant)) return res.status(404).end();
-    const file = await this.review.imageFile(imgId, variant as "original" | "cleaned" | "crop");
+    if (!["original", "cleaned", "crop", "mask"].includes(variant)) return res.status(404).end();
+    const file = await this.review.imageFile(imgId, variant as "original" | "cleaned" | "crop" | "mask");
     res.setHeader("Content-Type", file.mime);
     res.setHeader("Cache-Control", "private, max-age=60");
     return res.send(file.data);
+  }
+
+  /**
+   * Saytdagi (allaqachon tasdiqlangan) import rasmlarini yangi usul bilan qayta ishlash.
+   * dryRun: true — nechta rasm o'zgarishi va originali yo'qlar ro'yxati, hech narsa yozilmaydi.
+   */
+  @Post("images/reprocess")
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  reprocess(@Body() body: ReprocessDto, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    return this.reprocessor.run(admin, ip, { dryRun: body.dryRun, limit: body.limit });
   }
 
   @Post("images/:imgId/select")
