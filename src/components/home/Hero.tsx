@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { GraduationCapIcon, RocketIcon } from "lucide-react";
+import Link from "next/link";
+import { FlagIcon, GraduationCapIcon, RocketIcon, ShuffleIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/lib/i18n/useLocale";
 import HeroBackground from "./HeroBackground";
@@ -95,6 +96,29 @@ export default function Hero({ onStart, onCenterLogin }: HeroProps) {
           >
             {t.hero.ctaSecondary}
           </a>
+        </motion.div>
+
+        {/* Yakuniy ichki imtihon va Random testlar — hammaga ochiq (ro'yxatdan o'tish/to'lovsiz). */}
+        <motion.div variants={item} className="mt-5 flex w-full max-w-md flex-col items-center gap-2">
+          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
+            <Link
+              href="/kabinet/imtihon"
+              data-testid="hero-final-exam"
+              className="glass inline-flex items-center justify-center gap-2 rounded-full border border-neon-orange/40 px-5 py-3 text-sm font-semibold text-foreground transition-colors hover:border-neon-orange hover:text-neon-orange"
+            >
+              <FlagIcon className="size-4 text-neon-orange" />
+              {t.hero.freeExam}
+            </Link>
+            <Link
+              href="/kabinet/random"
+              data-testid="hero-random"
+              className="glass inline-flex items-center justify-center gap-2 rounded-full border border-neon-cyan/40 px-5 py-3 text-sm font-semibold text-foreground transition-colors hover:border-neon-cyan hover:text-neon-cyan"
+            >
+              <ShuffleIcon className="size-4 text-neon-cyan" />
+              {t.hero.freeRandom}
+            </Link>
+          </div>
+          <span className="text-xs text-muted-foreground">{t.hero.freeHint}</span>
         </motion.div>
 
         {/* Qo'shimcha: Telegram orqali kursga yozilish (asosiy tugmalar o'zgarmagan). */}

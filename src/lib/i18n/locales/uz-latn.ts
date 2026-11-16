@@ -38,6 +38,9 @@ export const uzLatn: Dictionary = {
     ctaPrimary: "Tayyorlanishni boshlash",
     ctaSecondary: "Qanday ishlashini ko'rish",
     note: "Ro'yxatdan o'tish 1 daqiqadan kam vaqt oladi",
+    freeExam: "Yakuniy ichki imtihon",
+    freeRandom: "Random testlar",
+    freeHint: "Bepul — ro'yxatdan o'tmasdan ham yechish mumkin",
   },
 
   trustStats: {

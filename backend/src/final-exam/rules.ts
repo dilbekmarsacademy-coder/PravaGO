@@ -9,7 +9,7 @@ export const FINAL_EXAM_TYPES: Record<FinalExamType, { questions: number; minute
 
 /**
  * Imtihon 1–6-kun mavzulari tugatilishini talab qiladimi. false — o'quvchi
- * to'g'ridan-to'g'ri kirib topshira oladi (kursga kirish huquqi baribir kerak).
+ * to'g'ridan-to'g'ri kirib topshira oladi (to'lov ham talab qilinmaydi — access.service EXAMS_OPEN_TO_ALL).
  */
 export const FINAL_EXAM_REQUIRES_COURSE = false;
 
