@@ -287,7 +287,7 @@ export class FinalExamService {
 
   /** Kabinet: qulf holati va har tur bo'yicha urinishlar, o'rtacha, natija. */
   async overview(userId: string) {
-    await this.access.assertCourseAccess(userId);
+    await this.access.assertExamAccess(userId);
     await this.expireOverdue(userId);
     const [lock, poolSize, q20, q50] = await Promise.all([
       this.examLock(userId),
@@ -299,7 +299,7 @@ export class FinalExamService {
   }
 
   async start(userId: string, type: FinalExamType) {
-    await this.access.assertCourseAccess(userId);
+    await this.access.assertExamAccess(userId);
     await this.assertUnlocked(userId);
     await this.expireOverdue(userId);
     const attempts = await this.counted(userId, type);
@@ -389,13 +389,13 @@ export class FinalExamService {
   }
 
   async get(userId: string, id: string) {
-    await this.access.assertCourseAccess(userId);
+    await this.access.assertExamAccess(userId);
     return this.state(await this.load(userId, id));
   }
 
   /** Savollar (urinishdagi tartibda, variantlar saqlangan tartibda). Natija — faqat imtihon tugagach. */
   async questions(userId: string, id: string) {
-    await this.access.assertCourseAccess(userId);
+    await this.access.assertExamAccess(userId);
     const attempt = await this.load(userId, id);
     const done = attempt.status !== "IN_PROGRESS";
     const items = questionsOf(attempt);
@@ -449,7 +449,7 @@ export class FinalExamService {
 
   /** Javob: faqat vaqt ichida, bir savolga bir marta. Natija (to'g'ri/xato) qaytmaydi. */
   async answer(userId: string, id: string, position: number, optionId: string) {
-    await this.access.assertCourseAccess(userId);
+    await this.access.assertExamAccess(userId);
     const attempt = await this.load(userId, id);
     this.assertInProgress(attempt);
     const item = questionsOf(attempt)[position];
@@ -484,7 +484,7 @@ export class FinalExamService {
    * boshqa joyga) va saqlanadi — qaytganda boshqa tartib. Qulflangan savolda o'zgarmaydi.
    */
   async skip(userId: string, id: string, position: number) {
-    await this.access.assertCourseAccess(userId);
+    await this.access.assertExamAccess(userId);
     const attempt = await this.load(userId, id);
     this.assertInProgress(attempt);
     const item = questionsOf(attempt)[position];
@@ -502,7 +502,7 @@ export class FinalExamService {
 
   /** "Yakunlash": javobsizlar xato. Vaqt o'tgan bo'lsa — EXPIRED. */
   async finish(userId: string, id: string) {
-    await this.access.assertCourseAccess(userId);
+    await this.access.assertExamAccess(userId);
     const attempt = await this.load(userId, id);
     if (attempt.status === "IN_PROGRESS") await this.finalize(attempt, "FINISHED", new Date());
     return this.state(await this.prisma.finalExamAttempt.findUniqueOrThrow({ where: { id } }));
@@ -526,7 +526,7 @@ export class FinalExamService {
   }
 
   async certificates(userId: string) {
-    await this.access.assertCourseAccess(userId);
+    await this.access.assertExamAccess(userId);
     const rows = await this.prisma.certificate.findMany({ where: { userId }, orderBy: { issuedAt: "asc" } });
     return rows.map((c) => this.certificateDto(c));
   }
@@ -538,13 +538,13 @@ export class FinalExamService {
   }
 
   async certificate(userId: string, number: string) {
-    await this.access.assertCourseAccess(userId);
+    await this.access.assertExamAccess(userId);
     return this.certificateDto(await this.ownCertificate(userId, number));
   }
 
   /** Ism profilda bo'lmagan — o'quvchi bir marta kiritadi (keyin o'zgarmaydi). */
   async setCertificateName(userId: string, number: string, fullName: string) {
-    await this.access.assertCourseAccess(userId);
+    await this.access.assertExamAccess(userId);
     const c = await this.ownCertificate(userId, number);
     if (c.fullName) throw conflict("CERTIFICATE_NAME_SET", "Sertifikatdagi ism allaqachon kiritilgan");
     const name = fullName.trim().replace(/\s+/g, " ");
@@ -555,7 +555,7 @@ export class FinalExamService {
 
   /** Tabrik ekrani ko'rildi — keyingi kirishda avtomatik chiqmaydi. */
   async markCelebrated(userId: string, number: string) {
-    await this.access.assertCourseAccess(userId);
+    await this.access.assertExamAccess(userId);
     const c = await this.ownCertificate(userId, number);
     if (!c.celebratedAt) await this.prisma.certificate.update({ where: { id: c.id }, data: { celebratedAt: new Date() } });
     return { ok: true };

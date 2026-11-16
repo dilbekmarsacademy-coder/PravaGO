@@ -174,7 +174,7 @@ export class RandomTestsService {
 
   /** Kabinet: tugallanmagan test, oldingi natijalar va bazadagi savollar soni. */
   async overview(userId: string) {
-    await this.access.assertCourseAccess(userId);
+    await this.access.assertExamAccess(userId);
     await this.expireOverdue(userId);
     const [rows, available] = await Promise.all([
       this.prisma.randomTestAttempt.findMany({ where: { userId, archivedAt: null }, orderBy: { startedAt: "desc" }, take: 50 }),
@@ -191,7 +191,7 @@ export class RandomTestsService {
   }
 
   async start(userId: string, size: number, allowFewer: boolean): Promise<RandomTestStateDto> {
-    await this.access.assertCourseAccess(userId);
+    await this.access.assertExamAccess(userId);
     await this.expireOverdue(userId);
     const active = await this.prisma.randomTestAttempt.findFirst({ where: { userId, status: "in_progress" }, select: { id: true } });
     if (active) throw conflict("RANDOM_TEST_ACTIVE", "Tugallanmagan random test bor — avval uni davom ettiring yoki yakunlang", { attemptId: active.id });
@@ -239,13 +239,13 @@ export class RandomTestsService {
   }
 
   async get(userId: string, id: string): Promise<RandomTestStateDto> {
-    await this.access.assertCourseAccess(userId);
+    await this.access.assertExamAccess(userId);
     return this.state(await this.load(userId, id));
   }
 
   /** Savollar bo'lagi (tartib bo'yicha). Natija faqat javob berilganlarida yoki test tugagach. */
   async questions(userId: string, id: string, from: number, count: number): Promise<RandomQuestionDto[]> {
-    await this.access.assertCourseAccess(userId);
+    await this.access.assertExamAccess(userId);
     const attempt = await this.load(userId, id);
     const finished = attempt.status !== "in_progress";
     const rows = await this.prisma.randomTestAnswer.findMany({
@@ -277,7 +277,7 @@ export class RandomTestsService {
 
   /** Javob: faqat vaqt ichida, bir marta; o'zgartirib bo'lmaydi. */
   async answer(userId: string, id: string, position: number, optionId: string): Promise<{ review: RandomReviewDto; state: RandomTestStateDto }> {
-    await this.access.assertCourseAccess(userId);
+    await this.access.assertExamAccess(userId);
     const attempt = await this.load(userId, id);
     if (attempt.status !== "in_progress") {
       throw conflict(attempt.status === "expired" ? "RANDOM_TEST_TIME_UP" : "RANDOM_TEST_FINISHED", attempt.status === "expired" ? "Vaqt tugadi" : "Test yakunlangan");
@@ -323,7 +323,7 @@ export class RandomTestsService {
 
   /** "Yakunlash": javob berilmaganlar xato hisoblanadi. Vaqt o'tgan bo'lsa — "expired". */
   async finish(userId: string, id: string): Promise<RandomTestStateDto> {
-    await this.access.assertCourseAccess(userId);
+    await this.access.assertExamAccess(userId);
     const attempt = await this.load(userId, id);
     if (attempt.status === "in_progress") {
       await this.prisma.randomTestAttempt.updateMany({ where: { id, status: "in_progress" }, data: { status: "finished", finishedAt: new Date() } });

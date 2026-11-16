@@ -90,13 +90,17 @@ describe("Random testlar", () => {
   let user: Awaited<ReturnType<typeof newUser>>;
   let first: { id: string; ids: string[] };
 
-  it("sessiyasiz — 401; to'lov majburiy va to'lanmagan — 403 (Yangi testlar bilan bir xil qoida)", async () => {
+  it("sessiyasiz — 401; to'lov majburiy va to'lanmagan bo'lsa ham ochiq (hammaga)", async () => {
     await http().get("/random-tests").expect(401);
     user = await newUser();
+    const guest = await newUser();
     process.env.PAYMENT_ENFORCED = "true";
-    const res = await http().post("/random-tests").set(user.auth).send({ size: 20 }).expect(403);
-    expect(res.body.code).toBe("PAYMENT_REQUIRED");
-    process.env.PAYMENT_ENFORCED = "false";
+    try {
+      await http().get("/random-tests").set(guest.auth).expect(200);
+      await http().post("/random-tests").set(guest.auth).send({ size: 20, allowFewer: true }).expect(201);
+    } finally {
+      process.env.PAYMENT_ENFORCED = "false";
+    }
     await http().post("/random-tests").set(user.auth).send({ size: 30 }).expect(400);
   });
 

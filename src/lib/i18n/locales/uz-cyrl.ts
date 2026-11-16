@@ -37,6 +37,9 @@ export const uzCyrl: Dictionary = {
     ctaPrimary: "Тайёрланишни бошлаш",
     ctaSecondary: "Қандай ишлашини кўриш",
     note: "Рўйхатдан ўтиш 1 дақиқадан кам вақт олади",
+    freeExam: "Якуний ички имтиҳон",
+    freeRandom: "Рандом тестлар",
+    freeHint: "Бепул — рўйхатдан ўтмасдан ҳам ечиш мумкин",
   },
 
   trustStats: {

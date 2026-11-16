@@ -2,6 +2,7 @@
 
 import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRegistration } from "@/lib/registration-store";
 import { useRouter } from "next/navigation";
 import { ArrowLeftIcon, ChevronRightIcon, PlayIcon, RotateCcwIcon, ShuffleIcon, TimerIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,8 @@ type Dialog = { kind: "confirm"; size: number } | { kind: "notEnough"; size: num
 
 /** Tasodifiy test: tur tanlash (20/50/100/200), tugallanmagan test va oldingi natijalar. */
 export default function RandomTestHubPage({ searchParams }: RandomPageProps) {
+  // Ro'yxatdan o'tmagan mehmon (imtihon hammaga ochiq) — orqaga bosh sahifaga.
+  const backHref = useRegistration() ? "/kabinet" : "/";
   const { size: sizeParam } = use(searchParams);
   const router = useRouter();
   const { t } = useLocale();
@@ -100,7 +103,7 @@ export default function RandomTestHubPage({ searchParams }: RandomPageProps) {
   return (
     <>
       <AppHeader>
-        <Link href="/kabinet" aria-label={t.kabinet.backToKabinet} className={buttonClasses({ variant: "secondary", size: "icon", className: "size-11 md:size-10" })}>
+        <Link href={backHref} aria-label={t.kabinet.backToKabinet} className={buttonClasses({ variant: "secondary", size: "icon", className: "size-11 md:size-10" })}>
           <ArrowLeftIcon className="size-4.5" />
         </Link>
         <span className="truncate text-sm font-semibold text-foreground">{t.kabinet.backToKabinet}</span>

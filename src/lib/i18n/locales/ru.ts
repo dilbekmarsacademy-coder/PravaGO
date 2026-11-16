@@ -55,6 +55,9 @@ export const ru: Dictionary = {
     ctaPrimary: "Начать подготовку",
     ctaSecondary: "Посмотреть, как это работает",
     note: "Регистрация займёт менее 1 минуты",
+    freeExam: "Итоговый внутренний экзамен",
+    freeRandom: "Случайные тесты",
+    freeHint: "Бесплатно — можно решать даже без регистрации",
   },
 
   trustStats: {
