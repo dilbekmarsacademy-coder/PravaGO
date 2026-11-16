@@ -131,13 +131,25 @@ describe("Yakuniy imtihon — qulf va boshlash", () => {
     expect(state).toMatchObject({ type: "Q20", status: "IN_PROGRESS", total: 20, attemptNo: 1 });
   });
 
-  it("hammaga ochiq: to'lov sharti yoqilgan, to'lanmagan va kurs tugatilmagan mehmon ham boshlay oladi", async () => {
+  it("kabinetga kira oladigan (to'lagan) o'quvchi — mavzularni tugatmagan bo'lsa ham imtihon va Random ochiq", async () => {
+    const user = await newUser();
+    await prisma.user.update({ where: { id: user.userId }, data: { registeredAt: new Date(), paymentStatus: "PAID" } });
+    process.env.PAYMENT_ENFORCED = "true";
+    try {
+      expect((await http().get("/final-exam").set(user.auth).expect(200)).body.unlocked).toBe(true);
+      await http().post("/final-exam").set(user.auth).send({ type: "Q50" }).expect(201);
+      await http().get("/random-tests").set(user.auth).expect(200);
+      await http().post("/random-tests").set(user.auth).send({ size: 20, allowFewer: true }).expect(201);
+    } finally {
+      process.env.PAYMENT_ENFORCED = "false";
+    }
+  });
+
+  it("kursga kirish huquqi baribir kerak (to'lov sharti yoqilgan, to'lanmagan — 403)", async () => {
     const user = await newUser();
     process.env.PAYMENT_ENFORCED = "true";
     try {
-      const overview = (await http().get("/final-exam").set(user.auth).expect(200)).body;
-      expect(overview.unlocked).toBe(true);
-      await http().post("/final-exam").set(user.auth).send({ type: "Q20" }).expect(201);
+      await http().post("/final-exam").set(user.auth).send({ type: "Q20" }).expect(403);
     } finally {
       process.env.PAYMENT_ENFORCED = "false";
     }

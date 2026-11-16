@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRegistration } from "@/lib/registration-store";
 import { ArrowLeftIcon, AwardIcon, ChevronRightIcon, FlagIcon, LockIcon, PlayIcon, RotateCcwIcon, TimerIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EXAM_TYPE_LABEL, formatPercent, getFinalExamOverview, type FinalExamOverview, type TypeOverview } from "@/lib/api/final-exam";
@@ -15,8 +14,6 @@ import { StartExamDialog } from "@/components/final-exam/StartExamDialog";
 
 /** Yakuniy ichki imtihon: ikki tur (20/50), urinishlar, o'rtacha va natija. */
 export default function FinalExamHubPage() {
-  // Ro'yxatdan o'tmagan mehmon (imtihon hammaga ochiq) — orqaga bosh sahifaga.
-  const backHref = useRegistration() ? "/kabinet" : "/";
   const [data, setData] = useState<FinalExamOverview | null>(null);
   const [error, setError] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -36,7 +33,7 @@ export default function FinalExamHubPage() {
   return (
     <>
       <AppHeader>
-        <Link href={backHref} aria-label="Kabinet" className={buttonClasses({ variant: "secondary", size: "icon", className: "size-11 md:size-10" })}>
+        <Link href="/kabinet" aria-label="Kabinet" className={buttonClasses({ variant: "secondary", size: "icon", className: "size-11 md:size-10" })}>
           <ArrowLeftIcon className="size-4.5" />
         </Link>
         <span className="truncate text-sm font-semibold text-foreground">Yakuniy ichki imtihon</span>
