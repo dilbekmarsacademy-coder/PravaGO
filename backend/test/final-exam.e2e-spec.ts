@@ -131,13 +131,11 @@ describe("Yakuniy imtihon — qulf va boshlash", () => {
     expect(state).toMatchObject({ type: "Q20", status: "IN_PROGRESS", total: 20, attemptNo: 1 });
   });
 
-  it("hammaga ochiq: to'lov sharti yoqilgan, to'lanmagan va kurs tugatilmagan mehmon ham boshlay oladi", async () => {
+  it("kursga kirish huquqi baribir kerak (to'lov sharti yoqilgan, to'lanmagan — 403)", async () => {
     const user = await newUser();
     process.env.PAYMENT_ENFORCED = "true";
     try {
-      const overview = (await http().get("/final-exam").set(user.auth).expect(200)).body;
-      expect(overview.unlocked).toBe(true);
-      await http().post("/final-exam").set(user.auth).send({ type: "Q20" }).expect(201);
+      await http().post("/final-exam").set(user.auth).send({ type: "Q20" }).expect(403);
     } finally {
       process.env.PAYMENT_ENFORCED = "false";
     }

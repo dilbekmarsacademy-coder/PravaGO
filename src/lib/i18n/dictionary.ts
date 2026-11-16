@@ -39,9 +39,6 @@ export interface Dictionary {
     ctaPrimary: string;
     ctaSecondary: string;
     note: string;
-    freeExam: string;
-    freeRandom: string;
-    freeHint: string;
   };
 
   trustStats: {

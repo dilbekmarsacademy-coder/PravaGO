@@ -16,13 +16,6 @@ export function paymentEnforced(): boolean {
   return process.env.PAYMENT_ENFORCED === "true";
 }
 
-/**
- * Yakuniy ichki imtihon (sertifikat bilan) va Random testlar — saytga kirgan HAR BIR sessiyaga ochiq:
- * to'lov, ro'yxatdan o'tish yoki kunlik mavzularni tugatish talab qilinmaydi (2026-11-16 qaror).
- * Qayta yopish kerak bo'lsa — false.
- */
-export const EXAMS_OPEN_TO_ALL = true;
-
 export interface AccessFields {
   type: UserType;
   centerAccess: boolean;
@@ -62,12 +55,6 @@ export class AccessService {
     if (!userId) return { unlockAll: false, gated: false };
     const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { unlockAll: true, topicFlowGatingEnabled: true } });
     return { unlockAll: user?.unlockAll ?? false, gated: user?.topicFlowGatingEnabled ?? false };
-  }
-
-  /** Yakuniy imtihon va Random testlar uchun kirish (EXAMS_OPEN_TO_ALL bo'lsa — hammaga). */
-  async assertExamAccess(userId: string | undefined): Promise<void> {
-    if (EXAMS_OPEN_TO_ALL) return;
-    await this.assertCourseAccess(userId);
   }
 
   async assertCourseAccess(userId: string | undefined): Promise<void> {
