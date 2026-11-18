@@ -19,9 +19,11 @@ import {
   CreateStudentDialog,
   CredentialsDialog,
   EditStudentDialog,
+  SetPasswordDialog,
   type StudentCredentials,
   type StudentRow,
 } from "./StudentDialogs";
+import { BulkSiteAccessBar, SelectCheckbox, SiteAccessDialog, SiteAccessToggleButton, SiteClosedBadge, useRowSelection, type SiteAccessTarget } from "./SiteAccess";
 
 const PAGE_SIZE = 50;
 
@@ -72,6 +74,9 @@ export default function CenterStudentsTab() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [editing, setEditing] = useState<StudentRow | null>(null);
   const [credentials, setCredentials] = useState<{ title: string; list: StudentCredentials[]; errors?: { line: number; value: string; message: string }[] } | null>(null);
+  const [passwordFor, setPasswordFor] = useState<StudentRow | null>(null);
+  const [accessRequest, setAccessRequest] = useState<{ targets: SiteAccessTarget[]; blocked: boolean } | null>(null);
+  const selection = useRowSelection();
 
   useEffect(() => {
     const id = setTimeout(() => {
@@ -102,11 +107,7 @@ export default function CenterStudentsTab() {
     load();
   }
 
-  async function resetPassword(u: StudentRow) {
-    const fresh = await adminFetch<StudentCredentials>(`students/${u.id}/reset-password`, { json: {} });
-    setCredentials({ title: "Yangi parol", list: [fresh] });
-    load();
-  }
+  const target = (u: StudentRow): SiteAccessTarget => ({ id: u.id, name: fullName(u), siteAccessBlocked: u.siteAccessBlocked });
 
   async function remove(u: StudentRow) {
     await adminFetch(`students/${u.id}`, { method: "DELETE" });
@@ -148,9 +149,15 @@ export default function CenterStudentsTab() {
           <option value="">Holat: hammasi</option>
           <option value="active">Faol</option>
           <option value="inactive">Faolsiz</option>
+          <option value="blocked">Sayt yopilganlar</option>
         </Select>
       </div>
       {error && <ErrorBlock message={error} onRetry={load} />}
+      <BulkSiteAccessBar
+        selected={[...selection.selected.values()]}
+        onAction={(blocked) => setAccessRequest({ targets: [...selection.selected.values()], blocked })}
+        onClear={selection.clear}
+      />
       {!data ? (
         <LoadingBlock />
       ) : data.items.length === 0 ? (
@@ -160,6 +167,14 @@ export default function CenterStudentsTab() {
           <Table>
             <thead>
               <tr>
+                <Th className="w-8">
+                  <SelectCheckbox
+                    label="Sahifadagi hammasini tanlash"
+                    checked={data.items.every((u) => selection.selected.has(u.id))}
+                    indeterminate={data.items.some((u) => selection.selected.has(u.id)) && !data.items.every((u) => selection.selected.has(u.id))}
+                    onChange={() => selection.setAll(data.items.map(target), !data.items.every((u) => selection.selected.has(u.id)))}
+                  />
+                </Th>
                 <Th>Ism</Th>
                 <Th>Telefon</Th>
                 <Th>Login</Th>
@@ -176,6 +191,9 @@ export default function CenterStudentsTab() {
               {data.items.map((u) => (
                 <tr key={u.id} className="transition-colors hover:bg-surface" data-testid="student-row">
                   <Td>
+                    <SelectCheckbox label={`${fullName(u)} — tanlash`} checked={selection.selected.has(u.id)} onChange={() => selection.toggle(target(u))} />
+                  </Td>
+                  <Td>
                     <Link href={`/admin/users/${u.id}`} className="font-semibold text-foreground hover:text-brand">
                       {fullName(u)}
                     </Link>
@@ -184,6 +202,7 @@ export default function CenterStudentsTab() {
                   <Td className="font-mono text-xs">{u.login}</Td>
                   <Td>
                     <span className="inline-flex flex-col gap-1">
+                      {u.siteAccessBlocked && <SiteClosedBadge blockedAt={u.blockedAt} reason={u.blockReason} />}
                       {u.isActive ? <Badge tone="success">faol</Badge> : <Badge tone="danger">faolsiz</Badge>}
                       {u.online && u.isActive && <span className="text-[0.65rem] text-success">qurilmada kirgan</span>}
                       {u.unlockAll && <Badge tone="brand">hammasi ochiq</Badge>}
@@ -206,7 +225,10 @@ export default function CenterStudentsTab() {
                   <Td>{u.centerAccess ? <Badge tone="brand">to&apos;liq</Badge> : <Badge tone="warning">o&apos;chirilgan</Badge>}</Td>
                   <Td className="text-right whitespace-nowrap">
                     <span className="inline-flex flex-wrap items-center justify-end gap-0.5">
-                      <ConfirmAction icon={<KeyRoundIcon className="size-4" />} label="Parolni yangilash" confirmLabel="Yangi parol" onConfirm={() => resetPassword(u)} testId="student-reset" />
+                      <Button size="icon-sm" variant="ghost" onClick={() => setPasswordFor(u)} aria-label="Parolni o'zgartirish" title="Parolni o'zgartirish" data-testid="student-password-open">
+                        <KeyRoundIcon className="size-4" />
+                      </Button>
+                      <SiteAccessToggleButton blocked={Boolean(u.siteAccessBlocked)} onClick={() => setAccessRequest({ targets: [target(u)], blocked: !u.siteAccessBlocked })} />
                       <ConfirmAction
                         icon={<LogOutIcon className="size-4" />}
                         label="Qurilmadan chiqarish"
@@ -259,6 +281,24 @@ export default function CenterStudentsTab() {
         onSaved={() => {
           setEditing(null);
           showToast({ message: "Saqlandi", tone: "success" });
+          load();
+        }}
+      />
+      <SetPasswordDialog
+        student={passwordFor}
+        onClose={() => setPasswordFor(null)}
+        onSaved={(c) => {
+          setPasswordFor(null);
+          setCredentials({ title: "Parol o'zgartirildi", list: [c] });
+          load();
+        }}
+      />
+      <SiteAccessDialog
+        request={accessRequest}
+        onClose={() => setAccessRequest(null)}
+        onDone={() => {
+          setAccessRequest(null);
+          selection.clear();
           load();
         }}
       />

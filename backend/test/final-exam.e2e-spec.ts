@@ -29,7 +29,14 @@ const http = () => request(app.getHttpServer());
 const topicIds: string[] = [];
 const lockedQuestionIds = new Set<string>();
 
-type QuestionRow = { position: number; topicSlug: string; selectedOptionId: string | null; question: { id: string; options: { id: string }[] }; review: null | { correctOptionId: string } };
+type QuestionRow = {
+  position: number;
+  topicSlug: string;
+  selectedOptionId: string | null;
+  question: { id: string; options: { id: string }[] };
+  review: null | { correctOptionId: string };
+  feedback: null | { selectedOptionId: string; correct: boolean; correctOptionId: string | null };
+};
 
 async function newUser(name?: { firstName: string; lastName: string }) {
   const { token } = await app.get(AuthService).createAnonymousSession();
@@ -193,17 +200,31 @@ describe("Yakuniy imtihon — qulf va boshlash", () => {
 });
 
 describe("Yakuniy imtihon — javoblar va taymer", () => {
-  it("javob variant ID bo'yicha tekshiriladi (joyi emas); natija tugaguncha chiqmaydi; bir marta", async () => {
+  it("javob variant ID bo'yicha tekshiriladi (joyi emas); to'g'ri variant faqat javobdan keyin; bir marta", async () => {
     const user = await newUser();
     await completeCourse(user.userId);
     const { id } = (await http().post("/final-exam").set(user.auth).send({ type: "Q20" }).expect(201)).body;
     const rows = (await http().get(`/final-exam/attempts/${id}/questions`).set(user.auth).expect(200)).body as QuestionRow[];
     // Birinchi 10 tasi — to'g'ri (qaysi joyda turgani muhim emas), 11-si — xato, qolgani javobsiz.
     for (const r of rows.slice(0, 10)) {
-      const body = (await http().post(`/final-exam/attempts/${id}/answers`).set(user.auth).send({ position: r.position, optionId: await correctOf(r.question.id) }).expect(200)).body;
-      expect(JSON.stringify(body)).not.toMatch(/correctOptionId|"correct":true/);
+      const correctId = await correctOf(r.question.id);
+      const body = (await http().post(`/final-exam/attempts/${id}/answers`).set(user.auth).send({ position: r.position, optionId: correctId }).expect(200)).body;
+      // Javob saqlangach — faqat shu savol natijasi.
+      expect(body.feedback).toEqual({ position: r.position, selectedOptionId: correctId, correct: true, correctOptionId: correctId });
+      expect(body.items[r.position]).toEqual({ answered: true, correct: true });
+      expect(body.items.slice(r.position + 1).every((i: { correct: boolean | null }) => i.correct === null)).toBe(true);
     }
-    await http().post(`/final-exam/attempts/${id}/answers`).set(user.auth).send({ position: 10, optionId: await wrongOf(rows[10].question.id) }).expect(200);
+    const wrong = (await http().post(`/final-exam/attempts/${id}/answers`).set(user.auth).send({ position: 10, optionId: await wrongOf(rows[10].question.id) }).expect(200)).body;
+    expect(wrong.feedback).toMatchObject({ correct: false, correctOptionId: await correctOf(rows[10].question.id) });
+    expect(wrong).toMatchObject({ status: "IN_PROGRESS", wrongCount: 1, maxMistakes: 3 });
+    // Javob berilmagan savollarda to'g'ri variant hali ham yo'q.
+    const mid = (await http().get(`/final-exam/attempts/${id}/questions`).set(user.auth).expect(200)).body as QuestionRow[];
+    expect(mid[10].feedback).toMatchObject({ correct: false, correctOptionId: await correctOf(rows[10].question.id) });
+    for (const r of mid.slice(11)) {
+      expect(r.feedback).toBeNull();
+      expect(r.review).toBeNull();
+      expect(JSON.stringify(r)).not.toMatch(/isCorrect|correctOptionId|keyword/);
+    }
     expect((await http().post(`/final-exam/attempts/${id}/answers`).set(user.auth).send({ position: 0, optionId: await wrongOf(rows[0].question.id) }).expect(409)).body.code).toBe(
       "FINAL_EXAM_ALREADY_ANSWERED",
     );
@@ -221,6 +242,57 @@ describe("Yakuniy imtihon — javoblar va taymer", () => {
     expect((await http().post(`/final-exam/attempts/${id}/answers`).set(user.auth).send({ position: 15, optionId: await correctOf(rows[15].question.id) }).expect(409)).body.code).toBe(
       "FINAL_EXAM_FINISHED",
     );
+  });
+
+  it("3-xatoda urinish to'xtaydi (FAILED): keyingi javob qabul qilinmaydi, urinish sarflanadi, o'rtachaga kiradi", async () => {
+    const user = await newUser();
+    await completeCourse(user.userId);
+    const { id } = (await http().post("/final-exam").set(user.auth).send({ type: "Q20" }).expect(201)).body;
+    const rows = (await http().get(`/final-exam/attempts/${id}/questions`).set(user.auth).expect(200)).body as QuestionRow[];
+    const send = async (position: number, ok: boolean) =>
+      http()
+        .post(`/final-exam/attempts/${id}/answers`)
+        .set(user.auth)
+        .send({ position, optionId: ok ? await correctOf(rows[position].question.id) : await wrongOf(rows[position].question.id) });
+    // 4 ta to'g'ri, 2 ta xato — davom etadi.
+    for (const p of [0, 1, 2, 3]) expect((await send(p, true)).status).toBe(200);
+    expect((await send(4, false)).body).toMatchObject({ status: "IN_PROGRESS", wrongCount: 1 });
+    expect((await send(5, false)).body).toMatchObject({ status: "IN_PROGRESS", wrongCount: 2 });
+    // 3-xato — server yakunlaydi.
+    const third = (await send(6, false)).body;
+    expect(third).toMatchObject({ status: "FAILED", wrongCount: 3, correct: 4, percent: 20, answered: 7, attemptNo: 1, average: 20, remainingMs: 0 });
+    expect(third.feedback).toMatchObject({ correct: false, correctOptionId: await correctOf(rows[6].question.id) });
+    // Keyingi javob — 409, hech narsa saqlanmaydi.
+    const late = await send(7, true);
+    expect(late.status).toBe(409);
+    expect(late.body.code).toBe("FINAL_EXAM_FAILED");
+    const row = await prisma.finalExamAttempt.findUniqueOrThrow({ where: { id } });
+    expect(Object.keys(row.answers as object)).toHaveLength(7);
+    expect(row).toMatchObject({ status: "FAILED", wrongCount: 3, correctCount: 4, scorePercent: 20 });
+    // Yakunlash ham holatni o'zgartirmaydi; tugagach to'liq ko'rib chiqish (review) ochiladi.
+    expect((await http().post(`/final-exam/attempts/${id}/finish`).set(user.auth).expect(200)).body).toMatchObject({ status: "FAILED", percent: 20 });
+    const review = (await http().get(`/final-exam/attempts/${id}/questions`).set(user.auth).expect(200)).body as QuestionRow[];
+    expect(review[19].review?.correctOptionId).toBe(await correctOf(rows[19].question.id));
+    // Urinish sarflandi va o'rtachaga qo'shildi; yangi urinish — 2-si.
+    const overview = (await http().get("/final-exam").set(user.auth).expect(200)).body;
+    expect(overview.types[0]).toMatchObject({ attemptsUsed: 1, attemptsLeft: 9, average: 20, active: null });
+    const next = (await http().post("/final-exam").set(user.auth).send({ type: "Q20" }).expect(201)).body;
+    expect(next).toMatchObject({ attemptNo: 2, wrongCount: 0, average: 20 });
+  });
+
+  it("parallel xato javoblar ham chegarani oshirmaydi (3 tadan ko'p xato saqlanmaydi)", async () => {
+    const user = await newUser();
+    await completeCourse(user.userId);
+    const { id } = (await http().post("/final-exam").set(user.auth).send({ type: "Q20" }).expect(201)).body;
+    const rows = (await http().get(`/final-exam/attempts/${id}/questions`).set(user.auth).expect(200)).body as QuestionRow[];
+    const results = await Promise.all(
+      rows.slice(0, 6).map(async (r) => http().post(`/final-exam/attempts/${id}/answers`).set(user.auth).send({ position: r.position, optionId: await wrongOf(r.question.id) })),
+    );
+    expect(results.filter((r) => r.status === 200)).toHaveLength(3);
+    const row = await prisma.finalExamAttempt.findUniqueOrThrow({ where: { id } });
+    expect(row.status).toBe("FAILED");
+    expect(row.wrongCount).toBe(3);
+    expect(Object.keys(row.answers as object)).toHaveLength(3);
   });
 
   it("taymer tugagach javob qabul qilinmaydi; urinish avtomatik yakunlanadi (javobsizlar xato)", async () => {

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeftIcon, FlagIcon } from "lucide-react";
 import { AppHeader } from "@/components/shared/AppHeader";
@@ -23,6 +24,8 @@ interface TestHeaderProps {
   /** Test tugagach taymer yashiriladi. */
   showTimer: boolean;
   onFinish: () => void;
+  /** Taymer yonidagi qo'shimcha ko'rsatkich (masalan imtihonda "Xatolar: 1 / 3"). */
+  extra?: ReactNode;
 }
 
 export function TestHeader({
@@ -35,6 +38,7 @@ export function TestHeader({
   canFinish,
   showTimer,
   onFinish,
+  extra,
 }: TestHeaderProps) {
   const { t } = useLocale();
 
@@ -64,6 +68,7 @@ export function TestHeader({
       )}
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
+        {extra}
         {showTimer && (
           <TimerRing remainingSec={remainingSec} limitSec={limitSec} urgency={urgency} className="md:h-10" />
         )}

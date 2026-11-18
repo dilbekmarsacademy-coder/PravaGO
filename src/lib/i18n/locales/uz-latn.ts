@@ -452,6 +452,7 @@ export const uzLatn: Dictionary = {
     unbookmark: "Saqlanganlardan olib tashlash",
     zoomImage: "Rasmni kattalashtirish",
     closeImage: "Rasmni yopish",
+    shrinkImage: "Rasmni kichiklashtirish",
     moreActions: "Boshqa amallar",
     openNavigator: "Savollar roʻyxatini ochish",
     navigatorTitle: "Savollar",
@@ -685,5 +686,12 @@ export const uzLatn: Dictionary = {
       inactive: "Akkaunt faol emas, markazga murojaat qiling.",
     },
     accessDisabled: { title: "Kursga kirish vaqtincha yopilgan", desc: "Kursga kirish oʻquv markazingiz tomonidan vaqtincha yopilgan. Markazga murojaat qiling." },
+  },
+  siteClosed: {
+    title: "Sayt siz uchun yopilgan",
+    desc: "Ochish uchun admin bilan bog'laning.",
+    contact: "Adminga yozish",
+    recheck: "Qayta tekshirish",
+    stillClosed: "Sayt hali ham yopiq",
   },
 };

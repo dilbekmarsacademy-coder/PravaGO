@@ -15,6 +15,11 @@ export const FINAL_EXAM_REQUIRES_COURSE = false;
 
 /** Har bir tur uchun alohida urinishlar soni. */
 export const FINAL_EXAM_MAX_ATTEMPTS = 10;
+/**
+ * Bitta urinishda ruxsat etilgan xatolar chegarasi: shu songa yetganda server
+ * urinishni darhol FAILED holatida yakunlaydi (urinish sarflanadi, foiz o'rtachaga kiradi).
+ */
+export const FINAL_EXAM_MAX_MISTAKES = 3;
 /** O'tish uchun 10 ta urinish o'rtachasi (1 xona kasr bilan) kamida shuncha bo'lishi kerak. */
 export const FINAL_EXAM_PASS_AVERAGE = 98;
 

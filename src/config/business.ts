@@ -26,5 +26,11 @@ export const BUSINESS = {
 export const PHONE_HREF = `tel:${BUSINESS.phone.replace(/\s/g, "")}`;
 export const EMAIL_HREF = `mailto:${BUSINESS.email}`;
 export const INSTAGRAM_URL = `https://instagram.com/${BUSINESS.instagram.replace(/^@/, "")}`;
+/**
+ * "Adminga yozish" (sayt foydalanuvchi uchun yopilganda). Standart — "Kursga
+ * yozilish" tugmalaridagi o'sha Telegram havolasi; kerak bo'lsa
+ * NEXT_PUBLIC_ADMIN_TELEGRAM_URL bilan almashtiriladi.
+ */
+export const ADMIN_TELEGRAM_URL = process.env.NEXT_PUBLIC_ADMIN_TELEGRAM_URL?.trim() || BUSINESS.telegram;
 /** "@Akademiya_haydovchilar" — havola matni uchun. */
 export const TELEGRAM_HANDLE = `@${BUSINESS.telegram.split("/").pop()}`;

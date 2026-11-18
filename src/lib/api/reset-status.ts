@@ -3,6 +3,7 @@
 // bo'lmasa so'rov yuborilmaydi.
 
 import { currentSessionToken } from "./session";
+import { detectSiteClosed } from "./site-closed";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -20,6 +21,9 @@ export async function getResetStatus(): Promise<ResetStatus | null> {
   const token = currentSessionToken();
   if (!token) return null;
   const res = await fetch(`${API_BASE_URL}/meta/reset-status`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    await detectSiteClosed(res);
+    return null;
+  }
   return (await res.json()) as ResetStatus;
 }

@@ -6,6 +6,7 @@ import { Toaster } from "@/components/shared/Toast";
 import AnalyticsTracker from "@/components/shared/AnalyticsTracker";
 import CenterSessionWatcher from "@/components/shared/CenterSessionWatcher";
 import ResetWatcher from "@/components/shared/ResetWatcher";
+import SiteClosedGate from "@/components/shared/SiteClosedGate";
 import { BRAND_DARK, BRAND_NAME, OG_IMAGE, SITE_DESCRIPTION, SITE_KEYWORDS, SITE_TITLE, SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
@@ -107,6 +108,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <Toaster />
         <AnalyticsTracker />
         <CenterSessionWatcher />
+        <SiteClosedGate />
       </body>
     </html>
   );

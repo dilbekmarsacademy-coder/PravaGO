@@ -30,6 +30,11 @@ interface QuestionViewProps {
   onAnswer: (optionId: string) => void;
   /** Yakuniy imtihon: saqlash yo'q ("Saqlanganlar" to'g'ri javobni ko'rsatadi). */
   hideBookmark?: boolean;
+  /**
+   * Imtihon rejimi: javob saqlangandan keyin server qaytargan to'g'ri variant —
+   * tanlangan xato bo'lsa qizil, to'g'ri variant yashil. Javobgacha null.
+   */
+  examFeedback?: { correctOptionId: string | null } | null;
 }
 
 function getAnswerState(
@@ -37,10 +42,12 @@ function getAnswerState(
   optionId: string,
   selectedOptionId: string | null,
   result: CheckAnswerResult | null,
+  examFeedback: { correctOptionId: string | null } | null,
 ): AnswerState {
-  // Imtihon rejimida to'g'ri/noto'g'ri ko'rsatilmaydi — faqat tanlangan holat.
-  if (mode === "exam" || !result) return selectedOptionId === optionId ? "selected" : "idle";
-  if (optionId === result.correctOptionId) return "correct";
+  // Imtihon rejimi: javob saqlanguncha faqat tanlangan holat; keyin — natija ranglari.
+  const correctOptionId = mode === "exam" ? examFeedback?.correctOptionId : result?.correctOptionId;
+  if ((mode === "exam" && !examFeedback) || (mode === "practice" && !result)) return selectedOptionId === optionId ? "selected" : "idle";
+  if (correctOptionId && optionId === correctOptionId) return "correct";
   if (optionId === selectedOptionId) return "incorrect";
   return "dimmed";
 }
@@ -58,6 +65,7 @@ export function QuestionView({
   onToggleBookmark,
   onAnswer,
   hideBookmark = false,
+  examFeedback = null,
 }: QuestionViewProps) {
   const { locale, t } = useLocale();
   const text = localize(question.text, locale);
@@ -74,28 +82,22 @@ export function QuestionView({
     <article
       className={cn(
         "grid gap-4 sm:gap-5",
+        // Tartib: savol matni tepada → rasm (chap) va variantlar (o'ng) → pastda savol raqami.
+        // Telefonda ustma-ust: matn, rasm, variantlar, raqam.
         !hasImage
-          ? // Rasmsiz savol: bitta ustun, o'qish uchun qulay kenglikda.
-            "mx-auto w-full max-w-3xl [grid-template-areas:'meta'_'text'_'answers']"
+          ? // Rasmsiz savol: bitta ustun, variantlar to'liq kenglikda (o'qish uchun qulay chegarada).
+            "mx-auto w-full max-w-3xl [grid-template-areas:'text'_'answers'_'meta']"
           : text
-            ? "[grid-template-areas:'meta'_'text'_'image'_'answers']"
-            : "[grid-template-areas:'meta'_'image'_'answers']",
-        // Katta va yotiq ekranlar: rasm chapda, savol va javoblar o'ngda.
-        hasImage &&
-          "twocol:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] twocol:grid-rows-[auto_auto_1fr] twocol:gap-x-6 twocol:gap-y-4 lg:gap-x-8",
+            ? "[grid-template-areas:'text'_'image'_'answers'_'meta']"
+            : "[grid-template-areas:'image'_'answers'_'meta']",
+        // Katta va yotiq ekranlar: savol to'liq kenglikda, ostida rasm chapda, variantlar o'ngda.
+        hasImage && "twocol:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] twocol:gap-x-6 twocol:gap-y-4 lg:gap-x-8",
         hasImage &&
           (text
-            ? "twocol:[grid-template-areas:'image_meta'_'image_text'_'image_answers']"
-            : "twocol:[grid-template-areas:'image_meta'_'image_answers'_'image_.']"),
+            ? "twocol:[grid-template-areas:'text_text'_'image_answers'_'meta_meta']"
+            : "twocol:[grid-template-areas:'image_answers'_'meta_meta']"),
       )}
     >
-      <div className="flex items-center justify-between gap-3 [grid-area:meta]">
-        <span className="font-mono text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase tabular-nums">
-          {t.testSession.questionOf(index + 1, total)}
-        </span>
-        {!hideBookmark && <BookmarkButton saved={bookmarked} onToggle={onToggleBookmark} className="-my-2" />}
-      </div>
-
       {text && (
         <h2 className="text-[clamp(1.125rem,0.98rem+0.62vw,1.5rem)] leading-snug font-semibold text-balance text-foreground [grid-area:text]">
           <KeywordText text={question.text} highlight={keywords?.question?.highlight} tone="question" />
@@ -126,7 +128,7 @@ export function QuestionView({
                 localize(option.text, locale)
               )
             }
-            state={getAnswerState(mode, option.id, selectedOptionId, result)}
+            state={getAnswerState(mode, option.id, selectedOptionId, result, examFeedback)}
             disabled={answered || checking}
             onSelect={() => onAnswer(option.id)}
           />
@@ -208,9 +210,20 @@ export function QuestionView({
             </>
           )}
           <kbd className="kbd">←</kbd>/<kbd className="kbd">→</kbd> {t.testSession.kbdQuestions}
-          <span aria-hidden="true">·</span>
-          <kbd className="kbd">S</kbd> {t.testSession.kbdSave}
+          {!hideBookmark && (
+            <>
+              <span aria-hidden="true">·</span>
+              <kbd className="kbd">S</kbd> {t.testSession.kbdSave}
+            </>
+          )}
         </p>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-3 [grid-area:meta]">
+        <span className="font-mono text-xs font-semibold tracking-[0.18em] text-muted-foreground uppercase tabular-nums" data-testid="question-number">
+          {t.testSession.questionOf(index + 1, total)}
+        </span>
+        {!hideBookmark && <BookmarkButton saved={bookmarked} onToggle={onToggleBookmark} className="-my-2" />}
       </div>
     </article>
   );

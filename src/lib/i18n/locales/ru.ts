@@ -496,6 +496,7 @@ export const ru: Dictionary = {
     unbookmark: "Убрать из сохранённых",
     zoomImage: "Увеличить рисунок",
     closeImage: "Закрыть рисунок",
+    shrinkImage: "Уменьшить рисунок",
     moreActions: "Другие действия",
     openNavigator: "Открыть список вопросов",
     navigatorTitle: "Вопросы",
@@ -729,5 +730,12 @@ export const ru: Dictionary = {
       inactive: "Аккаунт не активен, обратитесь в центр.",
     },
     accessDisabled: { title: "Доступ к курсу временно закрыт", desc: "Доступ к курсу временно закрыт вашим учебным центром. Обратитесь в центр." },
+  },
+  siteClosed: {
+    title: "Сайт для вас закрыт",
+    desc: "Чтобы открыть доступ, свяжитесь с администратором.",
+    contact: "Написать админу",
+    recheck: "Проверить снова",
+    stillClosed: "Сайт всё ещё закрыт",
   },
 };

@@ -11,6 +11,7 @@ import { showToast } from "@/components/shared/Toast";
 import DeleteButton from "@/components/admin/DeleteButton";
 import { ProgressBar, UserPaymentBadge } from "@/components/admin/StatusBadges";
 import { EmptyState, ErrorBlock, LoadingBlock, Pagination, Panel, Select, Table, Td, TextInput, Th } from "@/components/admin/ui";
+import { BulkSiteAccessBar, SelectCheckbox, SiteAccessDialog, SiteAccessToggleButton, SiteClosedBadge, useRowSelection, type SiteAccessTarget } from "./SiteAccess";
 
 type SortKey = "registeredAt" | "lastActiveAt" | "name" | "progress";
 
@@ -20,6 +21,10 @@ export default function SelfUsersTab() {
   const [query, setQuery] = useState("");
   const [payment, setPayment] = useState("");
   const [activity, setActivity] = useState("");
+  const [access, setAccess] = useState("");
+  const [accessRequest, setAccessRequest] = useState<{ targets: SiteAccessTarget[]; blocked: boolean } | null>(null);
+  const selection = useRowSelection();
+  const target = (u: AdminUserRow): SiteAccessTarget => ({ id: u.id, name: fullName(u), siteAccessBlocked: u.siteAccessBlocked });
   const [sort, setSort] = useState<SortKey>("registeredAt");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
@@ -41,6 +46,7 @@ export default function SelfUsersTab() {
     ...(query ? { q: query } : {}),
     ...(payment ? { payment } : {}),
     ...(activity ? { activity } : {}),
+    ...(access ? { access } : {}),
   });
   const paramString = params.toString();
 
@@ -83,7 +89,7 @@ export default function SelfUsersTab() {
         }
         title="O'zi ro'yxatdan o'tganlar"
       >
-        <div className="mb-4 grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+        <div className="mb-4 grid gap-2 sm:grid-cols-[1fr_auto_auto_auto]">
           <div className="relative">
             <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <TextInput value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ism, familiya yoki telefon" className="pl-9" />
@@ -113,8 +119,25 @@ export default function SelfUsersTab() {
             <option value="active">Faol (7 kun)</option>
             <option value="inactive">Nofaol</option>
           </Select>
+          <Select
+            value={access}
+            onChange={(e) => {
+              setAccess(e.target.value);
+              setPage(1);
+            }}
+            aria-label="Sayt holati"
+          >
+            <option value="">Sayt: hammasi</option>
+            <option value="blocked">Yopilganlar</option>
+            <option value="open">Ochiqlar</option>
+          </Select>
         </div>
         {error && <ErrorBlock message={error} onRetry={load} />}
+        <BulkSiteAccessBar
+          selected={[...selection.selected.values()]}
+          onAction={(blocked) => setAccessRequest({ targets: [...selection.selected.values()], blocked })}
+          onClear={selection.clear}
+        />
         {!data ? (
           <LoadingBlock />
         ) : data.items.length === 0 ? (
@@ -124,6 +147,14 @@ export default function SelfUsersTab() {
             <Table>
               <thead>
                 <tr>
+                  <Th className="w-8">
+                    <SelectCheckbox
+                      label="Sahifadagi hammasini tanlash"
+                      checked={data.items.every((u) => selection.selected.has(u.id))}
+                      indeterminate={data.items.some((u) => selection.selected.has(u.id)) && !data.items.every((u) => selection.selected.has(u.id))}
+                      onChange={() => selection.setAll(data.items.map(target), !data.items.every((u) => selection.selected.has(u.id)))}
+                    />
+                  </Th>
                   <Th onClick={() => toggleSort("name")} active={sort === "name"} dir={dir}>
                     Ism
                   </Th>
@@ -146,11 +177,19 @@ export default function SelfUsersTab() {
               </thead>
               <tbody>
                 {data.items.map((u) => (
-                  <tr key={u.id} className="transition-colors hover:bg-surface">
+                  <tr key={u.id} className="transition-colors hover:bg-surface" data-testid="self-user-row">
+                    <Td>
+                      <SelectCheckbox label={`${fullName(u)} — tanlash`} checked={selection.selected.has(u.id)} onChange={() => selection.toggle(target(u))} />
+                    </Td>
                     <Td>
                       <Link href={`/admin/users/${u.id}`} className="font-semibold text-foreground hover:text-brand">
                         {fullName(u)}
                       </Link>
+                      {u.siteAccessBlocked && (
+                        <span className="mt-1 block">
+                          <SiteClosedBadge blockedAt={u.blockedAt} reason={u.blockReason} />
+                        </span>
+                      )}
                     </Td>
                     <Td className="font-mono text-xs whitespace-nowrap">{formatPhone(u.phone)}</Td>
                     <Td className="whitespace-nowrap">{formatDate(u.registeredAt)}</Td>
@@ -165,6 +204,7 @@ export default function SelfUsersTab() {
                     </Td>
                     <Td className="font-mono text-xs">{u.progress.passedDays.length ? u.progress.passedDays.join(", ") : "—"}</Td>
                     <Td className="text-right whitespace-nowrap">
+                      <SiteAccessToggleButton blocked={Boolean(u.siteAccessBlocked)} onClick={() => setAccessRequest({ targets: [target(u)], blocked: !u.siteAccessBlocked })} />
                       <DeleteButton iconOnly label="Foydalanuvchini o'chirish" confirmLabel="Ha, butunlay o'chirish" onDelete={() => remove(u)} testId="user-delete" />
                     </Td>
                   </tr>
@@ -174,6 +214,15 @@ export default function SelfUsersTab() {
             <Pagination page={page} pageSize={50} total={data.total} onPage={setPage} />
           </>
         )}
+        <SiteAccessDialog
+          request={accessRequest}
+          onClose={() => setAccessRequest(null)}
+          onDone={() => {
+            setAccessRequest(null);
+            selection.clear();
+            load();
+          }}
+        />
       </Panel>
     </>
   );

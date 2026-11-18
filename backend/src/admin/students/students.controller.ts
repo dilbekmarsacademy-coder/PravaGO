@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
 import { AdminGuard, CurrentAdmin, RequestIp, RequirePermission } from "../admin.guard";
 import type { AdminUser } from "../admin-request";
-import { BulkCreateStudentsDto, CreateStudentDto, ResetPasswordDto, StudentIdParamDto, StudentsQueryDto, UpdateStudentDto } from "./students.dto";
+import { BulkCreateStudentsDto, CreateStudentDto, SetPasswordDto, StudentIdParamDto, StudentsQueryDto, UpdateStudentDto } from "./students.dto";
 import { StudentsService } from "./students.service";
 
 /** "Shu yerda o'qiydiganlar" — markaz o'quvchilari (type=CENTER). */
@@ -31,10 +31,11 @@ export class AdminStudentsController {
     return this.students.update(admin, ip, params.id, body);
   }
 
-  @Post(":id/reset-password")
+  /** Parolni admin o'zi belgilaydi; eski sessiya bekor bo'ladi. */
+  @Post(":id/password")
   @HttpCode(200)
-  resetPassword(@Param() params: StudentIdParamDto, @Body() body: ResetPasswordDto, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
-    return this.students.resetPassword(admin, ip, params.id, body.password);
+  setPassword(@Param() params: StudentIdParamDto, @Body() body: SetPasswordDto, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    return this.students.setPassword(admin, ip, params.id, body.password);
   }
 
   @Post(":id/activate")

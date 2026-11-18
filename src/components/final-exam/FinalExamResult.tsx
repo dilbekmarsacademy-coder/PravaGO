@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlarmClockOffIcon, ArrowLeftIcon, AwardIcon, CheckIcon, FlagIcon, ScrollTextIcon, XIcon } from "lucide-react";
+import { AlarmClockOffIcon, ArrowLeftIcon, AwardIcon, CheckIcon, FlagIcon, OctagonXIcon, ScrollTextIcon, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   EXAM_TYPE_LABEL,
@@ -80,6 +80,17 @@ export function FinalExamResult({ state }: { state: AttemptState }) {
             <AlarmClockOffIcon className="size-5" />
           </span>
           <p className="text-sm font-medium text-foreground">Vaqt tugadi — imtihon avtomatik yakunlandi. Javob berilmagan savollar xato hisoblandi.</p>
+        </div>
+      )}
+
+      {state.status === "FAILED" && (
+        <div role="alert" data-testid="exam-result-failed" className="flex items-center gap-3 rounded-2xl border border-danger/40 bg-danger/10 px-5 py-4">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-danger/15 text-danger">
+            <OctagonXIcon className="size-5" />
+          </span>
+          <p className="text-sm font-medium text-foreground">
+            {state.wrongCount ?? 3} ta xato — imtihon to&apos;xtatildi. Urinish muvaffaqiyatsiz hisoblandi va o&apos;rtacha ballga qo&apos;shildi; javob berilmagan savollar xato hisoblandi.
+          </p>
         </div>
       )}
 

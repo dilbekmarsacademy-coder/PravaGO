@@ -1,6 +1,8 @@
 // Yakuniy ichki imtihon (7-kun) va sertifikatlar API qatlami. Vaqt, natija,
 // o'tish sharti va sertifikat — faqat serverda; klient faqat ko'rsatadi.
-// To'g'ri javob imtihon tugaguncha kelmaydi (`review` — faqat tugagach).
+// To'g'ri variant faqat shu savolga javob berilgandan keyin keladi (`feedback`);
+// kalit so'z va izoh (`review`) — faqat imtihon tugagach. 3-xatoda server
+// urinishni FAILED bilan yakunlaydi.
 
 import type { LocalizedText } from "@/lib/i18n/localized";
 import { authFetch } from "./session";
@@ -9,7 +11,7 @@ import { normalizeQuestion, type ApiQuestion, type CheckAnswerResult } from "./t
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export type FinalExamType = "Q20" | "Q50";
-export type FinalExamStatus = "IN_PROGRESS" | "FINISHED" | "EXPIRED";
+export type FinalExamStatus = "IN_PROGRESS" | "FINISHED" | "EXPIRED" | "FAILED";
 export type ExamOutcome = "in_progress" | "passed" | "failed";
 
 export const FINAL_EXAM_LOCKED = "FINAL_EXAM_LOCKED";
@@ -19,6 +21,7 @@ export const FINAL_EXAM_NOT_ENOUGH = "FINAL_EXAM_NOT_ENOUGH";
 export const FINAL_EXAM_TIME_UP = "FINAL_EXAM_TIME_UP";
 export const FINAL_EXAM_FINISHED = "FINAL_EXAM_FINISHED";
 export const FINAL_EXAM_ALREADY_ANSWERED = "FINAL_EXAM_ALREADY_ANSWERED";
+export const FINAL_EXAM_FAILED = "FINAL_EXAM_FAILED";
 
 export interface AttemptSummary {
   id: string;
@@ -70,7 +73,21 @@ export interface AttemptState extends AttemptSummary {
   finishedAttempts: number;
   outcome: ExamOutcome;
   certificateNumber: string | null;
+  /** Shu urinishdagi xatolar soni va chegarasi (3) — "Xatolar: 1 / 3". */
+  wrongCount: number;
+  maxMistakes: number;
   items: { answered: boolean; correct: boolean | null }[];
+}
+
+/** Javob saqlangandan keyingi natija — faqat shu savol uchun. */
+export interface AnswerFeedback {
+  selectedOptionId: string;
+  correct: boolean;
+  correctOptionId: string | null;
+}
+
+export interface AnswerResult extends AttemptState {
+  feedback: AnswerFeedback & { position: number };
 }
 
 export interface ExamReview extends CheckAnswerResult {
@@ -82,6 +99,8 @@ export interface ExamQuestion {
   topicSlug: string;
   selectedOptionId: string | null;
   question: ApiQuestion;
+  /** Javob berilgan savolda — to'g'ri variant; javobsizda null. */
+  feedback: AnswerFeedback | null;
   review: ExamReview | null;
 }
 
@@ -118,11 +137,11 @@ export async function getFinalQuestions(id: string): Promise<ExamQuestion[]> {
   const rows = await authFetch<(Omit<ExamQuestion, "question" | "review"> & { question: Parameters<typeof normalizeQuestion>[0]; review: RawReview | null })[]>(
     `/final-exam/attempts/${id}/questions`,
   );
-  return rows.map((r) => ({ ...r, question: normalizeQuestion(r.question), review: r.review }));
+  return rows.map((r) => ({ ...r, question: normalizeQuestion(r.question), feedback: r.feedback ?? null, review: r.review }));
 }
 
-export function answerFinalQuestion(id: string, position: number, optionId: string): Promise<AttemptState> {
-  return authFetch<AttemptState>(`/final-exam/attempts/${id}/answers`, { method: "POST", body: JSON.stringify({ position, optionId }) });
+export function answerFinalQuestion(id: string, position: number, optionId: string): Promise<AnswerResult> {
+  return authFetch<AnswerResult>(`/final-exam/attempts/${id}/answers`, { method: "POST", body: JSON.stringify({ position, optionId }) });
 }
 
 /** Javobsiz tashlab ketilgan savol — server variantlarni qayta aralashtiradi va saqlaydi. */

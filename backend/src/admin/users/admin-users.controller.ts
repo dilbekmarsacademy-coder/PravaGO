@@ -3,7 +3,7 @@ import { AdminGuard, CurrentAdmin, RequestIp, RequirePermission } from "../admin
 import type { AdminUser } from "../admin-request";
 import { AuditService } from "../audit.service";
 import { PaymentsService } from "../../payments/payments.service";
-import { CreatePaymentDto, PaymentActionDto, PaymentsQueryDto, UnlockAllDto, UserIdParamDto, UsersQueryDto } from "./admin-users.dto";
+import { CreatePaymentDto, PaymentActionDto, PaymentsQueryDto, SiteAccessDto, UnlockAllDto, UserIdParamDto, UsersQueryDto } from "./admin-users.dto";
 import { AdminUsersService } from "./admin-users.service";
 
 @Controller("admin/users")
@@ -28,6 +28,16 @@ export class AdminUsersController {
     const csv = await this.users.csv({ ...query, page: 1, pageSize: 200 });
     await this.audit.log(admin, ip, { action: "users.exported", entityType: "user", after: { filters: { q: query.q, payment: query.payment, activity: query.activity } } });
     return csv;
+  }
+
+  /**
+   * Saytni yopish / ochish — bitta yoki bir nechta foydalanuvchi (ikkala tur:
+   * markaz o'quvchilari va o'zi ro'yxatdan o'tganlar).
+   */
+  @Post("site-access")
+  @HttpCode(200)
+  siteAccess(@Body() body: SiteAccessDto, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    return this.users.setSiteAccess(admin, ip, body.ids, body.blocked, body.reason);
   }
 
   @Get(":id")

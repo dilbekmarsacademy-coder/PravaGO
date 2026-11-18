@@ -477,6 +477,7 @@ export const uzCyrl: Dictionary = {
     unbookmark: "Сақланганлардан олиб ташлаш",
     zoomImage: "Расмни катталаштириш",
     closeImage: "Расмни ёпиш",
+    shrinkImage: "Расмни кичиклаштириш",
     moreActions: "Бошқа амаллар",
     openNavigator: "Саволлар рўйхатини очиш",
     navigatorTitle: "Саволлар",
@@ -710,5 +711,12 @@ export const uzCyrl: Dictionary = {
       inactive: "Аккаунт фаол эмас, марказга мурожаат қилинг.",
     },
     accessDisabled: { title: "Курсга кириш вақтинча ёпилган", desc: "Курсга кириш ўқув марказингиз томонидан вақтинча ёпилган. Марказга мурожаат қилинг." },
+  },
+  siteClosed: {
+    title: "Сайт сиз учун ёпилган",
+    desc: "Очиш учун админ билан боғланинг.",
+    contact: "Админга ёзиш",
+    recheck: "Қайта текшириш",
+    stillClosed: "Сайт ҳали ҳам ёпиқ",
   },
 };

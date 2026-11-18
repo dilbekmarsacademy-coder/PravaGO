@@ -402,6 +402,8 @@ export interface Dictionary {
     unbookmark: string;
     zoomImage: string;
     closeImage: string;
+    /** Kattalashgan rasmga yana bosish — asl holatiga qaytaradi. */
+    shrinkImage: string;
     moreActions: string;
     openNavigator: string;
     navigatorTitle: string;
@@ -655,5 +657,13 @@ export interface Dictionary {
       inactive: string;
     };
     accessDisabled: { title: string; desc: string };
+  };
+  /** Admin saytni foydalanuvchi uchun yopgan (403 SITE_CLOSED) — butun ekranli sahifa. */
+  siteClosed: {
+    title: string;
+    desc: string;
+    contact: string;
+    recheck: string;
+    stillClosed: string;
   };
 }

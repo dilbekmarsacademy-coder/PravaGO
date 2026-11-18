@@ -2,6 +2,7 @@
 // bilan kiradi. Muvaffaqiyatli bo'lsa, token shu qurilmaning yagona sessiyasi.
 
 import { ApiError, authFetch, setCenterSessionToken } from "./session";
+import { SITE_CLOSED, notifySiteClosed } from "./site-closed";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -18,6 +19,8 @@ export async function centerLogin(input: { phone: string; login: string; passwor
     } catch {
       // tana JSON emas
     }
+    // Parol to'g'ri, lekin admin saytni yopgan — butun ekranli sahifa.
+    if (res.status === 403 && code === SITE_CLOSED) notifySiteClosed();
     throw new ApiError(res.status, code);
   }
   const { token } = (await res.json()) as { token: string };

@@ -1,4 +1,4 @@
-import { IsBoolean, IsIn, IsInt, IsOptional, IsString, IsUUID, MaxLength, Min, Max } from "class-validator";
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, IsUUID, MaxLength, Min, Max } from "class-validator";
 import { Type } from "class-transformer";
 import { PageQueryDto } from "../dto/admin-auth.dto";
 
@@ -16,6 +16,11 @@ export class UsersQueryDto extends PageQueryDto {
   @IsIn(["active", "inactive"])
   activity?: "active" | "inactive";
 
+  /** blocked — sayt yopilganlar; open — ochiqlar. */
+  @IsOptional()
+  @IsIn(["blocked", "open"])
+  access?: "blocked" | "open";
+
   @IsOptional()
   @IsIn(["registeredAt", "lastActiveAt", "name", "progress"])
   sort: "registeredAt" | "lastActiveAt" | "name" | "progress" = "registeredAt";
@@ -28,6 +33,23 @@ export class UsersQueryDto extends PageQueryDto {
 export class UnlockAllDto {
   @IsBoolean()
   enabled: boolean;
+}
+
+export class SiteAccessDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(200)
+  @IsUUID("all", { each: true })
+  ids: string[];
+
+  /** true — saytni yopish, false — ochish. */
+  @IsBoolean()
+  blocked: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  reason?: string;
 }
 
 export class UserIdParamDto {

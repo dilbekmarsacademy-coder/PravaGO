@@ -41,9 +41,15 @@ interface Credentials {
   password: string;
 }
 
+let passwordSeq = 0;
+
+/** Parolni admin o'zi kiritadi — javobda parol qaytmaydi, test uni o'zi eslab qoladi. */
 async function createStudent(body: Record<string, unknown> = {}): Promise<Credentials> {
-  const res = await http().post("/admin/students").set(admin).send({ phone: nextPhone(), ...body }).expect(201);
-  return res.body as Credentials;
+  passwordSeq += 1;
+  const password = typeof body.password === "string" ? body.password : `qolda-parol-${passwordSeq}`;
+  const res = await http().post("/admin/students").set(admin).send({ phone: nextPhone(), ...body, password }).expect(201);
+  expect(res.body).not.toHaveProperty("password");
+  return { ...(res.body as Omit<Credentials, "password">), password };
 }
 
 async function login(c: Pick<Credentials, "phone" | "login" | "password">, ua = ANDROID_UA) {
@@ -101,10 +107,9 @@ describe("yordamchi funksiyalar", () => {
 });
 
 describe("admin: o'quvchi qo'shish", () => {
-  it("login va parolni avtomatik yaratadi, parol ro'yxatda qaytmaydi", async () => {
+  it("login avtomatik, parolni admin kiritadi; parol javob va ro'yxatda qaytmaydi", async () => {
     const created = await createStudent({ name: "Ali Valiyev" });
     expect(created.login).toMatch(/^pt\d{5}$/);
-    expect(created.password).toHaveLength(8);
     expect(created.name).toBe("Ali Valiyev");
 
     const row = await prisma.user.findUniqueOrThrow({ where: { id: created.id } });
@@ -135,15 +140,18 @@ describe("admin: o'quvchi qo'shish", () => {
     const created = await createStudent({ phone: `${local.slice(0, 2)} ${local.slice(2, 5)}-${local.slice(5, 7)}-${local.slice(7)}`, login: "E2E.Student", password: "manual-pass" });
     expect(created.phone).toBe(phone);
     expect(created.login).toBe("e2e.student");
-    expect(created.password).toBe("manual-pass");
+    expect((await login(created)).status).toBe(200);
 
-    const dupPhone = await http().post("/admin/students").set(admin).send({ phone: `998${local}` }).expect(409);
+    const dupPhone = await http().post("/admin/students").set(admin).send({ phone: `998${local}`, password: "boshqa-parol" }).expect(409);
     expect(dupPhone.body.code).toBe("PHONE_TAKEN");
-    const dupLogin = await http().post("/admin/students").set(admin).send({ phone: nextPhone(), login: "e2e.student" }).expect(409);
+    const dupLogin = await http().post("/admin/students").set(admin).send({ phone: nextPhone(), login: "e2e.student", password: "boshqa-parol" }).expect(409);
     expect(dupLogin.body.code).toBe("LOGIN_TAKEN");
     await http().post("/admin/students").set(admin).send({ phone: "12345" }).expect(400);
     await http().post("/admin/students").set(admin).send({ phone: nextPhone(), password: "123" }).expect(400);
-    await http().post("/admin/students").set(admin).send({ phone: nextPhone(), login: "Bad Login!" }).expect(400);
+    // Parolsiz yaratish endi mumkin emas (avtomatik parol faqat ommaviy qo'shishda).
+    await http().post("/admin/students").set(admin).send({ phone: nextPhone() }).expect(400);
+    await http().post("/admin/students").set(admin).send({ phone: nextPhone(), password: "bor probel" }).expect(400);
+    await http().post("/admin/students").set(admin).send({ phone: nextPhone(), login: "Bad Login!", password: "yaxshi-parol" }).expect(400);
   });
 
   it("ommaviy qo'shish: har bir qator alohida natija", async () => {
@@ -289,19 +297,41 @@ describe("yagona faol qurilma", () => {
     await loginToken(c);
   });
 
-  it("parol reset: eski sessiya va eski parol ishlamaydi, yangi parol bir marta qaytadi", async () => {
+  it("parolni admin o'zi o'zgartiradi: eski token va eski parol ishlamaydi, parol hech qayerda qaytmaydi", async () => {
     const c = await createStudent();
     const auth = await loginToken(c);
-    const reset = await http().post(`/admin/students/${c.id}/reset-password`).set(admin).send({}).expect(200);
-    const fresh = reset.body as Credentials;
-    expect(fresh.login).toBe(c.login);
-    expect(fresh.password).toHaveLength(8);
-    expect(fresh.password).not.toBe(c.password);
+    const newPassword = "Yangi-Parol-2026";
+    const res = await http().post(`/admin/students/${c.id}/password`).set(admin).send({ password: newPassword }).expect(200);
+    expect(res.body).toEqual({ id: c.id, login: c.login });
+    expect(JSON.stringify(res.body)).not.toContain(newPassword);
+    // Eski token darhol bekor.
     expect((await http().get("/me").set(auth).expect(401)).body.code).toBe("SESSION_REVOKED");
+    expect((await http().get("/auth/check").set(auth)).status).toBe(401);
+    // Eski parol — yo'q, yangisi — bor.
     expect((await login(c)).status).toBe(401);
-    await loginToken(fresh);
+    await prisma.userLoginAttempt.deleteMany({});
+    await loginToken({ ...c, password: newPassword });
+    const row = await prisma.user.findUniqueOrThrow({ where: { id: c.id } });
+    expect(row.passwordHash).toMatch(/^\$argon2id\$/);
+    const audit = await prisma.auditLog.findFirstOrThrow({ where: { action: "student.password_changed", entityId: c.id }, orderBy: { createdAt: "desc" } });
+    expect(audit.adminId).not.toBeNull();
+    expect(audit.createdAt).toBeInstanceOf(Date);
+    expect(JSON.stringify(audit)).not.toContain(newPassword);
     const list = await http().get(`/admin/students?q=${c.login}`).set(admin).expect(200);
-    expect(JSON.stringify(list.body)).not.toContain(fresh.password);
+    expect(JSON.stringify(list.body)).not.toContain(newPassword);
+  });
+
+  it("parol validatsiyasi: bo'sh, qisqa, probelli parol rad etiladi; avtomatik parol yo'q", async () => {
+    const c = await createStudent();
+    await http().post(`/admin/students/${c.id}/password`).set(admin).send({}).expect(400);
+    await http().post(`/admin/students/${c.id}/password`).set(admin).send({ password: "12345" }).expect(400);
+    await http().post(`/admin/students/${c.id}/password`).set(admin).send({ password: " bor probel " }).expect(400);
+    // Eski "reset-password" (avtomatik parol) olib tashlangan.
+    await http().post(`/admin/students/${c.id}/reset-password`).set(admin).send({}).expect(404);
+    // Admin bo'lmagan token bilan — yopiq.
+    const { token } = await app.get(AuthService).createAnonymousSession();
+    await http().post(`/admin/students/${c.id}/password`).set({ Authorization: `Bearer ${token}` }).send({ password: "hakker-parol" }).expect(403);
+    expect((await login(c)).status).toBe(200);
   });
 
   it("o'chirilgan o'quvchining tokeni 401", async () => {

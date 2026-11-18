@@ -11,13 +11,14 @@ import { LESSONS, lessonTopicSlug } from "../lessons/lessons.config";
 import { userSearch } from "../payments/payments.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { buildFailureNote, buildLetter, type WeakTopic } from "./letter";
-import { FINAL_EXAM_MAX_ATTEMPTS, FINAL_EXAM_REQUIRES_COURSE, FINAL_EXAM_TYPES, averagePercent, certificateNumber, isPassed, scorePercent } from "./rules";
+import { FINAL_EXAM_MAX_ATTEMPTS, FINAL_EXAM_MAX_MISTAKES, FINAL_EXAM_REQUIRES_COURSE, FINAL_EXAM_TYPES, averagePercent, certificateNumber, isPassed, scorePercent } from "./rules";
 import { selectExamQuestions, type PoolQuestion } from "./selection";
 
 // Yakuniy ichki imtihon (7-kun). Savollar faqat 1–6-kun mavzu testlaridan.
 // Vaqt faqat serverda (startedAt, expiresAt); klient `remainingMs` bo'yicha
-// ko'rsatadi. To'g'ri javob imtihon tugaguncha chiqmaydi, javob variant ID
-// bo'yicha serverda tekshiriladi. Har turga 10 ta urinish; 10 tasi tugagach
+// ko'rsatadi. Javob variant ID bo'yicha serverda tekshiriladi; to'g'ri variant
+// faqat shu savolga javob saqlangandan keyin qaytadi (oldindan fosh bo'lmaydi).
+// 3-xatoda urinish darhol FAILED bilan yakunlanadi. Har turga 10 ta urinish; 10 tasi tugagach
 // o'rtacha >= 98% bo'lsa — sertifikat (faqat server qaroriga ko'ra).
 
 /** Urinishdagi bitta savol (FinalExamAttempt.questions elementi). */
@@ -34,7 +35,8 @@ export interface AttemptQuestion {
   correct?: boolean;
 }
 
-export type AttemptAnswers = Record<string, { optionId: string; answeredAt: string }>;
+/** `correct` — javob paytida server hisoblagan natija (eski yozuvlarda yo'q). */
+export type AttemptAnswers = Record<string, { optionId: string; answeredAt: string; correct?: boolean }>;
 
 export type ExamOutcome = "in_progress" | "passed" | "failed";
 
@@ -384,7 +386,14 @@ export class FinalExamService {
       finishedAttempts: finishedCount,
       outcome: (finishedCount < FINAL_EXAM_MAX_ATTEMPTS ? "in_progress" : certificate ? "passed" : "failed") as ExamOutcome,
       certificateNumber: certificate?.certificateNumber ?? null,
-      items: items.map((q, i) => ({ answered: Boolean(answers[i]), correct: done ? Boolean(q.correct) : null })),
+      /** Shu urinishdagi xatolar va chegarasi ("Xatolar: 1 / 3"). */
+      wrongCount: a.wrongCount,
+      maxMistakes: FINAL_EXAM_MAX_MISTAKES,
+      // Javob berilgan savolning natijasi darhol ma'lum (javobdan keyin ko'rsatiladi); javobsizniki — yo'q.
+      items: items.map((q, i) => ({
+        answered: Boolean(answers[i]),
+        correct: done ? Boolean(q.correct) : answers[i] && typeof answers[i].correct === "boolean" ? answers[i].correct : null,
+      })),
     };
   }
 
@@ -393,7 +402,11 @@ export class FinalExamService {
     return this.state(await this.load(userId, id));
   }
 
-  /** Savollar (urinishdagi tartibda, variantlar saqlangan tartibda). Natija — faqat imtihon tugagach. */
+  /**
+   * Savollar (urinishdagi tartibda, variantlar saqlangan tartibda). Javob berilgan
+   * savolda — `feedback` (to'g'ri variant); javobsiz savolda to'g'ri javob yo'q.
+   * Kalit so'zlar va izoh (`review`) — faqat imtihon tugagach.
+   */
   async questions(userId: string, id: string) {
     await this.access.assertCourseAccess(userId);
     const attempt = await this.load(userId, id);
@@ -417,6 +430,9 @@ export class FinalExamService {
           position,
           topicSlug: item.topicSlug,
           selectedOptionId,
+          feedback: selectedOptionId
+            ? { selectedOptionId, correct: selectedOptionId === correctOption?.id, correctOptionId: correctOption?.id ?? null }
+            : null,
           question: {
             id: q.id,
             text: questionText(q),
@@ -445,9 +461,14 @@ export class FinalExamService {
   private assertInProgress(a: FinalExamAttempt): void {
     if (a.status === "EXPIRED") throw conflict("FINAL_EXAM_TIME_UP", "Vaqt tugadi — imtihon avtomatik yakunlandi");
     if (a.status === "FINISHED") throw conflict("FINAL_EXAM_FINISHED", "Imtihon yakunlangan");
+    if (a.status === "FAILED") throw conflict("FINAL_EXAM_FAILED", `${FINAL_EXAM_MAX_MISTAKES} ta xato — imtihon to'xtatildi`);
   }
 
-  /** Javob: faqat vaqt ichida, bir savolga bir marta. Natija (to'g'ri/xato) qaytmaydi. */
+  /**
+   * Javob: faqat vaqt ichida, bir savolga bir marta, xatolar chegarasidan oldin.
+   * Saqlangandan keyin `feedback` (to'g'ri/xato va to'g'ri variant) qaytadi.
+   * 3-xatoda urinish FAILED bilan yakunlanadi va keyingi javoblar qabul qilinmaydi.
+   */
   async answer(userId: string, id: string, position: number, optionId: string) {
     await this.access.assertCourseAccess(userId);
     const attempt = await this.load(userId, id);
@@ -458,25 +479,43 @@ export class FinalExamService {
       const belongs = await this.prisma.option.count({ where: { id: optionId, questionId: item.questionId } });
       if (!belongs) throw new BadRequestException("Variant ushbu savolga tegishli emas");
     }
+    const correctOption = await this.prisma.option.findFirst({ where: { questionId: item.questionId, isCorrect: true }, select: { id: true } });
+    const correct = Boolean(correctOption && correctOption.id === optionId);
     const key = String(position);
-    const value = JSON.stringify({ optionId, answeredAt: new Date().toISOString() });
-    // Atomar: faqat faol, muddati o'tmagan va shu savolga hali javob berilmagan bo'lsa.
+    const value = JSON.stringify({ optionId, answeredAt: new Date().toISOString(), correct });
+    // Atomar: faqat faol, muddati o'tmagan, xatolar chegarasiga yetmagan va shu savolga
+    // hali javob berilmagan bo'lsa. Parallel javoblarda ham chegara oshmaydi (qator qulfi).
     const saved = await this.prisma.$executeRaw`
       UPDATE "FinalExamAttempt"
-      SET "answers" = "answers" || jsonb_build_object(${key}::text, ${value}::jsonb)
-      WHERE "id" = ${id} AND "status" = 'IN_PROGRESS' AND "expiresAt" >= now() AND NOT ("answers" ? ${key}::text)`;
+      SET "answers" = "answers" || jsonb_build_object(${key}::text, ${value}::jsonb),
+          "wrongCount" = "wrongCount" + ${correct ? 0 : 1}
+      WHERE "id" = ${id} AND "status" = 'IN_PROGRESS' AND "expiresAt" >= now()
+        AND "wrongCount" < ${FINAL_EXAM_MAX_MISTAKES} AND NOT ("answers" ? ${key}::text)`;
     let fresh = await this.load(userId, id);
     if (saved === 0) {
       this.assertInProgress(fresh);
       if (fresh.expiresAt.getTime() < Date.now()) throw conflict("FINAL_EXAM_TIME_UP", "Vaqt tugadi");
+      if (fresh.wrongCount >= FINAL_EXAM_MAX_MISTAKES) {
+        await this.finalize(fresh, "FAILED", new Date());
+        throw conflict("FINAL_EXAM_FAILED", `${FINAL_EXAM_MAX_MISTAKES} ta xato — imtihon to'xtatildi`);
+      }
       throw conflict("FINAL_EXAM_ALREADY_ANSWERED", "Bu savolga javob berilgan");
     }
-    // Hamma savolga javob berildi — imtihon o'zi yakunlanadi.
-    if (Object.keys(answersOf(fresh)).length >= fresh.totalQuestions && fresh.status === "IN_PROGRESS") {
-      await this.finalize(fresh, "FINISHED", new Date());
-      fresh = await this.prisma.finalExamAttempt.findUniqueOrThrow({ where: { id } });
+    if (fresh.status === "IN_PROGRESS") {
+      if (fresh.wrongCount >= FINAL_EXAM_MAX_MISTAKES) {
+        // 3-xato: urinish to'xtaydi (javobsizlar xato hisoblanadi), urinish sarflanadi.
+        await this.finalize(fresh, "FAILED", new Date());
+        fresh = await this.prisma.finalExamAttempt.findUniqueOrThrow({ where: { id } });
+      } else if (Object.keys(answersOf(fresh)).length >= fresh.totalQuestions) {
+        // Hamma savolga javob berildi — imtihon o'zi yakunlanadi.
+        await this.finalize(fresh, "FINISHED", new Date());
+        fresh = await this.prisma.finalExamAttempt.findUniqueOrThrow({ where: { id } });
+      }
     }
-    return this.state(fresh);
+    return {
+      ...(await this.state(fresh)),
+      feedback: { position, selectedOptionId: optionId, correct, correctOptionId: correctOption?.id ?? null },
+    };
   }
 
   /**

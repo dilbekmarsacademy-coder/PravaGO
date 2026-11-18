@@ -3,7 +3,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { getDummyHash, verifySecret } from "../admin/password";
 import { deviceLabel } from "../common/device";
 import { normalizePhone } from "../common/phone";
-import { SESSION_TTL_MS, hashToken, newSessionToken } from "./auth.service";
+import { SESSION_TTL_MS, SITE_CLOSED_ERROR, hashToken, newSessionToken } from "./auth.service";
 import { normalizeLogin } from "./center-credentials";
 
 /** Login bo'yicha: 15 daqiqada 5 ta xato urinishdan keyin blok. */
@@ -42,7 +42,8 @@ export class CenterAuthService {
     const ua = userAgent?.slice(0, 300) || null;
 
     const since = new Date(Date.now() - CENTER_LOGIN_WINDOW_MS);
-    const failed = { success: false, reason: { not: "rate_limited" }, createdAt: { gte: since } };
+    // "site_closed" — parol to'g'ri edi: xato urinish hisoblanmaydi (admin ochgach darhol kira oladi).
+    const failed = { success: false, reason: { notIn: ["rate_limited", "site_closed"] }, createdAt: { gte: since } };
     const [ipFailures, loginFailures] = await Promise.all([
       this.prisma.userLoginAttempt.count({ where: { ip, ...failed } }),
       this.prisma.userLoginAttempt.count({ where: { login, ...failed } }),
@@ -58,7 +59,7 @@ export class CenterAuthService {
     const user = login
       ? await this.prisma.user.findUnique({
           where: { login },
-          select: { id: true, type: true, phone: true, passwordHash: true, isActive: true },
+          select: { id: true, type: true, phone: true, passwordHash: true, isActive: true, siteAccessBlocked: true },
         })
       : null;
     const passwordOk = await verifySecret(user?.passwordHash ?? (await getDummyHash()), input.password);
@@ -71,6 +72,11 @@ export class CenterAuthService {
     if (!user.isActive) {
       await this.prisma.userLoginAttempt.create({ data: { login, ip, success: false, reason: "inactive", userAgent: ua } });
       throw new ForbiddenException({ statusCode: 403, code: "ACCOUNT_INACTIVE", message: "Akkaunt faol emas, markazga murojaat qiling" });
+    }
+    // Parol to'g'ri bo'lsa ham — sayt yopilgan foydalanuvchiga sessiya berilmaydi.
+    if (user.siteAccessBlocked) {
+      await this.prisma.userLoginAttempt.create({ data: { login, ip, success: false, reason: "site_closed", userAgent: ua } });
+      throw new ForbiddenException(SITE_CLOSED_ERROR);
     }
 
     const token = newSessionToken();
