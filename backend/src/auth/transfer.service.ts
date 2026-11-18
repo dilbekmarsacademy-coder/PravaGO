@@ -2,7 +2,7 @@ import { ForbiddenException, HttpException, HttpStatus, Injectable, Unauthorized
 import { randomBytes } from "crypto";
 import { PrismaService } from "../prisma/prisma.service";
 import { deviceLabel } from "../common/device";
-import { SESSION_TTL_MS, hashToken, newSessionToken, type SessionUser } from "./auth.service";
+import { SESSION_TTL_MS, SITE_CLOSED_ERROR, hashToken, newSessionToken, type SessionUser } from "./auth.service";
 
 // Domen ko'chishi: eski manzildagi (pravatayyor.vercel.app) tizimga kirgan
 // foydalanuvchi yangi manzilda (pravaishonch.uz) qayta kirmasligi uchun.
@@ -62,8 +62,9 @@ export class TransferService {
     const { count } = await this.prisma.sessionTransferCode.deleteMany({ where: { codeHash } });
     if (!row || count === 0 || row.expiresAt.getTime() <= now.getTime()) throw new UnauthorizedException(INVALID_CODE);
 
-    const user = await this.prisma.user.findUnique({ where: { id: row.userId }, select: { id: true, type: true, isActive: true } });
+    const user = await this.prisma.user.findUnique({ where: { id: row.userId }, select: { id: true, type: true, isActive: true, siteAccessBlocked: true } });
     if (!user) throw new UnauthorizedException(INVALID_CODE);
+    if (user.siteAccessBlocked) throw new ForbiddenException(SITE_CLOSED_ERROR);
     if (!user.isActive) {
       throw new ForbiddenException({ statusCode: 403, code: "ACCOUNT_INACTIVE", message: "Akkaunt faol emas, markazga murojaat qiling" });
     }

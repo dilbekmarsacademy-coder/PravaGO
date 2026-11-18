@@ -49,6 +49,7 @@ interface AdminAttemptDetail {
 export const FINAL_STATUS: Record<AttemptSummary["status"], { label: string; tone: "success" | "danger" | "warning" }> = {
   FINISHED: { label: "Yakunlangan", tone: "success" },
   EXPIRED: { label: "Vaqt tugagan", tone: "danger" },
+  FAILED: { label: "3 xato — to'xtatilgan", tone: "danger" },
   IN_PROGRESS: { label: "Jarayonda", tone: "warning" },
 };
 

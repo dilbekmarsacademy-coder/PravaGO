@@ -9,12 +9,19 @@ import { hashSecret } from "../password";
 import { computeProgress, loadBestPercents, loadCourseTopics, type UserProgress } from "../progress";
 import type { CreateStudentDto, StudentsQueryDto, UpdateStudentDto } from "./students.dto";
 
-/** Ochiq parol faqat shu javobda (yaratish / reset) — keyin hech qayerda ko'rsatilmaydi. */
-export interface StudentCredentials {
+/** Yaratilgan o'quvchi — parolsiz (parolni admin o'zi kiritgan, javobda qaytmaydi). */
+export interface StudentSummary {
   id: string;
   name: string | null;
   phone: string;
   login: string;
+}
+
+/**
+ * Faqat ommaviy qo'shishda: parol tizim tomonidan tasodifiy yaratiladi va shu
+ * javobda bir marta ko'rsatiladi (boshqa yo'l bilan uni bilib bo'lmaydi).
+ */
+export interface StudentCredentials extends StudentSummary {
   password: string;
 }
 
@@ -28,6 +35,9 @@ export interface StudentRow {
   centerAccess: boolean;
   /** Admin hamma narsani ochib qo'ygan. */
   unlockAll: boolean;
+  siteAccessBlocked: boolean;
+  blockedAt: Date | null;
+  blockReason: string | null;
   lastLoginAt: Date | null;
   lastDevice: string | null;
   lastActiveAt: Date | null;
@@ -46,6 +56,9 @@ const ROW_SELECT = {
   isActive: true,
   centerAccess: true,
   unlockAll: true,
+  siteAccessBlocked: true,
+  blockedAt: true,
+  blockReason: true,
   lastLoginAt: true,
   lastDevice: true,
   lastActiveAt: true,
@@ -122,6 +135,7 @@ export class StudentsService {
     }
     if (query.status === "active") and.push({ isActive: true });
     if (query.status === "inactive") and.push({ isActive: false });
+    if (query.status === "blocked") and.push({ siteAccessBlocked: true });
     const where: Prisma.UserWhereInput = { AND: and };
     const [total, users] = await Promise.all([
       this.prisma.user.count({ where }),
@@ -143,6 +157,10 @@ export class StudentsService {
     return { total, page: query.page, pageSize: query.pageSize, items };
   }
 
+  /**
+   * `password` — admin kiritgan parol. Faqat ommaviy qo'shishda (`password`
+   * berilmaganda) tizim tasodifiy parol yaratadi.
+   */
   private async insert(admin: AdminUser, input: { phone: string; name?: string; login?: string; password?: string }): Promise<StudentCredentials> {
     const phone = this.phoneOrThrow(input.phone);
     await this.assertPhoneFree(phone);
@@ -186,13 +204,15 @@ export class StudentsService {
     }
   }
 
-  async create(admin: AdminUser, ip: string, input: CreateStudentDto): Promise<StudentCredentials> {
-    const created = await this.insert(admin, input);
+  /** Bitta o'quvchi: parolni admin o'zi kiritadi (DTO'da majburiy). Javobda parol yo'q. */
+  async create(admin: AdminUser, ip: string, input: CreateStudentDto): Promise<StudentSummary> {
+    const { password: _password, ...created } = await this.insert(admin, input);
+    void _password;
     await this.audit.log(admin, ip, {
       action: "student.created",
       entityType: "user",
       entityId: created.id,
-      after: { name: created.name, phone: created.phone, login: created.login, manualLogin: Boolean(input.login), manualPassword: Boolean(input.password) },
+      after: { name: created.name, phone: created.phone, login: created.login, manualLogin: Boolean(input.login), manualPassword: true },
     });
     return created;
   }
@@ -252,13 +272,16 @@ export class StudentsService {
     }
   }
 
-  /** Yangi parol — faol sessiya ham bekor qilinadi (eski qurilma chiqariladi). */
-  async resetPassword(admin: AdminUser, ip: string, id: string, manual?: string): Promise<StudentCredentials> {
+  /**
+   * Parolni admin o'zi belgilaydi (argon2id xeshi). Faol sessiya bekor qilinadi —
+   * eski qurilma/token keyingi so'rovda 401 SESSION_REVOKED oladi. Parolning o'zi
+   * na javobda, na audit'da saqlanadi.
+   */
+  async setPassword(admin: AdminUser, ip: string, id: string, password: string): Promise<{ id: string; login: string }> {
     const user = await this.studentOrThrow(id);
-    const password = manual ?? generatePassword();
     await this.prisma.user.update({ where: { id }, data: { passwordHash: await hashSecret(password), activeSessionId: null } });
-    await this.audit.log(admin, ip, { action: "student.password_reset", entityType: "user", entityId: id, after: { login: user.login, manualPassword: Boolean(manual) } });
-    return { id, name: joinName(user), phone: user.phone ?? "", login: user.login ?? "", password };
+    await this.audit.log(admin, ip, { action: "student.password_changed", entityType: "user", entityId: id, after: { login: user.login, sessionsRevoked: true } });
+    return { id, login: user.login ?? "" };
   }
 
   async setActive(admin: AdminUser, ip: string, id: string, isActive: boolean): Promise<void> {

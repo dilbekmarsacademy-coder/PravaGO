@@ -1,6 +1,9 @@
 import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength } from "class-validator";
 import { PageQueryDto } from "../dto/admin-auth.dto";
-import { LOGIN_PATTERN, MIN_CENTER_PASSWORD_LENGTH } from "../../auth/center-credentials";
+import { LOGIN_PATTERN, MAX_CENTER_PASSWORD_LENGTH, MIN_CENTER_PASSWORD_LENGTH, PASSWORD_PATTERN } from "../../auth/center-credentials";
+
+const PASSWORD_LENGTH_MESSAGE = `Parol ${MIN_CENTER_PASSWORD_LENGTH}–${MAX_CENTER_PASSWORD_LENGTH} belgidan iborat bo'lsin`;
+const PASSWORD_PATTERN_MESSAGE = "Parolda bo'sh joy bo'lmasin";
 
 export const BULK_MAX = 200;
 
@@ -11,8 +14,8 @@ export class StudentsQueryDto extends PageQueryDto {
   q?: string;
 
   @IsOptional()
-  @IsIn(["active", "inactive"])
-  status?: "active" | "inactive";
+  @IsIn(["active", "inactive", "blocked"])
+  status?: "active" | "inactive" | "blocked";
 }
 
 export class StudentIdParamDto {
@@ -37,12 +40,12 @@ export class CreateStudentDto {
   @Matches(LOGIN_PATTERN, { message: "Login: 3–40 belgi, faqat lotin harf, raqam, nuqta, tire" })
   login?: string;
 
-  /** Bo'sh qoldirilsa — 8 belgili oson parol avtomatik. */
-  @IsOptional()
+  /** Parolni admin o'zi kiritadi (majburiy). */
   @IsString()
-  @MinLength(MIN_CENTER_PASSWORD_LENGTH)
-  @MaxLength(100)
-  password?: string;
+  @MinLength(MIN_CENTER_PASSWORD_LENGTH, { message: PASSWORD_LENGTH_MESSAGE })
+  @MaxLength(MAX_CENTER_PASSWORD_LENGTH, { message: PASSWORD_LENGTH_MESSAGE })
+  @Matches(PASSWORD_PATTERN, { message: PASSWORD_PATTERN_MESSAGE })
+  password: string;
 }
 
 export class BulkCreateStudentsDto {
@@ -70,10 +73,10 @@ export class UpdateStudentDto {
   centerAccess?: boolean;
 }
 
-export class ResetPasswordDto {
-  @IsOptional()
+export class SetPasswordDto {
   @IsString()
-  @MinLength(MIN_CENTER_PASSWORD_LENGTH)
-  @MaxLength(100)
-  password?: string;
+  @MinLength(MIN_CENTER_PASSWORD_LENGTH, { message: PASSWORD_LENGTH_MESSAGE })
+  @MaxLength(MAX_CENTER_PASSWORD_LENGTH, { message: PASSWORD_LENGTH_MESSAGE })
+  @Matches(PASSWORD_PATTERN, { message: PASSWORD_PATTERN_MESSAGE })
+  password: string;
 }

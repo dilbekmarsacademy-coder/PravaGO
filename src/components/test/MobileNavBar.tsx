@@ -12,14 +12,17 @@ interface MobileNavBarProps {
   onPrev: () => void;
   onNext: () => void;
   onOpenSheet: () => void;
+  /** Tugmalar ustidagi qisqa holat qatori (masalan imtihonda "Xatolar: 1 / 3"). */
+  status?: ReactNode;
 }
 
 /** Telefonda pastki sticky panel: [‹ Oldingi] [3 / 32 ▾] [Keyingi ›]. */
-export function MobileNavBar({ currentIndex, total, onPrev, onNext, onOpenSheet }: MobileNavBarProps) {
+export function MobileNavBar({ currentIndex, total, onPrev, onNext, onOpenSheet, status }: MobileNavBarProps) {
   const { t } = useLocale();
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/85 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl md:hidden">
+      {status && <div className="mx-auto mb-2 flex max-w-xl justify-center">{status}</div>}
       <div className="mx-auto grid max-w-xl grid-cols-[1fr_auto_1fr] items-center gap-2">
         <button
           type="button"

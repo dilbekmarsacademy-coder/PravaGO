@@ -1,13 +1,15 @@
 "use client";
 
-// Markaz o'quvchilari uchun oynalar: qo'shish, ommaviy qo'shish, tahrirlash va
-// bir martalik login/parol ko'rsatish (yopilgach parol qayta ko'rinmaydi).
+// Markaz o'quvchilari uchun oynalar: qo'shish, ommaviy qo'shish, tahrirlash,
+// parolni o'zgartirish va bir martalik login/parol ko'rsatish (yopilgach parol
+// qayta ko'rinmaydi). Parolni admin o'zi kiritadi — server uni javobda qaytarmaydi.
 
 import { useState, type FormEvent, type ReactNode } from "react";
-import { CheckIcon, CopyIcon, DownloadIcon, TriangleAlertIcon, XIcon } from "lucide-react";
+import { CheckIcon, CopyIcon, DownloadIcon, EyeIcon, EyeOffIcon, ShuffleIcon, TriangleAlertIcon, XIcon } from "lucide-react";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { adminFetch, AdminApiError } from "@/lib/admin/api";
 import { formatPhone, formatPhoneInput, parseBulkPhones, phoneInputDigits } from "@/lib/admin/format";
+import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH, passwordError, randomPassword } from "@/lib/admin/password";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/shared/Badge";
 import { Button } from "@/components/shared/Button";
@@ -34,6 +36,9 @@ export interface StudentRow {
   centerAccess: boolean;
   /** Admin hamma narsani ochib qo'ygan. */
   unlockAll?: boolean;
+  siteAccessBlocked?: boolean;
+  blockedAt?: string | null;
+  blockReason?: string | null;
   lastLoginAt: string | null;
   lastDevice: string | null;
   lastActiveAt: string | null;
@@ -115,6 +120,82 @@ function PhoneField({ digits, onChange }: { digits: string; onChange: (digits: s
         data-testid="student-phone"
       />
     </Field>
+  );
+}
+
+/**
+ * Parol + takror. Standart — qo'lda kiritish; "Tasodifiy" tugmasi ikkala maydonni
+ * to'ldiradi va parolni ko'rsatadi (admin o'quvchiga aytishi uchun).
+ */
+function PasswordFields({
+  password,
+  confirm,
+  onChange,
+  touched,
+}: {
+  password: string;
+  confirm: string;
+  onChange: (next: { password: string; confirm: string }) => void;
+  touched: boolean;
+}) {
+  const [visible, setVisible] = useState(false);
+  const error = touched ? passwordError(password, confirm) : null;
+  return (
+    <div className="flex flex-col gap-3">
+      <Field label="Parol" hint={`${MIN_PASSWORD_LENGTH}–${MAX_PASSWORD_LENGTH} belgi, bo'sh joysiz`}>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <TextInput
+              type={visible ? "text" : "password"}
+              value={password}
+              onChange={(e) => onChange({ password: e.target.value, confirm })}
+              name="new-password"
+              autoComplete="new-password"
+              spellCheck={false}
+              maxLength={MAX_PASSWORD_LENGTH}
+              className="pr-10 font-mono"
+              data-testid="student-password"
+            />
+            <button
+              type="button"
+              onClick={() => setVisible(!visible)}
+              aria-label={visible ? "Parolni yashirish" : "Parolni ko'rsatish"}
+              title={visible ? "Parolni yashirish" : "Parolni ko'rsatish"}
+              className="absolute top-1/2 right-2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
+            >
+              {visible ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+            </button>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-auto"
+            title="Tasodifiy parol yaratish (ixtiyoriy)"
+            onClick={() => {
+              const next = randomPassword();
+              onChange({ password: next, confirm: next });
+              setVisible(true);
+            }}
+            data-testid="student-password-random"
+          >
+            <ShuffleIcon className="size-4" /> Tasodifiy
+          </Button>
+        </div>
+      </Field>
+      <Field label="Parolni takrorlang" error={error}>
+        <TextInput
+          type={visible ? "text" : "password"}
+          value={confirm}
+          onChange={(e) => onChange({ password, confirm: e.target.value })}
+          name="confirm-password"
+          autoComplete="new-password"
+          spellCheck={false}
+          maxLength={MAX_PASSWORD_LENGTH}
+          className="font-mono"
+          data-testid="student-password-confirm"
+        />
+      </Field>
+    </div>
   );
 }
 
@@ -268,24 +349,30 @@ export function CreateStudentDialog({ open, onOpenChange, onCreated }: { open: b
   const phoneReady = phone.length === 9;
   const [name, setName] = useState("");
   const [login, setLogin] = useState("");
-  const [password, setPassword] = useState("");
+  const [pw, setPw] = useState({ password: "", confirm: "" });
+  const [touched, setTouched] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const pwError = passwordError(pw.password, pw.confirm);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (busy) return;
+    setTouched(true);
+    if (busy || pwError || !phoneReady) return;
     setBusy(true);
     setError(null);
     try {
-      const created = await adminFetch<StudentCredentials>("students", {
-        json: { phone: `+998${phone}`, ...(name.trim() ? { name: name.trim() } : {}), ...(login.trim() ? { login: login.trim() } : {}), ...(password ? { password } : {}) },
+      // Javobda parol yo'q — oynada ko'rsatish uchun admin kiritganini o'zimiz qo'shamiz.
+      const created = await adminFetch<Omit<StudentCredentials, "password">>("students", {
+        json: { phone: `+998${phone}`, ...(name.trim() ? { name: name.trim() } : {}), ...(login.trim() ? { login: login.trim() } : {}), password: pw.password },
       });
+      const password = pw.password;
       setPhone("");
       setName("");
       setLogin("");
-      setPassword("");
-      onCreated(created);
+      setPw({ password: "", confirm: "" });
+      setTouched(false);
+      onCreated({ ...created, password });
     } catch (err) {
       setError(errorText(err));
     } finally {
@@ -294,26 +381,86 @@ export function CreateStudentDialog({ open, onOpenChange, onCreated }: { open: b
   }
 
   return (
-    <AdminDialog open={open} onOpenChange={onOpenChange} title="O'quvchi qo'shish" description="Login va parol bo'sh qoldirilsa, tizim o'zi yaratadi.">
+    <AdminDialog open={open} onOpenChange={onOpenChange} title="O'quvchi qo'shish" description="Parolni o'zingiz kiriting. Login bo'sh qoldirilsa, tizim o'zi yaratadi.">
       <form onSubmit={submit} className="flex flex-col gap-4">
         <PhoneField digits={phone} onChange={setPhone} />
         <Field label="Ism familiya (ixtiyoriy)">
           <TextInput value={name} onChange={(e) => setName(e.target.value)} name="name" autoComplete="off" />
         </Field>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Login (ixtiyoriy)" hint="Bo'sh — pt12345 ko'rinishida">
-            <TextInput value={login} onChange={(e) => setLogin(e.target.value)} name="login" autoComplete="off" spellCheck={false} className="font-mono" />
-          </Field>
-          <Field label="Parol (ixtiyoriy)" hint="Bo'sh — 8 belgili oson parol">
-            <TextInput value={password} onChange={(e) => setPassword(e.target.value)} name="new-password" autoComplete="off" spellCheck={false} className="font-mono" />
-          </Field>
-        </div>
+        <Field label="Login (ixtiyoriy)" hint="Bo'sh — pt12345 ko'rinishida">
+          <TextInput value={login} onChange={(e) => setLogin(e.target.value)} name="login" autoComplete="off" spellCheck={false} className="font-mono" />
+        </Field>
+        <PasswordFields password={pw.password} confirm={pw.confirm} onChange={setPw} touched={touched || pw.confirm.length > 0} />
         <FormError message={error} />
         <Button type="submit" disabled={busy || !phoneReady} className="self-start" data-testid="student-create-submit">
           {busy && <Spinner className="size-4 text-brand-foreground" />} Qo&apos;shish
         </Button>
       </form>
     </AdminDialog>
+  );
+}
+
+/** Parolni o'zgartirish: admin yangi parolni kiritadi; o'quvchining faol sessiyasi bekor bo'ladi. */
+export function SetPasswordDialog({
+  student,
+  onClose,
+  onSaved,
+}: {
+  student: Pick<StudentRow, "id" | "firstName" | "lastName" | "login" | "phone"> | null;
+  onClose: () => void;
+  onSaved: (credentials: StudentCredentials) => void;
+}) {
+  return (
+    <AdminDialog
+      open={student !== null}
+      onOpenChange={(next) => !next && onClose()}
+      title="Parolni o'zgartirish"
+      description="Yangi parolni kiriting. O'quvchi hozir kirgan qurilmadan chiqariladi va yangi parol bilan qayta kiradi."
+    >
+      {student && <SetPasswordForm key={student.id} student={student} onSaved={onSaved} />}
+    </AdminDialog>
+  );
+}
+
+function SetPasswordForm({ student, onSaved }: { student: Pick<StudentRow, "id" | "firstName" | "lastName" | "login" | "phone">; onSaved: (credentials: StudentCredentials) => void }) {
+  const [pw, setPw] = useState({ password: "", confirm: "" });
+  const [touched, setTouched] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const pwError = passwordError(pw.password, pw.confirm);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setTouched(true);
+    if (busy || pwError) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await adminFetch<{ id: string; login: string }>(`students/${student.id}/password`, { json: { password: pw.password } });
+      onSaved({
+        id: res.id,
+        name: [student.firstName, student.lastName].filter(Boolean).join(" ") || null,
+        phone: student.phone ?? "",
+        login: res.login,
+        password: pw.password,
+      });
+    } catch (err) {
+      setError(errorText(err));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="flex flex-col gap-4" data-testid="set-password-form">
+      <p className="text-sm text-muted-foreground">
+        Login: <span className="font-mono text-foreground">{student.login}</span>
+      </p>
+      <PasswordFields password={pw.password} confirm={pw.confirm} onChange={setPw} touched={touched || pw.confirm.length > 0} />
+      <FormError message={error} />
+      <Button type="submit" disabled={busy} className="self-start" data-testid="set-password-submit">
+        {busy && <Spinner className="size-4 text-brand-foreground" />} Parolni saqlash
+      </Button>
+    </form>
   );
 }
 
@@ -361,7 +508,7 @@ export function BulkStudentsDialog({
   }
 
   return (
-    <AdminDialog open={open} onOpenChange={onOpenChange} title="Ommaviy qo'shish" description="Har bir qatorga bitta telefon raqami. Login va parollar avtomatik yaratiladi." wide>
+    <AdminDialog open={open} onOpenChange={onOpenChange} title="Ommaviy qo'shish" description="Har bir qatorga bitta telefon raqami. Login va parollar tasodifiy yaratiladi va bir marta ko'rsatiladi — keyin har birining parolini o'zingiz o'zgartirishingiz mumkin." wide>
       <form onSubmit={submit} className="flex flex-col gap-4">
         <Field label="Telefon raqamlari" hint="Qabul qilinadi: +998 90 123 45 67, 998901234567 yoki 901234567">
           <TextArea
@@ -455,7 +602,7 @@ function EditStudentForm({ student, onSaved }: { student: StudentRow; onSaved: (
         </span>
       </label>
       <p className="text-xs text-muted-foreground">
-        Login: <span className="font-mono">{student.login}</span> — o&apos;zgarmaydi. Parolni ro&apos;yxatdagi &quot;Parolni yangilash&quot; tugmasi bilan almashtiring.
+        Login: <span className="font-mono">{student.login}</span> — o&apos;zgarmaydi. Parolni ro&apos;yxatdagi &quot;Parolni o&apos;zgartirish&quot; tugmasi bilan almashtiring.
       </p>
       <FormError message={error} />
       <Button type="submit" disabled={busy || phone.length !== 9} className="self-start">

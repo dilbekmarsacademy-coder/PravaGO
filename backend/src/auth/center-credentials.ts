@@ -6,6 +6,9 @@ import { randomInt } from "crypto";
 const PASSWORD_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
 export const GENERATED_PASSWORD_LENGTH = 8;
 export const MIN_CENTER_PASSWORD_LENGTH = 6;
+export const MAX_CENTER_PASSWORD_LENGTH = 100;
+/** Admin kiritadigan parol: bo'sh joysiz (boshida/oxirida tasodifiy probel qolmasligi uchun ham). */
+export const PASSWORD_PATTERN = /^\S+$/;
 /** Kiritish formati (katta harf ham mumkin — saqlashda kichik harfga o'tkaziladi). */
 export const LOGIN_PATTERN = /^[A-Za-z0-9._-]{3,40}$/;
 

@@ -20,6 +20,10 @@ export interface AdminUserRow {
   lastActiveAt: string | null;
   paymentStatus: UserPaymentStatus;
   active: boolean;
+  /** Admin saytni shu foydalanuvchi uchun yopgan. */
+  siteAccessBlocked?: boolean;
+  blockedAt?: string | null;
+  blockReason?: string | null;
   progress: UserProgress;
 }
 

@@ -19,6 +19,8 @@ import RandomTestsTable, { type AdminRandomTestRow } from "@/components/admin/Ra
 import { UserFinalExamPanel } from "@/components/admin/FinalExamPanel";
 import { UserWeeklyResultsPanel } from "@/components/admin/WeeklyResults";
 import { EmptyState, ErrorBlock, LoadingBlock, PageHeader, Panel, StatCard, Table, Td, TextInput, Th } from "@/components/admin/ui";
+import { SiteAccessDialog, SiteClosedBadge, type SiteAccessTarget } from "@/components/admin/users/SiteAccess";
+import { CredentialsDialog, SetPasswordDialog, type StudentCredentials } from "@/components/admin/users/StudentDialogs";
 
 interface TopicResult {
   slug: string;
@@ -45,6 +47,9 @@ interface UserDetail {
   centerAccess?: boolean;
   /** Hamma narsa ochiq: kun/mavzu qulfi, video va kalit so'z sharti yo'q. */
   unlockAll?: boolean;
+  siteAccessBlocked?: boolean;
+  blockedAt?: string | null;
+  blockReason?: string | null;
   /** Yangi oqim (video → kalit so'zlar → test) majburiy. */
   topicFlowGatingEnabled?: boolean;
   weeklyResetExempt?: boolean;
@@ -123,6 +128,7 @@ export default function AdminUserPage({ params }: { params: Promise<{ id: string
         <StatCard label="Oxirgi faollik" value={formatRelative(data.lastActiveAt)} hint={formatDateTime(data.lastActiveAt)} />
       </div>
 
+      <SiteAccessPanel user={data} onDone={load} />
       <UnlockAllPanel userId={data.id} enabled={Boolean(data.unlockAll)} onChange={(unlockAll) => setData((d) => (d ? { ...d, unlockAll } : d))} />
       <ProgressResetPanel user={data} onDone={load} />
 
@@ -332,6 +338,62 @@ function UserRandomTests({ userId }: { userId: string }) {
           )}
         </div>
       )}
+    </Panel>
+  );
+}
+
+/** Saytni shu foydalanuvchi uchun yopish / ochish (parolni o'zgartirish — markaz o'quvchisida). */
+function SiteAccessPanel({ user, onDone }: { user: UserDetail; onDone: () => void }) {
+  const [request, setRequest] = useState<{ targets: SiteAccessTarget[]; blocked: boolean } | null>(null);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [credentials, setCredentials] = useState<StudentCredentials[] | null>(null);
+  const blocked = Boolean(user.siteAccessBlocked);
+  return (
+    <Panel className="mb-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" data-testid="site-access-panel">
+        <div>
+          <p className="flex items-center gap-2 font-semibold text-foreground">
+            Saytga kirish {blocked ? <SiteClosedBadge blockedAt={user.blockedAt} reason={user.blockReason} /> : <Badge tone="success">ochiq</Badge>}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {blocked
+              ? `Yopilgan: ${formatDateTime(user.blockedAt ?? null)}${user.blockReason ? ` · ${user.blockReason}` : ""}`
+              : "Yopilsa, foydalanuvchi kira olmaydi va kirgan qurilmasida \"Sayt siz uchun yopilgan\" sahifasini ko'radi."}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {user.type === "CENTER" && (
+            <Button variant="secondary" size="sm" onClick={() => setPasswordOpen(true)} data-testid="detail-password-open">
+              Parolni o&apos;zgartirish
+            </Button>
+          )}
+          <Button
+            variant={blocked ? "primary" : "danger"}
+            size="sm"
+            onClick={() => setRequest({ targets: [{ id: user.id, name: fullName(user), siteAccessBlocked: blocked }], blocked: !blocked })}
+            data-testid="detail-site-access"
+          >
+            {blocked ? "Saytni ochish" : "Saytni yopish"}
+          </Button>
+        </div>
+      </div>
+      <SiteAccessDialog
+        request={request}
+        onClose={() => setRequest(null)}
+        onDone={() => {
+          setRequest(null);
+          onDone();
+        }}
+      />
+      <SetPasswordDialog
+        student={passwordOpen ? { id: user.id, firstName: user.firstName, lastName: user.lastName, login: user.login ?? null, phone: user.phone } : null}
+        onClose={() => setPasswordOpen(false)}
+        onSaved={(c) => {
+          setPasswordOpen(false);
+          setCredentials([c]);
+        }}
+      />
+      <CredentialsDialog list={credentials} title="Parol o'zgartirildi" onClose={() => setCredentials(null)} />
     </Panel>
   );
 }

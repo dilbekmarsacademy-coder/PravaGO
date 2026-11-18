@@ -23,8 +23,14 @@ export interface AdminUserRow {
   lastActiveAt: Date | null;
   paymentStatus: string;
   active: boolean;
+  siteAccessBlocked: boolean;
+  blockedAt: Date | null;
+  blockReason: string | null;
   progress: UserProgress;
 }
+
+/** Bir martada yopish/ochish mumkin bo'lgan foydalanuvchilar soni (DTO bilan bir xil). */
+export const SITE_ACCESS_BULK_MAX = 200;
 
 /** Admin panelda foydalanuvchi sahifasida ko'rsatiladigan oxirgi qurilmalar soni. */
 const RECENT_DEVICES = 3;
@@ -36,7 +42,7 @@ export class AdminUsersService {
     private readonly audit: AuditService,
   ) {}
 
-  private where(query: Pick<UsersQueryDto, "q" | "payment" | "activity">): Prisma.UserWhereInput {
+  private where(query: Pick<UsersQueryDto, "q" | "payment" | "activity" | "access">): Prisma.UserWhereInput {
     const since = new Date(Date.now() - ACTIVE_WINDOW_MS);
     const and: Prisma.UserWhereInput[] = [{ registeredAt: { not: null } }, { type: "SELF" }];
     if (query.q?.trim()) and.push(userSearch(query.q));
@@ -45,6 +51,8 @@ export class AdminUsersService {
     if (query.payment === "unpaid") and.push({ paymentStatus: { not: "PAID" } });
     if (query.activity === "active") and.push({ lastActiveAt: { gte: since } });
     if (query.activity === "inactive") and.push({ OR: [{ lastActiveAt: null }, { lastActiveAt: { lt: since } }] });
+    if (query.access === "blocked") and.push({ siteAccessBlocked: true });
+    if (query.access === "open") and.push({ siteAccessBlocked: false });
     return { AND: and };
   }
 
@@ -52,7 +60,19 @@ export class AdminUsersService {
   private async rows(query: UsersQueryDto): Promise<AdminUserRow[]> {
     const users = await this.prisma.user.findMany({
       where: this.where(query),
-      select: { id: true, firstName: true, lastName: true, phone: true, examStatus: true, registeredAt: true, lastActiveAt: true, paymentStatus: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        examStatus: true,
+        registeredAt: true,
+        lastActiveAt: true,
+        paymentStatus: true,
+        siteAccessBlocked: true,
+        blockedAt: true,
+        blockReason: true,
+      },
       take: 20_000,
     });
     const topics = await loadCourseTopics(this.prisma);
@@ -183,6 +203,9 @@ export class AdminUsersService {
       isActive: user.isActive,
       centerAccess: user.centerAccess,
       unlockAll: user.unlockAll,
+      siteAccessBlocked: user.siteAccessBlocked,
+      blockedAt: user.blockedAt,
+      blockReason: user.blockReason,
       topicFlowGatingEnabled: user.topicFlowGatingEnabled,
       weeklyResetExempt: user.weeklyResetExempt,
       progressResetAt: user.progressResetAt,
@@ -231,6 +254,60 @@ export class AdminUsersService {
     const after = await this.prisma.user.update({ where: { id }, data: { unlockAll: enabled }, select: { id: true, unlockAll: true } });
     await this.audit.log(admin, ip, { action: "user.unlock_all", entityType: "user", entityId: id, before, after });
     return after;
+  }
+
+  /**
+   * Saytni yopish / ochish (bitta yoki bir nechta foydalanuvchi). Faqat `User`
+   * jadvalidagi o'quvchilarga tegadi — adminlar alohida jadvalda (`Admin`) va
+   * o'quvchi sessiyasi bilan kirmaydi, shuning uchun admin o'zini yoki boshqa
+   * adminni bu yerdan yopa olmaydi.
+   *
+   * Yopishda: markaz o'quvchisining yagona faol sessiyasi bekor qilinadi (ochilgach
+   * qaytadan login qiladi); o'zi ro'yxatdan o'tganlarning qurilma sessiyalari
+   * o'chirilmaydi (ular yagona kirish yo'li — o'chirilsa sayt yangi anonim sessiya
+   * ochib, yopishni chetlab o'tardi), lekin har so'rovda 403 SITE_CLOSED oladi.
+   * Natijalar, to'lovlar, haftalik yangilanish sozlamalari o'zgarmaydi.
+   */
+  async setSiteAccess(admin: AdminUser, ip: string, ids: string[], blocked: boolean, reason?: string) {
+    const unique = [...new Set(ids)].slice(0, SITE_ACCESS_BULK_MAX);
+    const blockReason = reason?.trim().slice(0, 300) || null;
+    const now = new Date();
+    return this.prisma.$transaction(async (tx) => {
+      const users = await tx.user.findMany({
+        where: { id: { in: unique } },
+        select: { id: true, type: true, firstName: true, lastName: true, phone: true, login: true, siteAccessBlocked: true },
+      });
+      const changing = users.filter((u) => u.siteAccessBlocked !== blocked);
+      if (changing.length) {
+        await tx.user.updateMany({
+          where: { id: { in: changing.map((u) => u.id) } },
+          data: blocked
+            ? { siteAccessBlocked: true, blockedAt: now, blockReason, activeSessionId: null }
+            : { siteAccessBlocked: false, blockedAt: null, blockReason: null },
+        });
+        for (const u of changing) {
+          await this.audit.log(
+            admin,
+            ip,
+            {
+              action: blocked ? "user.site_closed" : "user.site_opened",
+              entityType: "user",
+              entityId: u.id,
+              before: { siteAccessBlocked: u.siteAccessBlocked },
+              after: { siteAccessBlocked: blocked, ...(blocked ? { blockReason } : {}), type: u.type, name: [u.firstName, u.lastName].filter(Boolean).join(" ") || null, phone: u.phone, login: u.login, bulk: unique.length > 1 },
+            },
+            tx,
+          );
+        }
+      }
+      const found = new Set(users.map((u) => u.id));
+      return {
+        blocked,
+        updated: changing.length,
+        unchanged: users.length - changing.length,
+        notFound: unique.filter((id) => !found.has(id)),
+      };
+    });
   }
 
   async remove(admin: AdminUser, ip: string, id: string): Promise<void> {

@@ -2,16 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { FlagIcon, RotateCcwIcon, TriangleAlertIcon, WifiOffIcon } from "lucide-react";
+import { ArrowRightIcon, FlagIcon, OctagonXIcon, RotateCcwIcon, TriangleAlertIcon, WifiOffIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   EXAM_TYPE_LABEL,
   FINAL_EXAM_ALREADY_ANSWERED,
+  FINAL_EXAM_FAILED,
   FINAL_EXAM_FINISHED,
   FINAL_EXAM_TIME_UP,
   answerFinalQuestion,
   finishFinalExam,
   formatPercent,
+  getFinalAttempt,
   getFinalQuestions,
   skipFinalQuestion,
   type AttemptState,
@@ -58,6 +60,32 @@ function useDeadline(deadline: number, running: boolean, onExpire: () => void): 
     return () => clearInterval(id);
   }, [deadline, running]);
   return Math.max(0, Math.ceil((deadline - now) / 1000));
+}
+
+/** Imtihonda variant tanlangach natija shuncha vaqt ko'rinib turadi, keyin natija ekrani. */
+const LAST_FEEDBACK_MS = 1400;
+const FAILED_FEEDBACK_MS = 2200;
+
+/** "Xatolar: 1 / 3" — taymer yonida doim ko'rinadi. */
+function MistakesBadge({ wrong, max, className, testId = "exam-mistakes" }: { wrong: number; max: number; className?: string; testId?: string }) {
+  const left = max - wrong;
+  return (
+    <span
+      data-testid={testId}
+      aria-live="polite"
+      title={left > 0 ? `Yana ${left} ta xatoda imtihon to'xtaydi` : "Xatolar chegarasi"}
+      className={cn(
+        "inline-flex h-10 items-center gap-1.5 rounded-full border px-3 font-mono text-xs font-semibold whitespace-nowrap tabular-nums",
+        className,
+        wrong === 0 && "border-border text-muted-foreground",
+        wrong > 0 && wrong < max - 1 && "border-warning/50 bg-warning/10 text-warning",
+        wrong >= max - 1 && "border-danger/50 bg-danger/10 text-danger",
+      )}
+    >
+      <OctagonXIcon className="size-3.5" aria-hidden="true" />
+      Xatolar: {wrong} / {max}
+    </span>
+  );
 }
 
 /** "7/10 urinish · hozirgi o'rtacha: 97,4%" */
@@ -117,7 +145,7 @@ export function FinalExamSession({ initial, onFinished }: FinalExamSessionProps)
   const statusByIndex = useMemo(() => {
     const map: Record<number, QuestionStatus> = {};
     state.items.forEach((item, i) => {
-      if (item.answered) map[i] = "answered";
+      if (item.answered) map[i] = item.correct === true ? "correct" : item.correct === false ? "incorrect" : "answered";
     });
     return map;
   }, [state.items]);
@@ -164,29 +192,37 @@ export function FinalExamSession({ initial, onFinished }: FinalExamSessionProps)
     setChecking(true);
     setError(null);
     answerFinalQuestion(state.id, index, optionId)
-      .then((next) => {
-        setQuestions((prev) => prev?.map((q) => (q.position === index ? { ...q, selectedOptionId: optionId } : q)) ?? prev);
+      .then(({ feedback, ...next }) => {
+        // Javob saqlandi — endi shu savolning to'g'ri varianti ma'lum (yashil/qizil).
+        setQuestions(
+          (prev) =>
+            prev?.map((q) =>
+              q.position === index
+                ? { ...q, selectedOptionId: optionId, feedback: { selectedOptionId: optionId, correct: feedback.correct, correctOptionId: feedback.correctOptionId } }
+                : q,
+            ) ?? prev,
+        );
         setState(next);
         setDeadline(Date.now() + next.remainingMs);
         if (next.status !== "IN_PROGRESS") {
+          // 3-xato (FAILED) yoki hamma savolga javob berildi — natija qisqa ko'rinib turadi, keyin natija ekrani.
           setFinishing(true);
-          setTimeout(() => onFinished(next), 500);
-          return;
+          setTimeout(() => onFinished(next), next.status === "FAILED" ? FAILED_FEEDBACK_MS : LAST_FEEDBACK_MS);
         }
-        // Keyingi javobsiz savolga.
-        const after = next.items.findIndex((item, i) => i > index && !item.answered);
-        const target = after >= 0 ? after : next.items.findIndex((item) => !item.answered);
-        if (target >= 0) {
-          setTimeout(() => {
-            setDirection(target > index ? 1 : -1);
-            setCurrentIndex((i) => (i === index ? target : i));
-          }, 350);
-        }
+        // Javob o'zgartirilmaydi; keyingi savolga — "Keyingi savol" tugmasi (yoki Enter / →).
       })
       .catch((err: unknown) => {
         if (err instanceof ApiError && (err.code === FINAL_EXAM_TIME_UP || err.code === FINAL_EXAM_FINISHED)) {
           setError({ message: "Vaqt tugadi — imtihon avtomatik yakunlandi." });
           finish();
+          return;
+        }
+        if (err instanceof ApiError && err.code === FINAL_EXAM_FAILED) {
+          // Boshqa oynada 3-xato qilingan — urinish allaqachon yakunlangan.
+          setFinishing(true);
+          getFinalAttempt(state.id)
+            .then(onFinished)
+            .catch(() => finish());
           return;
         }
         if (err instanceof ApiError && err.code === FINAL_EXAM_ALREADY_ANSWERED) {
@@ -198,6 +234,17 @@ export function FinalExamSession({ initial, onFinished }: FinalExamSessionProps)
       })
       .finally(() => setChecking(false));
   }, [pending, currentIndex, current, checking, answeredId, state.id, onFinished, finish, loadQuestions]);
+
+  /** Javobdan keyin: keyingi javobsiz savol (oldinga, keyin boshidan). */
+  const nextUnanswered = useMemo(() => {
+    const after = state.items.findIndex((item, i) => i > currentIndex && !item.answered);
+    const target = after >= 0 ? after : state.items.findIndex((item) => !item.answered);
+    return target >= 0 && target !== currentIndex ? target : null;
+  }, [state.items, currentIndex]);
+
+  const goNext = useCallback(() => {
+    if (nextUnanswered !== null) goTo(nextUnanswered);
+  }, [nextUnanswered, goTo]);
 
   const pendingOptionId = pending && pending.index === currentIndex && !answeredId ? pending.optionId : null;
   const pendingIndex = pendingOptionId && currentQuestion ? currentQuestion.options.findIndex((o) => o.id === pendingOptionId) : -1;
@@ -214,6 +261,11 @@ export function FinalExamSession({ initial, onFinished }: FinalExamSessionProps)
       if (document.querySelector('[aria-modal="true"]')) return;
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (answeredId && !pendingOptionId && event.key === "Enter" && !target?.closest("button")) {
+        event.preventDefault();
+        goNext();
+        return;
+      }
       if (pendingOptionId && (event.key === "Enter" || event.key === "Escape")) {
         if (event.key === "Enter" && target?.closest("button")) return;
         event.preventDefault();
@@ -233,7 +285,7 @@ export function FinalExamSession({ initial, onFinished }: FinalExamSessionProps)
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [currentQuestion, finishing, pendingOptionId, confirmAnswer, handleAnswer, goTo, currentIndex]);
+  }, [currentQuestion, finishing, pendingOptionId, confirmAnswer, handleAnswer, goTo, goNext, answeredId, currentIndex]);
 
   const unanswered = state.items.filter((i) => !i.answered).length;
 
@@ -260,16 +312,11 @@ export function FinalExamSession({ initial, onFinished }: FinalExamSessionProps)
         canFinish={!finishing}
         showTimer
         onFinish={() => setFinishModalOpen(true)}
+        // Telefonda header'ga sig'maydi — pastki panelda ko'rsatiladi.
+        extra={<MistakesBadge wrong={state.wrongCount ?? 0} max={state.maxMistakes ?? 3} className="hidden md:inline-flex" />}
       />
 
-      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-5 px-4 py-5 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-6 md:pb-8">
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-brand/30 bg-brand/[0.06] px-4 py-2.5 text-sm" data-testid="exam-attempts-line">
-          <span className="font-semibold text-foreground">{attemptsLine(state)}</span>
-          <span className="font-mono text-xs text-muted-foreground tabular-nums">
-            Javob berilgan: {total - unanswered}/{total}
-          </span>
-        </div>
-
+      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-5 px-4 py-5 pb-[calc(8.5rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-6 md:pb-8">
         {error && (
           <Card role="alert" className="flex items-center gap-3 border-danger/40 px-4 py-3">
             {error.retry ? <WifiOffIcon className="size-5 shrink-0 text-danger" /> : <TriangleAlertIcon className="size-5 shrink-0 text-danger" />}
@@ -319,10 +366,45 @@ export function FinalExamSession({ initial, onFinished }: FinalExamSessionProps)
                 videoHref={null}
                 onToggleBookmark={() => undefined}
                 onAnswer={handleAnswer}
+                examFeedback={current?.feedback ?? null}
               />
             </motion.div>
           </AnimatePresence>
         )}
+
+        {state.status === "FAILED" && (
+          <div role="alert" data-testid="exam-failed" className="flex items-center gap-3 rounded-2xl border border-danger/40 bg-danger/10 px-4 py-3">
+            <OctagonXIcon className="size-5 shrink-0 text-danger" />
+            <p className="flex-1 text-sm font-medium text-foreground">
+              {state.maxMistakes} ta xato — imtihon to&apos;xtatildi. Urinish muvaffaqiyatsiz hisoblandi.
+            </p>
+            <Button variant="secondary" size="sm" onClick={() => onFinished(state)}>
+              Natijani ko&apos;rish
+            </Button>
+          </div>
+        )}
+
+        {/* Javob qabul qilindi (o'zgartirib bo'lmaydi) — keyingi savolga o'tish. */}
+        {currentQuestion && answeredId && !finishing && state.status === "IN_PROGRESS" && nextUnanswered !== null && (
+          <div className="flex justify-end">
+            <Button variant="primary" size="md" onClick={goNext} data-testid="exam-next" autoFocus>
+              Keyingi savol
+              <ArrowRightIcon className="size-4" />
+            </Button>
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-brand/30 bg-brand/[0.06] px-4 py-2.5 text-sm" data-testid="exam-attempts-line">
+          <span className="font-semibold text-foreground">{attemptsLine(state)}</span>
+          <span className="flex flex-wrap items-center gap-3 font-mono text-xs text-muted-foreground tabular-nums">
+            <span>
+              Xatolar: {state.wrongCount ?? 0} / {state.maxMistakes ?? 3}
+            </span>
+            <span>
+              Javob berilgan: {total - unanswered}/{total}
+            </span>
+          </span>
+        </div>
 
         <AnswerConfirmBar choice={pendingChoice} onConfirm={confirmAnswer} onCancel={() => setPending(null)} />
 
@@ -330,7 +412,14 @@ export function FinalExamSession({ initial, onFinished }: FinalExamSessionProps)
           <QuestionNavigator total={total} currentIndex={currentIndex} statusByIndex={statusByIndex} bookmarkedIndexes={new Set()} onJump={goTo} />
         </Card>
 
-        <MobileNavBar currentIndex={currentIndex} total={total} onPrev={() => goTo(currentIndex - 1)} onNext={() => goTo(currentIndex + 1)} onOpenSheet={() => setSheetOpen(true)} />
+        <MobileNavBar
+          currentIndex={currentIndex}
+          total={total}
+          onPrev={() => goTo(currentIndex - 1)}
+          onNext={() => goTo(currentIndex + 1)}
+          onOpenSheet={() => setSheetOpen(true)}
+          status={<MistakesBadge wrong={state.wrongCount ?? 0} max={state.maxMistakes ?? 3} className="h-7 px-2.5" testId="exam-mistakes-mobile" />}
+        />
         <BottomSheet open={sheetOpen} onClose={() => setSheetOpen(false)} title={t.testSession.navigatorTitle}>
           <QuestionNavigator
             variant="sheet"

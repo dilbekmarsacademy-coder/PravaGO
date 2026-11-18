@@ -198,6 +198,12 @@ model User {
   /// Shu foydalanuvchining progressi alohida nollangan vaqt (admin "Progressni to'liq
   /// nolga tushirish" yoki "tester-reset") — ochiq sahifa jonli yangilanishi uchun.
   progressResetAt        DateTime?             @db.Timestamptz(3)
+  /// Admin saytni shu foydalanuvchi uchun yopgan: kirish (login) rad etiladi, mavjud
+  /// sessiyalar har so'rovda 403 SITE_CLOSED oladi. Natijalar, to'lov va haftalik
+  /// yangilanishga ta'sir qilmaydi.
+  siteAccessBlocked      Boolean               @default(false)
+  blockedAt              DateTime?             @db.Timestamptz(3)
+  blockReason            String?               @db.VarChar(300)
   sessions               Session[]
   transferCodes          SessionTransferCode[]
   examAttempts           ExamAttempt[]
@@ -217,6 +223,7 @@ model User {
   @@index([lastActiveAt])
   @@index([type])
   @@index([registrationIp, registeredAt])
+  @@index([siteAccessBlocked])
 }
 
 enum UserType {
@@ -230,7 +237,7 @@ model UserLoginAttempt {
   login     String   @db.VarChar(100)
   ip        String   @db.VarChar(100)
   success   Boolean
-  /// "bad_credentials" | "inactive" | "rate_limited" | "ok"
+  /// "bad_credentials" | "inactive" | "site_closed" | "rate_limited" | "ok"
   reason    String   @db.VarChar(40)
   userAgent String?  @db.VarChar(300)
   createdAt DateTime @default(now()) @db.Timestamptz(3)
@@ -875,6 +882,8 @@ enum FinalExamStatus {
   IN_PROGRESS
   FINISHED
   EXPIRED
+  /// 3-xatodan keyin server to'xtatgan (muvaffaqiyatsiz; urinish va o'rtachaga kiradi).
+  FAILED
 }
 
 /// Yakuniy imtihon urinishi. Vaqt faqat serverda (startedAt, expiresAt). Savollar
@@ -897,6 +906,8 @@ model FinalExamAttempt {
   questions      Json
   /// { "<position>": { optionId, answeredAt } }
   answers        Json            @default("{}")
+  /// Imtihon davomidagi xato javoblar soni (javob berilganda server hisoblaydi).
+  wrongCount     Int             @default(0)
   /// Admin urinishlarni nolga qaytargan — hisobga olinmaydi, tarix uchun saqlanadi.
   archivedAt     DateTime?       @db.Timestamptz(3)
 

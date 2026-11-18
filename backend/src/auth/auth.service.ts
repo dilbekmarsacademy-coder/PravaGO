@@ -23,9 +23,17 @@ export interface SessionUser {
  * Token bor, lekin endi amal qilmaydi — klient sababni bilishi uchun aniq kod:
  * - SESSION_REPLACED — shu akkauntga boshqa qurilmadan kirildi;
  * - SESSION_REVOKED — admin qurilmadan chiqardi yoki parolni yangiladi;
- * - ACCOUNT_INACTIVE — akkaunt faolsizlantirilgan.
+ * - ACCOUNT_INACTIVE — akkaunt faolsizlantirilgan;
+ * - SITE_CLOSED — admin saytni shu foydalanuvchi uchun yopgan (403).
  */
-export type SessionRejection = "SESSION_REPLACED" | "SESSION_REVOKED" | "ACCOUNT_INACTIVE";
+export type SessionRejection = "SESSION_REPLACED" | "SESSION_REVOKED" | "ACCOUNT_INACTIVE" | "SITE_CLOSED";
+
+/** Sayt yopilgan foydalanuvchiga (login va har bir sessiyali so'rovda) qaytadigan xato. */
+export const SITE_CLOSED_ERROR = {
+  statusCode: 403,
+  code: "SITE_CLOSED",
+  message: "Sayt siz uchun yopilgan. Ochish uchun admin bilan bog'laning",
+} as const;
 
 export type ResolvedToken = { user: SessionUser } | { rejected: SessionRejection } | null;
 
@@ -66,11 +74,13 @@ export class AuthService {
         userId: true,
         expiresAt: true,
         lastSeenAt: true,
-        user: { select: { type: true, isActive: true, activeSessionId: true } },
+        user: { select: { type: true, isActive: true, activeSessionId: true, siteAccessBlocked: true } },
       },
     });
     if (!session || session.expiresAt.getTime() <= Date.now()) return null;
     const { user } = session;
+    // Birinchi tekshiruv: yopilgan foydalanuvchi sessiyasi bekor qilingan bo'lsa ham aniq SITE_CLOSED oladi.
+    if (user.siteAccessBlocked) return { rejected: "SITE_CLOSED" };
     if (!user.isActive) return { rejected: "ACCOUNT_INACTIVE" };
     if (user.type === "CENTER" && user.activeSessionId !== session.id) {
       return { rejected: user.activeSessionId ? "SESSION_REPLACED" : "SESSION_REVOKED" };

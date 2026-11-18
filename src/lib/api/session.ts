@@ -7,6 +7,8 @@
 // kirilganda eski tokenga 401 + kod qaytaradi. Bunday holda sessiya tozalanadi,
 // sabab sessionStorage'ga yoziladi va bosh sahifa (qayta kirish oynasi) ochiladi.
 
+import { SITE_CLOSED, notifySiteClosed } from "./site-closed";
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const TOKEN_KEY = "pt_session_token";
 /** Joriy sessiya markaz o'quvchisiniki — 401 da yangi anonim sessiya ochilmaydi. */
@@ -188,6 +190,8 @@ export async function authFetch<T>(path: string, init?: RequestInit): Promise<T>
     } catch {
       // tana JSON emas
     }
+    // Admin saytni shu foydalanuvchi uchun yopgan — butun ekranli sahifa (token saqlanadi).
+    if (res.status === 403 && code === SITE_CLOSED) notifySiteClosed();
     // To'lov tasdiqlanmagan (yoki bekor qilingan) — kurs kontenti yopiq.
     if (res.status === 403 && code === "PAYMENT_REQUIRED" && typeof window !== "undefined" && window.location.pathname !== "/tolov") {
       window.location.assign("/tolov");
