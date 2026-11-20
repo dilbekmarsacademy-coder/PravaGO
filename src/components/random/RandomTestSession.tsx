@@ -25,6 +25,8 @@ import { getTimeUrgency } from "@/lib/test/timer";
 import { Button } from "@/components/shared/Button";
 import { Card } from "@/components/shared/Card";
 import { AnswerConfirmBar } from "@/components/test/AnswerConfirmBar";
+import { selectAnswer } from "@/lib/test/answer-confirm";
+import { useSkipAnswerConfirm } from "@/lib/test/useSkipAnswerConfirm";
 import { FinishModal } from "@/components/test/FinishModal";
 import { BottomSheet, MobileNavBar } from "@/components/test/MobileNavBar";
 import { QuestionNavigator, type QuestionStatus } from "@/components/test/QuestionNavigator";
@@ -76,6 +78,7 @@ export function RandomTestSession({ initial, onFinished }: RandomTestSessionProp
   const [currentIndex, setCurrentIndex] = useState(() => Math.max(0, initial.items.findIndex((i) => !i.answered)));
   const [direction, setDirection] = useState<1 | -1>(1);
   const [pending, setPending] = useState<{ index: number; optionId: string } | null>(null);
+  const skipAnswerConfirm = useSkipAnswerConfirm();
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [finishModalOpen, setFinishModalOpen] = useState(false);
@@ -151,18 +154,8 @@ export function RandomTestSession({ initial, onFinished }: RandomTestSessionProp
     [total, currentIndex],
   );
 
-  // Variant bosilganda — avval tasdiqlash oynasi (tasodifan bosib yuborishdan himoya).
-  const handleAnswer = useCallback(
-    (optionId: string) => {
-      if (!currentQuestion || checking || review || finishing) return;
-      setPending({ index: currentIndex, optionId });
-    },
-    [currentQuestion, checking, review, finishing, currentIndex],
-  );
-
-  const confirmAnswer = useCallback(() => {
-    if (!pending || pending.index !== currentIndex || !current || checking || review) return;
-    const { index, optionId } = pending;
+  const submitAnswer = useCallback((index: number, optionId: string) => {
+    if (index !== currentIndex || !current || checking || review) return;
     setPending(null);
     setChecking(true);
     setError(null);
@@ -198,7 +191,24 @@ export function RandomTestSession({ initial, onFinished }: RandomTestSessionProp
         setError(t.testSession.checkError);
       })
       .finally(() => setChecking(false));
-  }, [pending, currentIndex, current, checking, review, state.id, total, onFinished, finish, labels.answerTimeUp, t.testSession.checkError]);
+  }, [currentIndex, current, checking, review, state.id, total, onFinished, finish, labels.answerTimeUp, t.testSession.checkError]);
+
+  // "Ha" — tanlangan javob qabul qilinadi.
+  const confirmAnswer = useCallback(() => {
+    if (pending) submitAnswer(pending.index, pending.optionId);
+  }, [pending, submitAnswer]);
+
+  // Variant bosilganda — avval tasdiqlash oynasi (tasodifan bosib yuborishdan himoya).
+  // Ro'yxatdagi foydalanuvchida (GET /me → skipAnswerConfirm) panel chiqmaydi — javob darhol qabul qilinadi.
+  const handleAnswer = useCallback(
+    (optionId: string) => {
+      if (!currentQuestion || checking || review || finishing) return;
+      const selection = selectAnswer(skipAnswerConfirm, currentIndex, optionId);
+      if (selection.kind === "submit") submitAnswer(selection.index, selection.optionId);
+      else setPending({ index: selection.index, optionId: selection.optionId });
+    },
+    [currentQuestion, checking, review, finishing, currentIndex, skipAnswerConfirm, submitAnswer],
+  );
 
   const pendingOptionId = pending && pending.index === currentIndex && !review ? pending.optionId : null;
   const pendingIndex = pendingOptionId && currentQuestion ? currentQuestion.options.findIndex((o) => o.id === pendingOptionId) : -1;

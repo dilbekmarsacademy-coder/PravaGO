@@ -19,6 +19,8 @@ export interface Me {
   unlockAll?: boolean;
   /** Kunlik mavzu oqimi majburiy: video → kalit so'zlar ("Tanishib chiqdim") → test. */
   topicFlowGating?: boolean;
+  /** Javobni tasdiqlash paneli o'tkazib yuboriladi (serverda hisoblanadi). Yo'q — panel chiqadi. */
+  skipAnswerConfirm?: boolean;
 }
 
 export interface RegisterInput {

@@ -27,6 +27,8 @@ import { Button } from "@/components/shared/Button";
 import { Card } from "@/components/shared/Card";
 import { Modal } from "@/components/shared/Modal";
 import { AnswerConfirmBar } from "@/components/test/AnswerConfirmBar";
+import { selectAnswer } from "@/lib/test/answer-confirm";
+import { useSkipAnswerConfirm } from "@/lib/test/useSkipAnswerConfirm";
 import { BottomSheet, MobileNavBar } from "@/components/test/MobileNavBar";
 import { QuestionNavigator, type QuestionStatus } from "@/components/test/QuestionNavigator";
 import { QuestionView } from "@/components/test/QuestionView";
@@ -102,6 +104,7 @@ export function FinalExamSession({ initial, onFinished }: FinalExamSessionProps)
   const [currentIndex, setCurrentIndex] = useState(() => Math.max(0, initial.items.findIndex((i) => !i.answered)));
   const [direction, setDirection] = useState<1 | -1>(1);
   const [pending, setPending] = useState<{ index: number; optionId: string } | null>(null);
+  const skipAnswerConfirm = useSkipAnswerConfirm();
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<{ message: string; retry?: () => void } | null>(null);
   const [finishModalOpen, setFinishModalOpen] = useState(false);
@@ -176,18 +179,8 @@ export function FinalExamSession({ initial, onFinished }: FinalExamSessionProps)
     [questions, total, currentIndex, state.id],
   );
 
-  // Variant bosilganda — avval tasdiqlash (tasodifan bosib yuborishdan himoya).
-  const handleAnswer = useCallback(
-    (optionId: string) => {
-      if (!currentQuestion || checking || answeredId || finishing) return;
-      setPending({ index: currentIndex, optionId });
-    },
-    [currentQuestion, checking, answeredId, finishing, currentIndex],
-  );
-
-  const confirmAnswer = useCallback(() => {
-    if (!pending || pending.index !== currentIndex || !current || checking || answeredId) return;
-    const { index, optionId } = pending;
+  const submitAnswer = useCallback((index: number, optionId: string) => {
+    if (index !== currentIndex || !current || checking || answeredId) return;
     setPending(null);
     setChecking(true);
     setError(null);
@@ -233,7 +226,24 @@ export function FinalExamSession({ initial, onFinished }: FinalExamSessionProps)
         setError({ message: "Javob saqlanmadi — internet aloqasini tekshirib, qayta tanlang." });
       })
       .finally(() => setChecking(false));
-  }, [pending, currentIndex, current, checking, answeredId, state.id, onFinished, finish, loadQuestions]);
+  }, [currentIndex, current, checking, answeredId, state.id, onFinished, finish, loadQuestions]);
+
+  // "Ha" — tanlangan javob qabul qilinadi.
+  const confirmAnswer = useCallback(() => {
+    if (pending) submitAnswer(pending.index, pending.optionId);
+  }, [pending, submitAnswer]);
+
+  // Variant bosilganda — avval tasdiqlash (tasodifan bosib yuborishdan himoya).
+  // Ro'yxatdagi foydalanuvchida (GET /me → skipAnswerConfirm) panel chiqmaydi — javob darhol qabul qilinadi.
+  const handleAnswer = useCallback(
+    (optionId: string) => {
+      if (!currentQuestion || checking || answeredId || finishing) return;
+      const selection = selectAnswer(skipAnswerConfirm, currentIndex, optionId);
+      if (selection.kind === "submit") submitAnswer(selection.index, selection.optionId);
+      else setPending({ index: selection.index, optionId: selection.optionId });
+    },
+    [currentQuestion, checking, answeredId, finishing, currentIndex, skipAnswerConfirm, submitAnswer],
+  );
 
   /** Javobdan keyin: keyingi javobsiz savol (oldinga, keyin boshidan). */
   const nextUnanswered = useMemo(() => {
