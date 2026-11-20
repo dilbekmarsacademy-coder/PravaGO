@@ -15,6 +15,8 @@ import { keywordsHref, nextCourseTopic, topicDayNumber, topicHref, topicPageHref
 import { Button, buttonClasses } from "@/components/shared/Button";
 import { Card } from "@/components/shared/Card";
 import { AnswerConfirmBar } from "@/components/test/AnswerConfirmBar";
+import { selectAnswer } from "@/lib/test/answer-confirm";
+import { useSkipAnswerConfirm } from "@/lib/test/useSkipAnswerConfirm";
 import { FinishModal } from "@/components/test/FinishModal";
 import { CompletionModal } from "@/components/test/CompletionModal";
 import { BottomSheet, MobileNavBar } from "@/components/test/MobileNavBar";
@@ -110,6 +112,7 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
   const [checking, setChecking] = useState(false);
   // Tanlangan, lekin hali tasdiqlanmagan javob ("Qabul qilaymi?" paneli).
   const [pending, setPending] = useState<{ index: number; optionId: string } | null>(null);
+  const skipAnswerConfirm = useSkipAnswerConfirm();
   // Savol id → ko'rsatiladigan variantlar tartibi (id'lar). Javob berilmay
   // tashlab ketilgan savolga qaytilganda variantlar boshqa joylarga o'tadi.
   const [optionOrder, setOptionOrder] = useState<Record<string, string[]>>({});
@@ -305,20 +308,9 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
     toggleSavedWithFeedback(currentQuestion.id, { topicSlug: currentQuestion.topicSlug, sourceMode: MODE }, t);
   }, [currentQuestion, t]);
 
-  // Variantni tanlash — avval "Qabul qilaymi?" (tasodifan bosib yuborishdan himoya);
-  // boshqa variant bosilsa tanlov almashadi.
-  const handleAnswer = useCallback(
-    (optionId: string) => {
-      if (!currentQuestion || checking || currentAnswer.result) return;
-      setPending({ index: currentIndex, optionId });
-    },
-    [currentQuestion, checking, currentAnswer.result, currentIndex],
-  );
-
   // "Ha" — javob qabul qilinadi va tekshiriladi.
-  const confirmAnswer = useCallback(() => {
-    if (!pending || pending.index !== currentIndex || !currentQuestion || checking || currentAnswer.result) return;
-    const { index, optionId } = pending;
+  const submitAnswer = useCallback((index: number, optionId: string) => {
+    if (index !== currentIndex || !currentQuestion || checking || currentAnswer.result) return;
     setPending(null);
     setAnswers((prev) => ({ ...prev, [index]: { selectedOptionId: optionId, result: null } }));
     setChecking(true);
@@ -337,7 +329,25 @@ export function TestSession({ source, onlyQuestionIds, onRestart, onRetryWrong, 
         setError("checkError");
       })
       .finally(() => setChecking(false));
-  }, [pending, currentQuestion, checking, currentAnswer.result, currentIndex, questions]);
+  }, [currentQuestion, checking, currentAnswer.result, currentIndex, questions]);
+
+  // "Ha" — tanlangan javob qabul qilinadi.
+  const confirmAnswer = useCallback(() => {
+    if (pending) submitAnswer(pending.index, pending.optionId);
+  }, [pending, submitAnswer]);
+
+  // Variantni tanlash — avval "Qabul qilaymi?" (tasodifan bosib yuborishdan himoya);
+  // boshqa variant bosilsa tanlov almashadi.
+  // Ro'yxatdagi foydalanuvchida (GET /me → skipAnswerConfirm) panel chiqmaydi — javob darhol qabul qilinadi.
+  const handleAnswer = useCallback(
+    (optionId: string) => {
+      if (!currentQuestion || checking || currentAnswer.result) return;
+      const selection = selectAnswer(skipAnswerConfirm, currentIndex, optionId);
+      if (selection.kind === "submit") submitAnswer(selection.index, selection.optionId);
+      else setPending({ index: selection.index, optionId: selection.optionId });
+    },
+    [currentQuestion, checking, currentAnswer.result, currentIndex, skipAnswerConfirm, submitAnswer],
+  );
 
   const pendingOptionId = pending && pending.index === currentIndex && !currentAnswer.result ? pending.optionId : null;
   const pendingIndex = pendingOptionId && currentQuestion ? currentQuestion.options.findIndex((o) => o.id === pendingOptionId) : -1;

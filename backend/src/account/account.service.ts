@@ -6,6 +6,7 @@ import { OFFER_VERSION, registrationsPerIpPerHour } from "../common/registration
 import { coursePrice } from "../common/prices";
 import { computeCourseAccess, paymentEnforced } from "../access/access.service";
 import { syncUserPaymentStatus } from "../payments/payments.service";
+import { skipsAnswerConfirm } from "../common/answer-confirm";
 import type { RegisterDto } from "./account.dto";
 
 /**
@@ -25,6 +26,8 @@ export interface MeDto {
   unlockAll: boolean;
   /** Kunlik mavzu oqimi majburiy: video → kalit so'zlar → test. */
   topicFlowGating: boolean;
+  /** Javobni tasdiqlash paneli ko'rsatilmaydi (ANSWER_CONFIRM_SKIP_USERS ro'yxati, serverda hisoblanadi). */
+  skipAnswerConfirm: boolean;
 }
 
 @Injectable()
@@ -58,6 +61,7 @@ export class AccountService {
       type: user.type,
       unlockAll: user.unlockAll,
       topicFlowGating: user.topicFlowGatingEnabled,
+      skipAnswerConfirm: skipsAnswerConfirm(user),
     };
   }
 
