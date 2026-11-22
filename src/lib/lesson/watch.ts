@@ -49,6 +49,16 @@ export function tick(tally: WatchTally, previous: number, current: number, playi
   };
 }
 
+/**
+ * Erkin surish (oldinga ham) ruxsatmi: faqat server mavzuni tugatilgan deb aytgan
+ * bo'lsa (`topicCompleted === true`) yoki admin hammasini ochgan (`freeSeek`).
+ * Holat noma'lum/yuklanmagan — cheklov saqlanadi.
+ */
+export function canSeekFreely(status: { topicCompleted?: boolean; completed?: boolean } | null | undefined, freeSeek = false): boolean {
+  if (freeSeek) return true;
+  return status?.topicCompleted === true && status.completed === true;
+}
+
 /** Foydalanuvchi so'ragan seek nuqtasi — eng uzoq ko'rilgan nuqtadan oshmaydi. */
 export function clampSeek(target: number, maxPosition: number, duration: number): number {
   return Math.min(Math.max(0, target), maxPosition, duration || maxPosition);

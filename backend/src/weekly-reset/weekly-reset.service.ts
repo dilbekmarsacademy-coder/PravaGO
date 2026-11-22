@@ -2,9 +2,21 @@ import { Injectable, Logger, OnApplicationBootstrap } from "@nestjs/common";
 import { Cron } from "@nestjs/schedule";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
-import { INITIAL_WEEK_KEY, isBannerVisible, lastResetBoundary, manualWeekKey, nextResetAt, bannerFrom, weekKeyOf } from "./schedule";
+import {
+  FULL_RESET_KEY,
+  INITIAL_WEEK_KEY,
+  RESET_CRON,
+  RESET_SCHEDULE,
+  bannerFrom,
+  isBannerVisible,
+  isScheduledBoundary,
+  lastResetBoundary,
+  manualWeekKey,
+  nextResetAt,
+  weekKeyOf,
+} from "./schedule";
 
-// Haftalik natijalar yangilanishi (har dushanba 22:00, Asia/Tashkent).
+// Haftalik natijalar yangilanishi (har shanba 22:00, Asia/Tashkent — RESET_SCHEDULE, schedule.ts).
 //
 // Foydalanuvchi tomonida natijalar nolga tushadi, lekin hech narsa o'chirilmaydi:
 // avval har bir yozuv WeeklyResultArchive'ga nusxalanadi, keyin manba yozuvlarga
@@ -27,12 +39,22 @@ import { INITIAL_WEEK_KEY, isBannerVisible, lastResetBoundary, manualWeekKey, ne
 //
 // Ishga tushirish: Vercel Cron (backend/vercel.json → POST /cron/weekly-reset),
 // @Cron (doimiy ishlaydigan serverda), catch-up (GET /meta/reset-status va
-// cron chaqirilganda: o'tgan dushanba 22:00 bajarilmagan bo'lsa) va admin
+// cron chaqirilganda: o'tgan shanba 22:00 bajarilmagan bo'lsa) va admin
 // "Hozir yangilash". Bir martalik "initial-launch" — INITIAL_RESET_ON_DEPLOY=true.
+// Catch-up/cron jadval kuchga kirgunga qadar (RESET_SCHEDULE.firstResetLocal)
+// va chegaradan keyin boshqa umumiy nollash (qo'lda / to'liq) bajarilgan bo'lsa
+// hech narsa qilmaydi — o'sha hafta "covered" deb belgilanadi.
+//
+// Bir martalik TO'LIQ nollash ("full-…", CLI `npm run reset:all-now` yoki admin
+// POST /admin/weekly-resets/full): hamma foydalanuvchi, weeklyResetExempt ham;
+// yuqoridagilarga qo'shimcha — yakuniy imtihon urinishlari (faoli yopiladi) va
+// sertifikatlar arxivlanadi (Certificate.archivedAt — kabinetda ko'rinmaydi,
+// o'chirilmaydi), o'tilgan mavzular ketma-ketligi ham boshidan (passedBefore
+// faqat oxirgi to'liq nollashdan keyingi arxivni hisoblaydi).
 // Bitta foydalanuvchi: admin "Progressni to'liq nolga tushirish" va bir martalik
 // "tester-reset" (TESTER_RESET_ON_DEPLOY=true) — xuddi shu qadamlar, faqat u uchun.
 
-export type ResetTrigger = "cron" | "catchup" | "manual" | "initial" | "tester" | "user";
+export type ResetTrigger = "cron" | "catchup" | "manual" | "initial" | "tester" | "user" | "full";
 
 export interface ResetCounts {
   topicTests: number;
@@ -47,6 +69,10 @@ export interface ResetCounts {
   keywordViews: number;
   /** Yangi oqim yoqilgan foydalanuvchilar (topicFlowGatingEnabled false → true). */
   flowEnabled: number;
+  /** Arxivlangan yakuniy imtihon urinishlari (faqat to'liq nollashda). */
+  finalExams: number;
+  /** Arxivlangan (kabinetdan yashirilgan) sertifikatlar (faqat to'liq nollashda). */
+  certificates: number;
 }
 
 export interface ResetResult {
@@ -68,6 +94,11 @@ interface RunOptions {
   now?: Date;
   /** Faqat shu foydalanuvchi (exempt belgisi ahamiyatsiz) — "tester-reset" / admin nollashi. */
   userId?: string;
+  /**
+   * Bir martalik to'liq nollash: hamma (exempt ham) barcha qadamlarda, shu jumladan
+   * video/kalit so'zlar progressi, yakuniy imtihon va sertifikatlar.
+   */
+  full?: boolean;
 }
 
 export const TESTER_WEEK_KEY = "tester-reset";
@@ -86,7 +117,18 @@ export interface TesterCandidate {
 
 /** Shu vaqtdan eski "running" — uzilib qolgan deb hisoblanadi va qayta olinadi. */
 const STALE_RUNNING_MS = 15 * 60_000;
-const ZERO: ResetCounts = { topicTests: 0, randomTests: 0, answers: 0, aiInsights: 0, videoProgress: 0, keywordReviews: 0, keywordViews: 0, flowEnabled: 0 };
+const ZERO: ResetCounts = {
+  topicTests: 0,
+  randomTests: 0,
+  answers: 0,
+  aiInsights: 0,
+  videoProgress: 0,
+  keywordReviews: 0,
+  keywordViews: 0,
+  flowEnabled: 0,
+  finalExams: 0,
+  certificates: 0,
+};
 
 /** Ishtirokchi foydalanuvchilar sharti (SQL): exempt bo'lmaganlar yoki hammasi. */
 function userFilter(alias: string, includeExempt: boolean): Prisma.Sql {
@@ -95,18 +137,18 @@ function userFilter(alias: string, includeExempt: boolean): Prisma.Sql {
     : Prisma.sql`AND NOT EXISTS (SELECT 1 FROM "User" u WHERE u.id = ${Prisma.raw(`${alias}."userId"`)} AND u."weeklyResetExempt")`;
 }
 
-type Scope = Pick<RunOptions, "includeExempt" | "userId">;
+type Scope = Pick<RunOptions, "includeExempt" | "userId" | "full">;
 
 /** Natijalar (testlar, javoblar, AI xulosa): bitta foydalanuvchi yoki umumiy filtr. */
 function scopeFilter(alias: string, o: Scope): Prisma.Sql {
   if (o.userId) return Prisma.sql`AND ${Prisma.raw(`${alias}."userId"`)} = ${o.userId}`;
-  return userFilter(alias, o.includeExempt);
+  return userFilter(alias, o.includeExempt || Boolean(o.full));
 }
 
-/** Video/kalit so'zlar progressi va oqim bayrog'i: exempt akkauntga hech qachon tegilmaydi. */
+/** Video/kalit so'zlar progressi va oqim bayrog'i: exempt akkauntga faqat to'liq nollashda tegiladi. */
 function progressFilter(alias: string, o: Scope): Prisma.Sql {
   if (o.userId) return Prisma.sql`AND ${Prisma.raw(`${alias}."userId"`)} = ${o.userId}`;
-  return userFilter(alias, false);
+  return userFilter(alias, Boolean(o.full));
 }
 
 /** Video progressi bor (nollanadigan) LessonProgress yozuvi. */
@@ -193,7 +235,7 @@ export class WeeklyResetService implements OnApplicationBootstrap {
   }
 
   /** Doimiy ishlaydigan serverda (VPS). Vercel serverless'da ishonchli emas — u yerda Vercel Cron. */
-  @Cron("0 22 * * 1", { name: "weekly-reset", timeZone: "Asia/Tashkent" })
+  @Cron(RESET_CRON, { name: "weekly-reset", timeZone: RESET_SCHEDULE.timeZone })
   async scheduled(): Promise<void> {
     try {
       await this.runWeekly("cron");
@@ -202,10 +244,33 @@ export class WeeklyResetService implements OnApplicationBootstrap {
     }
   }
 
-  /** Oxirgi dushanba 22:00 uchun haftalik yangilanish (bajarilmagan bo'lsa). */
+  /** Oxirgi shanba 22:00 uchun haftalik yangilanish (bajarilmagan va boshqa nollash qoplamagan bo'lsa). */
   async runWeekly(triggeredBy: "cron" | "catchup", now = new Date()): Promise<ResetResult> {
-    const weekKey = weekKeyOf(lastResetBoundary(now));
+    const boundary = lastResetBoundary(now);
+    const weekKey = weekKeyOf(boundary);
+    if (!isScheduledBoundary(boundary) || (await this.coverIfResetSince(boundary, weekKey, triggeredBy, now))) {
+      return { weekKey, skipped: true, dryRun: false, affectedUsers: 0, counts: { ...ZERO } };
+    }
     return this.run({ weekKey, triggeredBy, includeExempt: false, now });
+  }
+
+  /**
+   * Chegaradan keyin boshqa umumiy nollash (qo'lda, to'liq, initial) bajarilgan
+   * bo'lsa — natijalar allaqachon yangi: shu hafta "covered" deb yoziladi va
+   * qayta bajarilmaydi (catch-up ortiqcha nollamasligi uchun).
+   */
+  private async coverIfResetSince(boundary: Date, weekKey: string, triggeredBy: ResetTrigger, now: Date): Promise<boolean> {
+    const later = await this.prisma.weeklyReset.findFirst({
+      where: { ...GLOBAL_RESET, status: "done", startedAt: { gte: boundary }, weekKey: { not: weekKey } },
+      select: { weekKey: true },
+    });
+    if (!later) return false;
+    await this.prisma.weeklyReset.createMany({
+      data: [{ weekKey, status: "covered", triggeredBy, startedAt: now, finishedAt: now }],
+      skipDuplicates: true,
+    });
+    this.log.log(`${weekKey}: ${later.weekKey} chegaradan keyin bajarilgan — haftalik yangilanish o'tkazib yuborildi`);
+    return true;
   }
 
   /**
@@ -215,8 +280,14 @@ export class WeeklyResetService implements OnApplicationBootstrap {
    * yangilanish bo'lib ketmasligi uchun.
    */
   async catchUp(now = new Date()): Promise<void> {
-    const weekKey = weekKeyOf(lastResetBoundary(now));
+    const boundary = lastResetBoundary(now);
+    const weekKey = weekKeyOf(boundary);
     if (this.checkedWeekKey === weekKey) return;
+    // Jadval kuchga kirgunga qadar (masalan, dushanba → shanba almashgan hafta) — hech narsa.
+    if (!isScheduledBoundary(boundary)) {
+      this.checkedWeekKey = weekKey;
+      return;
+    }
     if (this.catchUpRunning) {
       await this.catchUpRunning;
       return;
@@ -232,8 +303,8 @@ export class WeeklyResetService implements OnApplicationBootstrap {
           this.checkedWeekKey = weekKey;
           return;
         }
-        const res = await this.run({ weekKey, triggeredBy: "catchup", includeExempt: false, now });
-        if (!res.skipped) this.checkedWeekKey = weekKey;
+        const res = await this.runWeekly("catchup", now);
+        if (!res.skipped || (await this.isSettled(weekKey))) this.checkedWeekKey = weekKey;
       } catch (err) {
         this.log.error(`catch-up xatosi: ${err instanceof Error ? err.message : String(err)}`);
       } finally {
@@ -270,6 +341,35 @@ export class WeeklyResetService implements OnApplicationBootstrap {
     return res;
   }
 
+  private async isSettled(weekKey: string): Promise<boolean> {
+    const row = await this.prisma.weeklyReset.findUnique({ where: { weekKey }, select: { status: true } });
+    return row?.status === "done" || row?.status === "covered";
+  }
+
+  /**
+   * Bir martalik TO'LIQ nollash: hamma foydalanuvchi (weeklyResetExempt ham) —
+   * mavzu testlari, random testlar, javoblar, AI xulosa, video va kalit so'zlar
+   * progressi, yakuniy imtihon urinishlari va sertifikatlar (arxivlanadi,
+   * kabinetdan yashiriladi). Idempotent: shu `weekKey` "done" bo'lsa — skipped.
+   * dryRun — faqat sanaydi. Deploy'da avtomatik ishlamaydi.
+   */
+  fullReset(opts: { dryRun: boolean; adminId?: string; weekKey?: string; now?: Date }): Promise<ResetResult> {
+    return this.run({
+      weekKey: opts.weekKey ?? FULL_RESET_KEY,
+      triggeredBy: "full",
+      includeExempt: true,
+      full: true,
+      dryRun: opts.dryRun,
+      adminId: opts.adminId,
+      now: opts.now,
+    });
+  }
+
+  /** Shu kalit bilan nollash allaqachon bajarilganmi (dryRun hisobotida ko'rsatish uchun). */
+  async resetState(weekKey: string) {
+    return this.prisma.weeklyReset.findUnique({ where: { weekKey }, select: { status: true, startedAt: true, finishedAt: true, affectedUsers: true } });
+  }
+
   /** Admin "Hozir yangilash" (exempt'larga tegmaydi). */
   manual(adminId: string, dryRun: boolean, now = new Date()): Promise<ResetResult> {
     return this.run({ weekKey: manualWeekKey(now), triggeredBy: "manual", includeExempt: false, dryRun, adminId, now });
@@ -298,12 +398,14 @@ export class WeeklyResetService implements OnApplicationBootstrap {
           const videoProgress = await this.archiveVideoProgress(tx, opts, now);
           const { keywordReviews, keywordViews } = await this.archiveKeywordsProgress(tx, opts, now);
           const flowEnabled = await this.enableFlow(tx, opts, now);
+          const finalExams = opts.full ? await this.archiveFinalExams(tx, opts, now) : 0;
+          const certificates = opts.full ? await this.archiveCertificates(tx, opts, now) : 0;
           return {
             affectedUsers: users,
-            counts: { topicTests, randomTests, answers, aiInsights, videoProgress, keywordReviews, keywordViews, flowEnabled },
+            counts: { topicTests, randomTests, answers, aiInsights, videoProgress, keywordReviews, keywordViews, flowEnabled, finalExams, certificates },
           };
         },
-        { timeout: 120_000, maxWait: 10_000 },
+        { timeout: opts.full ? 300_000 : 120_000, maxWait: 10_000 },
       );
       await this.prisma.weeklyReset.update({
         where: { weekKey: opts.weekKey },
@@ -346,7 +448,7 @@ export class WeeklyResetService implements OnApplicationBootstrap {
   /** dryRun: nechta foydalanuvchi va yozuv ta'sirlanadi — hech narsa o'zgarmaydi. */
   async preview(o: Scope): Promise<{ affectedUsers: number; counts: ResetCounts }> {
     const n = (rows: { n: bigint }[]) => Number(rows[0]?.n ?? 0);
-    const [topicTests, randomTests, answers, aiInsights, videoProgress, keywordReviews, keywordViews, flowEnabled, users] = await Promise.all([
+    const [topicTests, randomTests, answers, aiInsights, videoProgress, keywordReviews, keywordViews, flowEnabled, finalExams, certificates, users] = await Promise.all([
       this.prisma.$queryRaw<{ n: bigint }[]>`SELECT COUNT(*) AS n FROM "TopicTestAttempt" a WHERE a."archivedAt" IS NULL ${scopeFilter("a", o)}`.then(n),
       this.prisma.$queryRaw<{ n: bigint }[]>`SELECT COUNT(*) AS n FROM "RandomTestAttempt" a WHERE a."archivedAt" IS NULL AND a."status" <> 'in_progress' ${scopeFilter("a", o)}`.then(n),
       this.prisma.$queryRaw<{ n: bigint }[]>`SELECT COUNT(*) AS n FROM "AnswerLog" a WHERE a."archivedAt" IS NULL ${scopeFilter("a", o)}`.then(n),
@@ -355,9 +457,14 @@ export class WeeklyResetService implements OnApplicationBootstrap {
       this.prisma.$queryRaw<{ n: bigint }[]>`SELECT COUNT(*) AS n FROM "KeywordReview" k WHERE TRUE ${progressFilter("k", o)}`.then(n),
       this.prisma.$queryRaw<{ n: bigint }[]>`SELECT COUNT(*) AS n FROM "TopicKeywordsView" k WHERE TRUE ${progressFilter("k", o)}`.then(n),
       this.prisma.$queryRaw<{ n: bigint }[]>`SELECT COUNT(*) AS n FROM (SELECT id AS "userId", "topicFlowGatingEnabled" FROM "User") x WHERE NOT x."topicFlowGatingEnabled" ${progressFilter("x", o)}`.then(n),
+      o.full ? this.prisma.$queryRaw<{ n: bigint }[]>`SELECT COUNT(*) AS n FROM "FinalExamAttempt" a WHERE a."archivedAt" IS NULL ${scopeFilter("a", o)}`.then(n) : 0,
+      o.full ? this.prisma.$queryRaw<{ n: bigint }[]>`SELECT COUNT(*) AS n FROM "Certificate" a WHERE a."archivedAt" IS NULL ${scopeFilter("a", o)}`.then(n) : 0,
       this.affectedUserIds(this.prisma, o),
     ]);
-    return { affectedUsers: users, counts: { topicTests, randomTests, answers, aiInsights, videoProgress, keywordReviews, keywordViews, flowEnabled } };
+    return {
+      affectedUsers: users,
+      counts: { topicTests, randomTests, answers, aiInsights, videoProgress, keywordReviews, keywordViews, flowEnabled, finalExams, certificates },
+    };
   }
 
   private async affectedUserIds(db: Prisma.TransactionClient | PrismaService, o: Scope): Promise<number> {
@@ -367,6 +474,7 @@ export class WeeklyResetService implements OnApplicationBootstrap {
           SELECT "userId" FROM "TopicTestAttempt" WHERE "archivedAt" IS NULL
           UNION SELECT "userId" FROM "RandomTestAttempt" WHERE "archivedAt" IS NULL AND "status" <> 'in_progress'
           UNION SELECT "userId" FROM "AnswerLog" WHERE "archivedAt" IS NULL
+          ${o.full ? Prisma.sql`UNION SELECT "userId" FROM "FinalExamAttempt" WHERE "archivedAt" IS NULL UNION SELECT "userId" FROM "Certificate" WHERE "archivedAt" IS NULL` : Prisma.empty}
         ) r WHERE TRUE ${scopeFilter("r", o)}
         UNION
         SELECT g."userId" FROM (
@@ -505,9 +613,55 @@ export class WeeklyResetService implements OnApplicationBootstrap {
       await tx.user.update({ where: { id: o.userId }, data: { topicFlowGatingEnabled: true, progressResetAt: now } });
       return before.topicFlowGatingEnabled ? 0 : 1;
     }
+    if (o.full) return tx.$executeRaw`UPDATE "User" x SET "topicFlowGatingEnabled" = true WHERE NOT x."topicFlowGatingEnabled"`;
     return tx.$executeRaw`
       UPDATE "User" x SET "topicFlowGatingEnabled" = true
       WHERE NOT x."topicFlowGatingEnabled" AND NOT x."weeklyResetExempt"`;
+  }
+
+  /**
+   * Yakuniy imtihon (faqat to'liq nollash): faol urinish yopiladi (EXPIRED),
+   * barcha hisobga olinadigan urinishlar arxivga nusxalanadi ("final_exam") va
+   * `archivedAt` qo'yiladi — kabinetda urinishlar, o'rtacha va natija nolga tushadi.
+   */
+  async archiveFinalExams(tx: Prisma.TransactionClient, o: RunOptions, now: Date): Promise<number> {
+    await tx.$executeRaw`
+      UPDATE "FinalExamAttempt" a SET "status" = 'EXPIRED', "finishedAt" = ${now}
+      WHERE a."archivedAt" IS NULL AND a."status" = 'IN_PROGRESS' ${scopeFilter("a", o)}`;
+    const archived = await tx.$executeRaw`
+      INSERT INTO "WeeklyResultArchive" ("id", "userId", "kind", "sourceId", "weekKey", "data", "sourceCreatedAt", "archivedAt")
+      SELECT gen_random_uuid()::text, a."userId", 'final_exam', a."id", ${o.weekKey},
+        jsonb_build_object(
+          'type', a."type", 'status', a."status", 'totalQuestions', a."totalQuestions", 'correctCount', a."correctCount",
+          'scorePercent', a."scorePercent", 'wrongCount', a."wrongCount", 'startedAt', a."startedAt", 'finishedAt', a."finishedAt"),
+        a."startedAt", ${now}
+      FROM "FinalExamAttempt" a
+      WHERE a."archivedAt" IS NULL ${scopeFilter("a", o)}`;
+    const cleared = await tx.$executeRaw`
+      UPDATE "FinalExamAttempt" a SET "archivedAt" = ${now}
+      WHERE a."archivedAt" IS NULL ${scopeFilter("a", o)}`;
+    return this.same("final_exam", archived, cleared);
+  }
+
+  /**
+   * Sertifikatlar (faqat to'liq nollash): o'chirilmaydi — nusxa arxivga
+   * ("certificate") va `archivedAt`: kabinetdagi "Sertifikatlar"da ko'rinmaydi,
+   * admin arxivda ko'radi. Raqam bo'yicha ommaviy tekshiruv ishlayveradi.
+   */
+  async archiveCertificates(tx: Prisma.TransactionClient, o: RunOptions, now: Date): Promise<number> {
+    const archived = await tx.$executeRaw`
+      INSERT INTO "WeeklyResultArchive" ("id", "userId", "kind", "sourceId", "weekKey", "data", "sourceCreatedAt", "archivedAt")
+      SELECT gen_random_uuid()::text, a."userId", 'certificate', a."id", ${o.weekKey},
+        jsonb_build_object(
+          'certificateNumber', a."certificateNumber", 'examType', a."examType", 'averagePercent', a."averagePercent",
+          'attemptsCount', a."attemptsCount", 'fullName', a."fullName", 'issuedAt', a."issuedAt"),
+        a."issuedAt", ${now}
+      FROM "Certificate" a
+      WHERE a."archivedAt" IS NULL ${scopeFilter("a", o)}`;
+    const cleared = await tx.$executeRaw`
+      UPDATE "Certificate" a SET "archivedAt" = ${now}, "archiveWeekKey" = ${o.weekKey}
+      WHERE a."archivedAt" IS NULL ${scopeFilter("a", o)}`;
+    return this.same("certificate", archived, cleared);
   }
 
   private same(kind: string, archived: number, cleared: number): number {
@@ -523,8 +677,8 @@ export class WeeklyResetService implements OnApplicationBootstrap {
     const [current, last, own] = await Promise.all([
       this.prisma.weeklyReset.findUnique({ where: { weekKey }, select: { status: true } }),
       this.prisma.weeklyReset.findFirst({
-        // Exempt foydalanuvchiga faqat "initial-launch" tegadi.
-        where: { status: "done", ...GLOBAL_RESET, ...(user?.exempt ? { weekKey: INITIAL_WEEK_KEY } : {}) },
+        // Exempt foydalanuvchiga faqat "initial-launch" va to'liq nollash tegadi.
+        where: { status: "done", ...GLOBAL_RESET, ...(user?.exempt ? { OR: [{ weekKey: INITIAL_WEEK_KEY }, { triggeredBy: "full" }] } : {}) },
         orderBy: { finishedAt: "desc" },
         select: { finishedAt: true },
       }),

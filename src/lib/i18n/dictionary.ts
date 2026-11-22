@@ -429,6 +429,8 @@ export interface Dictionary {
       exitFullscreen: string;
       timeline: string;
       seekLocked: string;
+      /** Tugallangan mavzu: to'liq boshqaruv (surish, oldinga/orqaga). */
+      reviewMode: string;
       loading: string;
       errorTitle: string;
       errorDesc: string;
@@ -440,6 +442,8 @@ export interface Dictionary {
       replay: string;
       watched: string;
       keyboardHint: string;
+      /** Tugallangan mavzuda (erkin surish). */
+      keyboardHintReview: string;
       /** Skrinshot/ekran yozish urinishida video ustidagi qalqon matni. */
       protected: string;
       /** VAQTINCHA: sinov uchun oldinga o'tkazish tugmalari (NEXT_PUBLIC_LESSON_SKIP). */

@@ -48,4 +48,12 @@ export interface LessonStatusDto {
    * faqat videoli mavzuda yakuniy imtihon qulfi qayta yopilmasligi uchun.
    */
   everCompleted: boolean;
+  /**
+   * Mavzu to'liq tugatilgan (serverda hisoblanadi): video oxirigacha ko'rilgan VA
+   * mavzuda test banki bo'lsa — joriy (arxivlanmagan) urinishlardan biri o'tish
+   * foizidan (PASS_PERCENT) past emas. Kabinetdagi "mavzu tugadi" ta'rifi bilan bir xil.
+   * true bo'lsa pleyerda to'liq boshqaruv ochiladi (oldinga/orqaga surish, tezlik);
+   * qayta ko'rish progressni o'zgartirmaydi.
+   */
+  topicCompleted: boolean;
 }

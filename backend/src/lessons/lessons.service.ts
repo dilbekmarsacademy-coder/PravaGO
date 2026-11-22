@@ -1,6 +1,8 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import type { LessonProgress } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { STUDENT_QUESTION_WHERE } from "../common/question-content";
+import { PASS_PERCENT } from "../common/rules";
 import { AccessService } from "../access/access.service";
 import type { LessonStatusDto, ReportProgressDto } from "./dto/lesson.dto";
 import { LessonCatalogService } from "./lesson-catalog.service";
@@ -41,7 +43,7 @@ type ProgressRow = Pick<LessonProgress, "maxPosition" | "watchedSeconds" | "last
 const EMPTY_PROGRESS: ProgressRow = { maxPosition: 0, watchedSeconds: 0, lastPosition: 0, completedAt: null, firstCompletedAt: null };
 
 /** Foiz = eng uzoq ko'rilgan nuqta / davomiylik (real vaqt emas — tezlikka bog'liq emas). */
-function toStatus(lessonId: string, lesson: LessonConfig, row: ProgressRow): LessonStatusDto {
+function toStatus(lessonId: string, lesson: LessonConfig, row: ProgressRow, topicDone = false): LessonStatusDto {
   const completed = row.completedAt !== null;
   return {
     lessonId,
@@ -53,6 +55,7 @@ function toStatus(lessonId: string, lesson: LessonConfig, row: ProgressRow): Les
     watchedPercent: completed ? 100 : Math.min(99, Math.floor((row.maxPosition / lesson.durationSec) * 100)),
     completed,
     everCompleted: completed || row.firstCompletedAt !== null,
+    topicCompleted: completed && topicDone,
   };
 }
 
@@ -73,14 +76,49 @@ export class LessonsService {
   async status(userId: string, lessonId: string): Promise<LessonStatusDto> {
     const lesson = await this.getLesson(lessonId);
     const row = await this.prisma.lessonProgress.findUnique({ where: { userId_lessonId: { userId, lessonId } } });
-    return toStatus(lessonId, lesson, row ?? EMPTY_PROGRESS);
+    const done = row?.completedAt ? await this.testsDone(userId, [lessonId]) : new Set<string>();
+    return toStatus(lessonId, lesson, row ?? EMPTY_PROGRESS, done.has(lessonId));
   }
 
   /** Barcha darslar holati — kabinetdagi mavzular ro'yxati uchun (bitta so'rov). */
   async list(userId: string): Promise<LessonStatusDto[]> {
     const [rows, lessons] = await Promise.all([this.prisma.lessonProgress.findMany({ where: { userId } }), this.catalog.all()]);
     const byId = new Map(rows.map((row) => [row.lessonId, row]));
-    return Object.keys(lessons).map((id) => toStatus(id, lessons[id], byId.get(id) ?? EMPTY_PROGRESS));
+    const done = await this.testsDone(
+      userId,
+      rows.filter((r) => r.completedAt && lessons[r.lessonId]).map((r) => r.lessonId),
+    );
+    return Object.keys(lessons).map((id) => toStatus(id, lessons[id], byId.get(id) ?? EMPTY_PROGRESS, done.has(id)));
+  }
+
+  /**
+   * Mavzu "tugatilgan"ligining test qismi (dars id'lari bo'yicha): mavzuda test
+   * banki yo'q — shart yo'q; bor — joriy (haftalik/to'liq nollashda arxivlanmagan)
+   * urinishlardan biri PASS_PERCENT dan past emas. Video sharti alohida (completedAt).
+   */
+  async testsDone(userId: string, lessonIds: string[]): Promise<Set<string>> {
+    if (lessonIds.length === 0) return new Set();
+    const slugByLesson = new Map(lessonIds.map((id) => [id, lessonTopicSlug(id)]));
+    const topics = await this.prisma.topic.findMany({
+      where: { slug: { in: [...new Set(slugByLesson.values())] } },
+      select: { id: true, slug: true, _count: { select: { questions: { where: STUDENT_QUESTION_WHERE } } } },
+    });
+    const withTests = topics.filter((t) => t._count.questions > 0);
+    const passed = withTests.length
+      ? await this.prisma.topicTestAttempt.findMany({
+          where: { userId, archivedAt: null, percent: { gte: PASS_PERCENT }, topicId: { in: withTests.map((t) => t.id) } },
+          distinct: ["topicId"],
+          select: { topicId: true },
+        })
+      : [];
+    const passedIds = new Set(passed.map((p) => p.topicId));
+    const testedSlugs = new Map(withTests.map((t) => [t.slug, t.id]));
+    const done = new Set<string>();
+    for (const [lessonId, slug] of slugByLesson) {
+      const topicId = testedSlugs.get(slug);
+      if (topicId === undefined || passedIds.has(topicId)) done.add(lessonId);
+    }
+    return done;
   }
 
   async video(lessonId: string): Promise<{ videoId: string }> {
@@ -102,10 +140,13 @@ export class LessonsService {
     const existing = await this.prisma.lessonProgress.findUnique({ where: key });
     const row = existing ?? EMPTY_PROGRESS;
     if (row.completedAt) {
-      // Ko'rilgan dars qayta ko'rilmoqda — faqat davom ettirish nuqtasi yangilanadi.
-      const lastPosition = Math.min(report.position, lesson.durationSec);
+      // Ko'rilgan dars qayta ko'rilmoqda (tugallangan mavzuda — surib ham): faqat davom
+      // ettirish nuqtasi yangilanadi; foiz, "ko'rildi", firstCompletedAt va ko'rilgan
+      // soniyalar o'zgarmaydi — statistika va mavzu holatiga ta'sir yo'q.
+      const lastPosition = Math.min(Math.max(0, report.position), lesson.durationSec);
       const updated = await this.prisma.lessonProgress.update({ where: key, data: { lastPosition, lastReportAt: now } });
-      return toStatus(lessonId, lesson, updated);
+      const done = await this.testsDone(userId, [lessonId]);
+      return toStatus(lessonId, lesson, updated, done.has(lessonId));
     }
 
     const elapsedSec = existing

@@ -12,6 +12,17 @@ export class ManualResetDto {
   dryRun?: boolean;
 }
 
+/** Bir martalik TO'LIQ nollash (hamma foydalanuvchi): "HAMMASINI NOLLASH" iborasi shart. */
+export const FULL_RESET_CONFIRM = "HAMMASINI NOLLASH";
+export class FullResetDto {
+  @IsIn([FULL_RESET_CONFIRM], { message: "Tasdiqlash uchun HAMMASINI NOLLASH iborasini yozing" })
+  confirm: string;
+
+  @IsOptional()
+  @IsBoolean()
+  dryRun?: boolean;
+}
+
 /** "Progressni to'liq nolga tushirish": admin "NOLLASH" so'zini yozishi shart. */
 export class ProgressResetDto {
   @IsIn(["NOLLASH"], { message: "Tasdiqlash uchun NOLLASH so'zini yozing" })

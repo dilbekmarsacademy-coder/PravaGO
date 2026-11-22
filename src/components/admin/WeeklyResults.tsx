@@ -42,11 +42,17 @@ interface WeekDetail {
   randomTests: { id: string; size: number; total: number; answered: number; correct: number; percent: number; status: string; startedAt: string; finishedAt: string | null }[];
   videoProgress?: { lessonId: string; topicSlug: string; topicTitle: string; watchedPercent: number; completed: boolean; completedAt: string | null }[];
   keywordsProgress?: { topicSlug: string; topicTitle: string; reviewedQuestions: number; viewedAt: string | null }[];
+  /** Faqat to'liq nollash arxivida. */
+  finalExams?: { id: string; type: string; status: string; totalQuestions: number; correctCount: number; scorePercent: number; wrongCount: number; startedAt: string; finishedAt: string | null }[];
+  /** To'liq nollashda arxivlangan (o'quvchi kabinetidan yashirilgan) sertifikatlar. */
+  certificates?: { id: string; certificateNumber: string; examType: string; averagePercent: number; attemptsCount: number; fullName: string; issuedAt: string }[];
 }
 
-/** "2026-W46" | "initial-launch" | "manual-2026-11-10T09:00:00" → o'qiladigan nom. */
+/** "week-2026-11-28" | "2026-W46" | "initial-launch" | "manual-2026-11-10T09:00:00" | "full-2026-11-22" → o'qiladigan nom. */
 export function weekLabel(weekKey: string): string {
   if (weekKey === "current") return "Joriy hafta";
+  if (weekKey.startsWith("week-")) return `Haftalik · ${formatDate(`${weekKey.slice(5)}T12:00:00Z`)}`;
+  if (weekKey.startsWith("full-")) return `To'liq nollash · ${weekKey.slice(5)}`;
   if (weekKey === "initial-launch") return "Birinchi yangilanish";
   if (weekKey.startsWith("manual-")) return `Qo'lda · ${formatDateTime(`${weekKey.slice(7)}Z`)}`;
   if (weekKey === "tester-reset") return "Tester nollashi";
@@ -106,7 +112,7 @@ export function UserWeeklyResultsPanel({ userId }: { userId: string }) {
                 Haftalik yangilanishdan ozod {data.exempt ? <Badge tone="warning">yoqilgan</Badge> : <Badge tone="muted">o&apos;chiq</Badge>}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Yoqilsa, har dushanba 22:00 dagi yangilanishda bu o&apos;quvchining natijalari nolga tushmaydi va arxivlanmaydi.
+                Yoqilsa, har shanba 22:00 dagi yangilanishda bu o&apos;quvchining natijalari nolga tushmaydi va arxivlanmaydi.
               </p>
             </div>
             <Button variant={data.exempt ? "secondary" : "primary"} size="sm" disabled={busy} onClick={toggleExempt} data-testid="weekly-exempt-toggle">
@@ -300,6 +306,65 @@ function WeekDetailView({ userId, weekKey }: { userId: string; weekKey: string }
           </Table>
         )}
       </div>
+      {(data.finalExams?.length ?? 0) > 0 && (
+        <div>
+          <p className="mb-2 text-sm font-semibold text-foreground">Yakuniy imtihon urinishlari · {data.finalExams!.length}</p>
+          <Table>
+            <thead>
+              <tr>
+                <Th>Sana</Th>
+                <Th>Tur</Th>
+                <Th>To&apos;g&apos;ri</Th>
+                <Th>Foiz</Th>
+                <Th>Holat</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.finalExams!.map((f) => (
+                <tr key={f.id}>
+                  <Td className="whitespace-nowrap">{formatDateTime(f.startedAt)}</Td>
+                  <Td className="font-mono">{f.totalQuestions} savol</Td>
+                  <Td className="font-mono">
+                    {f.correctCount}/{f.totalQuestions}
+                  </Td>
+                  <Td className="font-mono font-semibold">{f.scorePercent}%</Td>
+                  <Td>
+                    <Badge tone="muted">{f.status}</Badge>
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </div>
+      )}
+      {(data.certificates?.length ?? 0) > 0 && (
+        <div>
+          <p className="mb-2 text-sm font-semibold text-foreground">
+            Arxivlangan sertifikatlar · {data.certificates!.length}{" "}
+            <span className="font-normal text-muted-foreground">(o&apos;quvchi kabinetida ko&apos;rinmaydi)</span>
+          </p>
+          <Table>
+            <thead>
+              <tr>
+                <Th>Raqam</Th>
+                <Th>Ism</Th>
+                <Th>O&apos;rtacha</Th>
+                <Th>Berilgan</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.certificates!.map((c) => (
+                <tr key={c.id}>
+                  <Td className="font-mono">{c.certificateNumber}</Td>
+                  <Td>{c.fullName || "—"}</Td>
+                  <Td className="font-mono font-semibold">{c.averagePercent}%</Td>
+                  <Td className="whitespace-nowrap">{formatDateTime(c.issuedAt)}</Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }

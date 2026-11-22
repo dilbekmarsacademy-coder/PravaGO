@@ -1,7 +1,7 @@
 "use client";
 
-// Haftalik natijalar yangilanishi (dushanba 22:00, Asia/Tashkent):
-// 1) dushanba 12:00 dan sariq ogohlantirish lentasi (faqat tizimga kirgan va
+// Haftalik natijalar yangilanishi (shanba 22:00, Asia/Tashkent — jadval serverda):
+// 1) shanba 12:00 dan sariq ogohlantirish lentasi (faqat tizimga kirgan va
 //    exempt bo'lmagan foydalanuvchiga — server hal qiladi);
 // 2) yangilanish bo'lishi bilan ochiq turgan sahifa ham yangilanadi: holat har
 //    45 s da va tab qayta ko'ringanda so'raladi, `lastResetAt` o'zgarsa — sahifa

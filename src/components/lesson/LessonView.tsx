@@ -22,6 +22,7 @@ import { buttonClasses } from "@/components/shared/Button";
 import LanguageSwitcher from "@/components/shared/LanguageSwitcher";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import { showToast } from "@/components/shared/Toast";
+import { canSeekFreely } from "@/lib/lesson/watch";
 import { SecureVideoPlayer } from "./SecureVideoPlayer";
 import { LessonTestGate } from "./LessonTestGate";
 
@@ -148,7 +149,7 @@ export function LessonView({ topic }: LessonViewProps) {
 
         {!unavailable && (
           <p className="hidden text-center text-xs text-muted-foreground pointer-fine:block">
-            {t.lesson.player.keyboardHint}
+            {unlockAll || canSeekFreely(status) ? t.lesson.player.keyboardHintReview : t.lesson.player.keyboardHint}
           </p>
         )}
 
