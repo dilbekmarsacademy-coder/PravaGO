@@ -905,10 +905,13 @@ export function SecureVideoPlayer({
                 </span>
               </ControlButton>
               {(TEMP_ALLOW_FORWARD_SEEK || seekFree) && (
+                <ControlButton label={p.skipForward} onClick={() => seekTo(lastTimeRef.current + SEEK_FORWARD_SEC)}>
+                  <FastForwardIcon className="size-5" />
+                </ControlButton>
+              )}
+              {/* "Oxiriga" — faqat sinov build'i va admin ochgan o'quvchi uchun (tugallangan mavzuda kerak emas). */}
+              {(TEMP_ALLOW_FORWARD_SEEK || freeSeek) && (
                 <>
-                  <ControlButton label={p.skipForward} onClick={() => seekTo(lastTimeRef.current + SEEK_FORWARD_SEC)}>
-                    <FastForwardIcon className="size-5" />
-                  </ControlButton>
                   <ControlButton
                     label={p.skipToEnd}
                     onClick={() => seekTo(Math.max(0, durationRef.current - SKIP_TO_END_MARGIN_SEC))}

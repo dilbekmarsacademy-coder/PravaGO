@@ -492,6 +492,7 @@ export const uzLatn: Dictionary = {
       replay: "Qayta koʻrish",
       watched: "Video koʻrildi",
       keyboardHint: "Space — pauza · ← — 10 soniya orqaga · F — toʻliq ekran",
+      keyboardHintReview: "Space — pauza · ← / → — 10 soniya orqaga / oldinga · vaqt chizigʻini surish mumkin · F — toʻliq ekran",
       protected: "Video himoyalangan: skrinshot va ekranni yozib olish taqiqlangan",
       skipForward: "10 soniya oldinga",
       skipToEnd: "Video oxiriga (sinov)",
