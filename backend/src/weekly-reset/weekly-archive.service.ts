@@ -132,7 +132,7 @@ export class WeeklyArchiveService {
           COUNT(*) FILTER (WHERE kind = 'video_progress') AS "videoLessons",
           COUNT(*) FILTER (WHERE kind = 'keywords_progress' AND data->>'viewedAt' IS NOT NULL) AS keywords,
           COUNT(*) FILTER (WHERE kind = 'keywords_progress') AS "keywordTopics"
-        FROM "WeeklyResultArchive" WHERE "userId" = ${userId} AND kind IN ('video_progress', 'keywords_progress')
+        FROM "WeeklyResultArchive" WHERE "userId" = ${userId} AND kind IN ('video_progress', 'keywords_progress', 'final_exam', 'certificate')
         GROUP BY 1`,
       // Joriy (hali nollanmagan) progress.
       this.prisma.$queryRaw<ProgressAggRow[]>`
@@ -252,9 +252,11 @@ export class WeeklyArchiveService {
       };
     }
     const rows = await this.prisma.weeklyResultArchive.findMany({
-      where: { userId, weekKey, kind: { in: ["topic_test", "random_test"] } },
+      where: { userId, weekKey, kind: { in: ["topic_test", "random_test", "final_exam", "certificate"] } },
       orderBy: { sourceCreatedAt: "desc" },
     });
+    type FinalData = { type: string; status: string; totalQuestions: number; correctCount: number; scorePercent: number; wrongCount: number; startedAt: string; finishedAt: string | null };
+    type CertData = { certificateNumber: string; examType: string; averagePercent: number; attemptsCount: number; fullName: string; issuedAt: string };
     type TopicData = { topicSlug: string; topicTitle: string; correct: number; total: number; percent: number; createdAt: string };
     type RandomData = { size: number; total: number; answered: number; correct: number; percent: number; status: string; startedAt: string; finishedAt: string | null };
     return {
@@ -265,6 +267,9 @@ export class WeeklyArchiveService {
         const { size, total, answered, correct, percent, status, startedAt, finishedAt } = r.data as unknown as RandomData;
         return { id: r.sourceId, size, total, answered, correct, percent, status, startedAt, finishedAt };
       }),
+      // Faqat to'liq nollash arxivida: yakuniy imtihon urinishlari va (kabinetdan yashirilgan) sertifikatlar.
+      finalExams: rows.filter((r) => r.kind === "final_exam").map((r) => ({ id: r.sourceId, ...(r.data as unknown as FinalData) })),
+      certificates: rows.filter((r) => r.kind === "certificate").map((r) => ({ id: r.sourceId, ...(r.data as unknown as CertData) })),
       ...progress,
     };
   }
@@ -288,6 +293,10 @@ export class WeeklyArchiveService {
 
   async logManual(admin: AdminUser, ip: string, result: { weekKey: string; skipped: boolean; affectedUsers: number; counts: unknown }) {
     await this.audit.log(admin, ip, { action: "results.weekly_reset", entityType: "weekly_reset", entityId: result.weekKey, after: result as unknown as Prisma.InputJsonValue });
+  }
+
+  async logFull(admin: AdminUser, ip: string, result: { weekKey: string; skipped: boolean; affectedUsers: number; counts: unknown }) {
+    await this.audit.log(admin, ip, { action: "results.full_reset", entityType: "weekly_reset", entityId: result.weekKey, after: result as unknown as Prisma.InputJsonValue });
   }
 
   // ── Umumiy ko'rinish ──

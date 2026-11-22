@@ -19,6 +19,7 @@
     "content:clear": "ts-node prisma/clear-content.ts",
     "images:watermark-check": "ts-node --transpile-only scripts/watermark-check.ts",
     "admin:create": "ts-node scripts/admin-create.ts",
+    "reset:all-now": "ts-node scripts/reset-all-now.ts",
     "admin:reset-password": "ts-node scripts/admin-reset-password.ts",
     "admin:hash-code": "ts-node scripts/admin-hash-code.ts",
     "prisma:generate": "prisma generate",

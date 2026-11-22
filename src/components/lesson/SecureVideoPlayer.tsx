@@ -48,6 +48,7 @@ import { ApiError } from "@/lib/api/session";
 import {
   PLAYBACK_RATES,
   TICK_MS,
+  canSeekFreely,
   clampSeek,
   formatTime,
   tick,
@@ -177,6 +178,11 @@ export function SecureVideoPlayer({
   const [maxPosition, setMaxPosition] = useState(0);
   const [resumeAt, setResumeAt] = useState(0);
   const [completed, setCompleted] = useState(false);
+  /**
+   * Tugallangan mavzu (server: GET /lessons/:id → topicCompleted) — to'liq boshqaruv:
+   * vaqt chizig'ini surish, ±10 s, → tugmasi. Faqat server javobiga tayanadi.
+   */
+  const [reviewMode, setReviewMode] = useState(false);
   const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState(100);
   const [rate, setRate] = useState<PlaybackRate>(1);
@@ -237,6 +243,7 @@ export function SecureVideoPlayer({
   }, [onCompleted, onProgress, onUnavailable]);
 
   const applyStatus = useCallback((status: LessonStatus) => {
+    setReviewMode(canSeekFreely(status));
     if (status.completed) {
       // Ko'rilgan darsda butun video bo'ylab erkin harakatlanish mumkin.
       const end = Math.max(durationRef.current, status.durationSec);
@@ -342,6 +349,7 @@ export function SecureVideoPlayer({
         setCurrent(start);
         setResumeAt(start);
         setCompleted(status.completed);
+        setReviewMode(canSeekFreely(status));
         callbacksRef.current.onProgress?.(status);
 
         const iframe = document.createElement("iframe");
@@ -553,7 +561,7 @@ export function SecureVideoPlayer({
       setMaxPosition(tallyRef.current.maxPosition);
       window.setTimeout(() => void report({ force: true }), 300);
     }
-    const allowed = freeSeek
+    const allowed = freeSeek || reviewMode
       ? Math.min(Math.max(0, target), durationRef.current || target)
       : clampSeek(target, tallyRef.current.maxPosition, durationRef.current);
     if (target > allowed + 0.5) flashHint(p.seekLocked);
@@ -568,6 +576,15 @@ export function SecureVideoPlayer({
     }
     revealControls();
   }
+
+  const seekFree = freeSeek || reviewMode;
+  // Tugallangan mavzuda birinchi ijroda — qisqa izoh (bir marta).
+  const reviewHintShownRef = useRef(false);
+  useEffect(() => {
+    if (!reviewMode || !hasStarted || reviewHintShownRef.current) return;
+    reviewHintShownRef.current = true;
+    flashHint(p.reviewMode);
+  }, [reviewMode, hasStarted, flashHint, p.reviewMode]);
 
   function toggleMute() {
     const player = playerRef.current;
@@ -652,8 +669,9 @@ export function SecureVideoPlayer({
       event.preventDefault();
       seekTo(lastTimeRef.current - SEEK_BACK_SEC);
     } else if (event.key === "ArrowRight" && !(event.target instanceof HTMLInputElement)) {
-      // Oldinga o'tkazish yo'q.
       event.preventDefault();
+      // Oldinga o'tkazish faqat tugallangan mavzuda (yoki admin ochgan o'quvchida).
+      if (seekFree) seekTo(lastTimeRef.current + SEEK_FORWARD_SEC);
     } else if (event.code === "KeyF") {
       event.preventDefault();
       toggleFullscreen();
@@ -869,7 +887,13 @@ export function SecureVideoPlayer({
               showControls ? "opacity-100" : "pointer-events-none opacity-0",
             )}
           >
-            <Timeline current={current} duration={duration} maxPosition={maxPosition} label={p.timeline} />
+            <Timeline
+              current={current}
+              duration={duration}
+              maxPosition={maxPosition}
+              label={p.timeline}
+              onSeek={seekFree ? seekTo : undefined}
+            />
             <div className="mt-1.5 flex items-center gap-0.5 sm:gap-1.5">
               <ControlButton label={isPlaying ? p.pause : p.play} onClick={togglePlay}>
                 {isPlaying ? <PauseIcon className="size-5" fill="currentColor" /> : <PlayIcon className="size-5" fill="currentColor" />}
@@ -880,7 +904,7 @@ export function SecureVideoPlayer({
                   <span className="absolute -right-1.5 -bottom-1.5 font-mono text-[9px] font-bold">10</span>
                 </span>
               </ControlButton>
-              {(TEMP_ALLOW_FORWARD_SEEK || freeSeek) && (
+              {(TEMP_ALLOW_FORWARD_SEEK || seekFree) && (
                 <>
                   <ControlButton label={p.skipForward} onClick={() => seekTo(lastTimeRef.current + SEEK_FORWARD_SEC)}>
                     <FastForwardIcon className="size-5" />
@@ -1121,44 +1145,85 @@ function TapThroughBlockers() {
 }
 
 /**
- * Vaqt chizig'i — FAQAT ko'rsatish uchun: bosib ham, sudrab ham bo'lmaydi
- * (oldinga o'tkazish umuman yo'q; orqaga — "10 soniya orqaga" va ← orqali).
+ * Vaqt chizig'i. Odatda FAQAT ko'rsatish uchun: bosib ham, sudrab ham bo'lmaydi
+ * (oldinga o'tkazish yo'q; orqaga — "10 soniya orqaga" va ← orqali).
+ * `onSeek` berilsa (tugallangan mavzu) — surish mumkin: sudrash paytida faqat
+ * ko'rsatkich siljiydi, qo'yib yuborilganda (yoki klaviaturada) bitta seek.
  */
 function Timeline({
   current,
   duration,
   maxPosition,
   label,
+  onSeek,
 }: {
   current: number;
   duration: number;
   maxPosition: number;
   label: string;
+  onSeek?: (target: number) => void;
 }) {
+  const [dragValue, setDragValue] = useState<number | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const onSeekRef = useRef(onSeek);
+  const seekable = onSeek !== undefined;
+  useEffect(() => {
+    onSeekRef.current = onSeek;
+  }, [onSeek]);
+  // Brauzerning "change" hodisasi — qo'yib yuborilganda (React onChange esa har siljishda).
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    const commit = () => {
+      onSeekRef.current?.(Number(input.value));
+      setDragValue(null);
+    };
+    input.addEventListener("change", commit);
+    return () => input.removeEventListener("change", commit);
+  }, [seekable]);
+
+  const shown = dragValue ?? current;
   const percent = (value: number) => (duration > 0 ? Math.min(100, (value / duration) * 100) : 0);
 
   return (
     <div
-      role="progressbar"
-      aria-label={label}
-      aria-valuemin={0}
-      aria-valuemax={Math.round(duration)}
-      aria-valuenow={Math.round(current)}
-      aria-valuetext={`${formatTime(current)} / ${formatTime(duration)}`}
-      className="pointer-events-none relative flex h-4 items-center"
+      role={onSeek ? undefined : "progressbar"}
+      aria-label={onSeek ? undefined : label}
+      aria-valuemin={onSeek ? undefined : 0}
+      aria-valuemax={onSeek ? undefined : Math.round(duration)}
+      aria-valuenow={onSeek ? undefined : Math.round(current)}
+      aria-valuetext={onSeek ? undefined : `${formatTime(current)} / ${formatTime(duration)}`}
+      className={cn("relative flex h-4 items-center", onSeek ? "group cursor-pointer" : "pointer-events-none")}
+      data-testid="video-timeline"
+      data-seekable={onSeek ? "true" : "false"}
     >
-      <div className="relative h-1 w-full overflow-hidden rounded-full bg-white/15">
+      <div className={cn("relative w-full overflow-hidden rounded-full bg-white/15", onSeek ? "h-1.5 group-hover:h-2" : "h-1")}>
         <div className="absolute inset-y-0 left-0 bg-white/30" style={{ width: `${percent(maxPosition)}%` }} />
         <div
           className="absolute inset-y-0 left-0 bg-gradient-to-r from-brand to-brand-2"
-          style={{ width: `${percent(current)}%` }}
+          style={{ width: `${percent(shown)}%` }}
         />
       </div>
       <div
         aria-hidden="true"
-        className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_0_3px_rgba(255,94,0,0.45)]"
-        style={{ left: `${percent(current)}%` }}
+        className="pointer-events-none absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_0_3px_rgba(255,94,0,0.45)]"
+        style={{ left: `${percent(shown)}%` }}
       />
+      {onSeek && (
+        <input
+          ref={inputRef}
+          type="range"
+          min={0}
+          max={Math.max(1, Math.floor(duration))}
+          step={1}
+          value={Math.min(Math.floor(shown), Math.max(1, Math.floor(duration)))}
+          aria-label={label}
+          aria-valuetext={`${formatTime(shown)} / ${formatTime(duration)}`}
+          onChange={(event) => setDragValue(Number(event.target.value))}
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          data-testid="video-seek"
+        />
+      )}
     </div>
   );
 }

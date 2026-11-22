@@ -480,6 +480,7 @@ export const uzLatn: Dictionary = {
       exitFullscreen: "Toʻliq ekrandan chiqish",
       timeline: "Video vaqt chizigʻi",
       seekLocked: "Hali koʻrilmagan qismga oʻtib boʻlmaydi",
+      reviewMode: "Mavzu tugallangan — videoni istalgan joyga oʻtkazib koʻrishingiz mumkin",
       loading: "Video yuklanmoqda…",
       errorTitle: "Videoni ochib boʻlmadi",
       errorDesc: "Internet aloqasini tekshirib, qayta urinib koʻring. Muammo takrorlansa, qoʻllab-quvvatlash xizmatiga yozing.",

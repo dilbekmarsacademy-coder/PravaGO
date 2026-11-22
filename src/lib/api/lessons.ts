@@ -17,6 +17,11 @@ export interface LessonStatus {
   completed: boolean;
   /** Avval (haftalik yangilanishgacha) kamida bir marta ko'rilgan — faqat yakuniy imtihon qulfi uchun. */
   everCompleted?: boolean;
+  /**
+   * Mavzu to'liq tugatilgan (serverda hisoblanadi: video ko'rilgan + test o'tilgan).
+   * Faqat shunda pleyerda erkin surish ochiladi; yo'q yoki false — cheklov saqlanadi.
+   */
+  topicCompleted?: boolean;
 }
 
 export interface ProgressReport {

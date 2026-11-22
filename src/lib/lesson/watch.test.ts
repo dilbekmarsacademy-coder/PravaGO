@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clampSeek, formatTime, tick } from "./watch";
+import { canSeekFreely, clampSeek, formatTime, tick } from "./watch";
 
 const start = { maxPosition: 0, pendingSeconds: 0 };
 
@@ -44,5 +44,28 @@ describe("formatTime", () => {
     expect(formatTime(75)).toBe("1:15");
     expect(formatTime(3725)).toBe("1:02:05");
     expect(formatTime(Number.NaN)).toBe("0:00");
+  });
+});
+
+describe("canSeekFreely — tugallangan mavzuda erkin surish (server holati)", () => {
+  it("faqat server topicCompleted=true va video completed bo'lsa", () => {
+    expect(canSeekFreely({ completed: true, topicCompleted: true })).toBe(true);
+    expect(canSeekFreely({ completed: true, topicCompleted: false })).toBe(false);
+    expect(canSeekFreely({ completed: false, topicCompleted: true })).toBe(false);
+  });
+
+  it("holat yuklanmagan yoki bayroq yo'q — cheklov saqlanadi", () => {
+    expect(canSeekFreely(null)).toBe(false);
+    expect(canSeekFreely(undefined)).toBe(false);
+    expect(canSeekFreely({ completed: true })).toBe(false);
+  });
+
+  it("admin hammasini ochgan (freeSeek) — har doim", () => {
+    expect(canSeekFreely(null, true)).toBe(true);
+  });
+
+  it("tugallanmagan mavzuda oldinga surish eng uzoq ko'rilgan nuqtadan oshmaydi", () => {
+    expect(clampSeek(500, 120, 900)).toBe(120);
+    expect(clampSeek(60, 120, 900)).toBe(60);
   });
 });

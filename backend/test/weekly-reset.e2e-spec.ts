@@ -6,7 +6,19 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { AppModule } from "../src/app.module";
 import { AuthService, hashToken } from "../src/auth/auth.service";
 import { PrismaService } from "../src/prisma/prisma.service";
-import { INITIAL_WEEK_KEY, isBannerVisible, lastResetBoundary, nextResetAt, weekKeyOf } from "../src/weekly-reset/schedule";
+import {
+  INITIAL_WEEK_KEY,
+  RESET_CRON,
+  RESET_SCHEDULE,
+  bannerFrom,
+  firstScheduledReset,
+  isBannerVisible,
+  isScheduledBoundary,
+  lastResetBoundary,
+  nextResetAt,
+  scheduleLabel,
+  weekKeyOf,
+} from "../src/weekly-reset/schedule";
 import { WeeklyResetService } from "../src/weekly-reset/weekly-reset.service";
 import { loadBestPercents } from "../src/admin/progress";
 import { adminHeaders, configureAdminEnv, createTestAdmin } from "./helpers/admin";
@@ -17,36 +29,48 @@ import { adminHeaders, configureAdminEnv, createTestAdmin } from "./helpers/admi
 
 const iso = (s: string) => new Date(s);
 
-describe("Haftalik yangilanish — jadval (Asia/Tashkent, UTC+5)", () => {
-  it("keyingi yangilanish: dushanba 22:00", () => {
-    // 2026-11-08 yakshanba 23:30 Toshkent → ertaga (dushanba) 22:00.
-    expect(nextResetAt(iso("2026-11-08T18:30:00Z")).toISOString()).toBe("2026-11-09T17:00:00.000Z");
-    // Dushanba 21:59 → shu kuni 22:00.
-    expect(nextResetAt(iso("2026-11-09T16:59:00Z")).toISOString()).toBe("2026-11-09T17:00:00.000Z");
-    // Dushanba 22:01 → keyingi dushanba.
-    expect(nextResetAt(iso("2026-11-09T17:01:00Z")).toISOString()).toBe("2026-11-16T17:00:00.000Z");
-    expect(lastResetBoundary(iso("2026-11-09T17:01:00Z")).toISOString()).toBe("2026-11-09T17:00:00.000Z");
-    // Oy almashuvi: 2026-11-30 dushanba.
-    expect(nextResetAt(iso("2026-11-28T10:00:00Z")).toISOString()).toBe("2026-11-30T17:00:00.000Z");
-    // Yil almashuvi: 2026-12-31 → 2027-01-04 dushanba.
-    expect(nextResetAt(iso("2026-12-31T19:00:00Z")).toISOString()).toBe("2027-01-04T17:00:00.000Z");
-    // UTC bo'yicha hali yakshanba, Toshkentda esa dushanba 00:30.
-    expect(nextResetAt(iso("2026-11-08T19:30:00Z")).toISOString()).toBe("2026-11-09T17:00:00.000Z");
+describe("Haftalik yangilanish — jadval (Asia/Tashkent, UTC+5, shanba 22:00)", () => {
+  it("jadval bitta konstantada: shanba 22:00, lenta 12:00", () => {
+    expect(RESET_SCHEDULE).toMatchObject({ timeZone: "Asia/Tashkent", weekday: 6, hour: 22, bannerHour: 12 });
+    expect(RESET_CRON).toBe("0 22 * * 6");
+    expect(scheduleLabel()).toBe("shanba 22:00");
   });
 
-  it("hafta kaliti (ISO)", () => {
-    expect(weekKeyOf(iso("2026-11-09T17:00:00Z"))).toBe("2026-W46");
-    expect(weekKeyOf(iso("2026-12-28T17:00:00Z"))).toBe("2026-W53");
-    expect(weekKeyOf(iso("2027-01-04T17:00:00Z"))).toBe("2027-W01");
+  it("keyingi yangilanish: shanba 22:00", () => {
+    // 2026-11-22 yakshanba 12:00 Toshkent → 2026-11-28 shanba 22:00 (17:00Z).
+    expect(nextResetAt(iso("2026-11-22T07:00:00Z")).toISOString()).toBe("2026-11-28T17:00:00.000Z");
+    // Shanba 21:59 → shu kuni 22:00.
+    expect(nextResetAt(iso("2026-11-28T16:59:00Z")).toISOString()).toBe("2026-11-28T17:00:00.000Z");
+    // Shanba 22:01 → keyingi shanba.
+    expect(nextResetAt(iso("2026-11-28T17:01:00Z")).toISOString()).toBe("2026-12-05T17:00:00.000Z");
+    expect(lastResetBoundary(iso("2026-11-28T17:01:00Z")).toISOString()).toBe("2026-11-28T17:00:00.000Z");
+    // Dushanba — endi yangilanish kuni emas.
+    expect(nextResetAt(iso("2026-11-23T17:30:00Z")).toISOString()).toBe("2026-11-28T17:00:00.000Z");
+    // Yil almashuvi: 2026-12-31 → 2027-01-02 shanba.
+    expect(nextResetAt(iso("2026-12-31T19:00:00Z")).toISOString()).toBe("2027-01-02T17:00:00.000Z");
+    // UTC bo'yicha hali juma, Toshkentda esa shanba 00:30.
+    expect(nextResetAt(iso("2026-11-27T19:30:00Z")).toISOString()).toBe("2026-11-28T17:00:00.000Z");
   });
 
-  it("lenta: dushanba 12:00 dan 22:00 gacha", () => {
-    expect(isBannerVisible(iso("2026-11-09T06:59:00Z"), false)).toBe(false); // 11:59
-    expect(isBannerVisible(iso("2026-11-09T07:00:00Z"), false)).toBe(true); // 12:00
-    expect(isBannerVisible(iso("2026-11-09T16:59:59Z"), false)).toBe(true); // 21:59:59
-    expect(isBannerVisible(iso("2026-11-09T17:00:00Z"), false)).toBe(false); // 22:00, bajarilgan
-    expect(isBannerVisible(iso("2026-11-09T17:30:00Z"), true)).toBe(true); // hali bajarilyapti
-    expect(isBannerVisible(iso("2026-11-10T07:00:00Z"), false)).toBe(false); // seshanba
+  it("hafta kaliti — yangilanish sanasi (Toshkent), eski ISO kalitlar bilan to'qnashmaydi", () => {
+    expect(weekKeyOf(iso("2026-11-28T17:00:00Z"))).toBe("week-2026-11-28");
+    expect(weekKeyOf(iso("2027-01-02T17:00:00Z"))).toBe("week-2027-01-02");
+  });
+
+  it("lenta: shanba 12:00 dan 22:00 gacha", () => {
+    expect(isBannerVisible(iso("2026-11-28T06:59:00Z"), false)).toBe(false); // 11:59
+    expect(isBannerVisible(iso("2026-11-28T07:00:00Z"), false)).toBe(true); // 12:00
+    expect(isBannerVisible(iso("2026-11-28T16:59:59Z"), false)).toBe(true); // 21:59:59
+    expect(isBannerVisible(iso("2026-11-28T17:00:00Z"), false)).toBe(false); // 22:00, bajarilgan
+    expect(isBannerVisible(iso("2026-11-28T17:30:00Z"), true)).toBe(true); // hali bajarilyapti
+    expect(isBannerVisible(iso("2026-11-23T07:00:00Z"), false)).toBe(false); // dushanba — endi yo'q
+    expect(bannerFrom(iso("2026-11-25T07:00:00Z")).toISOString()).toBe("2026-11-28T07:00:00.000Z");
+  });
+
+  it("jadval kuchga kirishi: 2026-11-28 22:00 dan oldingi chegaralar bajarilmaydi", () => {
+    expect(firstScheduledReset().toISOString()).toBe("2026-11-28T17:00:00.000Z");
+    expect(isScheduledBoundary(lastResetBoundary(iso("2026-11-22T07:00:00Z")))).toBe(false); // 2026-11-21
+    expect(isScheduledBoundary(iso("2026-11-28T17:00:00Z"))).toBe(true);
   });
 });
 
@@ -107,6 +131,10 @@ beforeAll(async () => {
   // Toza holat: avvalgi yangilanishlar va arxiv (faqat test bazasi).
   await prisma.weeklyResultArchive.deleteMany({});
   await prisma.weeklyReset.deleteMany({});
+  // Boshqa test fayllaridan qolgan video/kalit so'z progressi arxiv turlarini buzmasin.
+  await prisma.lessonProgress.deleteMany({});
+  await prisma.keywordReview.deleteMany({});
+  await prisma.topicKeywordsView.deleteMany({});
   await prisma.topic.deleteMany({ where: { slug: "weekly-e2e-topic" } });
   const topic = await prisma.topic.create({ data: { slug: "weekly-e2e-topic", title: "Haftalik test mavzusi", kind: "collection" } });
   topicId = topic.id;

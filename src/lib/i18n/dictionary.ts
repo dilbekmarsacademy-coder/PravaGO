@@ -429,6 +429,8 @@ export interface Dictionary {
       exitFullscreen: string;
       timeline: string;
       seekLocked: string;
+      /** Tugallangan mavzu: to'liq boshqaruv (surish, oldinga/orqaga). */
+      reviewMode: string;
       loading: string;
       errorTitle: string;
       errorDesc: string;

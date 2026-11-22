@@ -55,10 +55,17 @@ export class TestAttemptsService {
    * Haftalik yangilanishdan oldin o'tilgan (>= PASS_PERCENT) mavzular — faqat
    * slug'lar, natijalarsiz. Kabinetda keyingi mavzular ochiq qolishi uchun:
    * natijalar nolga tushadi, lekin qulf qayta yopilmaydi.
+   * Bir martalik TO'LIQ nollash (WeeklyReset.triggeredBy = "full") esa ketma-ketlikni
+   * boshidan boshlaydi: undan oldin (yoki o'sha nollashda) arxivlanganlar hisoblanmaydi.
    */
   async passedBefore(userId: string): Promise<string[]> {
+    const lastFull = await this.prisma.weeklyReset.findFirst({
+      where: { triggeredBy: "full", status: "done", userId: null },
+      orderBy: { startedAt: "desc" },
+      select: { startedAt: true },
+    });
     const rows = await this.prisma.topicTestAttempt.findMany({
-      where: { userId, archivedAt: { not: null }, percent: { gte: PASS_PERCENT } },
+      where: { userId, archivedAt: lastFull ? { gt: lastFull.startedAt } : { not: null }, percent: { gte: PASS_PERCENT } },
       distinct: ["topicId"],
       select: { topic: { select: { slug: true } } },
     });

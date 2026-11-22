@@ -41,6 +41,8 @@ export type AttemptAnswers = Record<string, { optionId: string; answeredAt: stri
 export type ExamOutcome = "in_progress" | "passed" | "failed";
 
 const COUNTED = { archivedAt: null } satisfies Prisma.FinalExamAttemptWhereInput;
+/** Faol sertifikat: to'liq nollashda arxivlanganlari kabinetda ko'rinmaydi va qayta berishga to'sqinlik qilmaydi. */
+const ACTIVE_CERT = { archivedAt: null } satisfies Prisma.CertificateWhereInput;
 
 function conflict(code: string, message: string, extra: Record<string, unknown> = {}): ConflictException {
   return new ConflictException({ statusCode: 409, code, message, ...extra });
@@ -207,7 +209,7 @@ export class FinalExamService {
 
   /** 10 ta urinish yakunlangan va o'rtacha >= 98% — sertifikat (bir turga bitta). */
   async issueCertificateIfPassed(userId: string, type: FinalExamType) {
-    const existing = await this.prisma.certificate.findUnique({ where: { userId_examType: { userId, examType: type } } });
+    const existing = await this.prisma.certificate.findFirst({ where: { userId, examType: type, ...ACTIVE_CERT } });
     if (existing) return existing;
     const attempts = (await this.counted(userId, type)).filter((a) => a.status !== "IN_PROGRESS");
     const percents = attempts.slice(0, FINAL_EXAM_MAX_ATTEMPTS).map((a) => a.scorePercent);
@@ -235,7 +237,7 @@ export class FinalExamService {
     } catch (err) {
       // Parallel yakunlash — sertifikat allaqachon yaratilgan.
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-        return this.prisma.certificate.findUnique({ where: { userId_examType: { userId, examType: type } } });
+        return this.prisma.certificate.findFirst({ where: { userId, examType: type, ...ACTIVE_CERT } });
       }
       throw err;
     }
@@ -371,7 +373,7 @@ export class FinalExamService {
     const done = a.status !== "IN_PROGRESS";
     const items = questionsOf(a);
     const finishedCount = finishedOthers.length;
-    const certificate = done && finishedCount >= FINAL_EXAM_MAX_ATTEMPTS ? await this.prisma.certificate.findUnique({ where: { userId_examType: { userId: a.userId, examType: a.type } } }) : null;
+    const certificate = done && finishedCount >= FINAL_EXAM_MAX_ATTEMPTS ? await this.prisma.certificate.findFirst({ where: { userId: a.userId, examType: a.type, ...ACTIVE_CERT } }) : null;
     return {
       ...attemptSummary(a),
       remainingMs: remainingMs(a),
@@ -566,12 +568,12 @@ export class FinalExamService {
 
   async certificates(userId: string) {
     await this.access.assertCourseAccess(userId);
-    const rows = await this.prisma.certificate.findMany({ where: { userId }, orderBy: { issuedAt: "asc" } });
+    const rows = await this.prisma.certificate.findMany({ where: { userId, ...ACTIVE_CERT }, orderBy: { issuedAt: "asc" } });
     return rows.map((c) => this.certificateDto(c));
   }
 
   private async ownCertificate(userId: string, number: string) {
-    const c = await this.prisma.certificate.findFirst({ where: { userId, certificateNumber: number } });
+    const c = await this.prisma.certificate.findFirst({ where: { userId, certificateNumber: number, ...ACTIVE_CERT } });
     if (!c) throw new NotFoundException({ statusCode: 404, code: "CERTIFICATE_NOT_FOUND", message: "Sertifikat topilmadi" });
     return c;
   }
@@ -630,7 +632,7 @@ export class FinalExamService {
         select: {
           ...userBrief,
           finalExamAttempts: { where: COUNTED, orderBy: { startedAt: "asc" }, select: { type: true, status: true, scorePercent: true, startedAt: true } },
-          certificates: { select: { examType: true, certificateNumber: true, averagePercent: true } },
+          certificates: { where: ACTIVE_CERT, select: { examType: true, certificateNumber: true, averagePercent: true } },
         },
       }),
     ]);
@@ -661,7 +663,7 @@ export class FinalExamService {
     if (!user) throw new NotFoundException("Foydalanuvchi topilmadi");
     const [attempts, certificates, lock] = await Promise.all([
       this.prisma.finalExamAttempt.findMany({ where: { userId }, orderBy: { startedAt: "asc" } }),
-      this.prisma.certificate.findMany({ where: { userId } }),
+      this.prisma.certificate.findMany({ where: { userId }, orderBy: { issuedAt: "asc" } }),
       this.examLock(userId),
     ]);
     return {
@@ -670,7 +672,7 @@ export class FinalExamService {
       remainingTopics: lock.remainingTopics,
       types: (["Q20", "Q50"] as const).map((type) => {
         const list = attempts.filter((a) => a.type === type && a.archivedAt === null);
-        const cert = certificates.find((c) => c.examType === type);
+        const cert = certificates.find((c) => c.examType === type && c.archivedAt === null);
         return {
           type,
           ...FINAL_EXAM_TYPES[type],
@@ -680,6 +682,10 @@ export class FinalExamService {
           attempts: list.map(attemptSummary),
           archivedCount: attempts.filter((a) => a.type === type && a.archivedAt !== null).length,
           certificate: cert ? { certificateNumber: cert.certificateNumber, averagePercent: cert.averagePercent, issuedAt: cert.issuedAt, fullName: cert.fullName } : null,
+          // To'liq nollashda arxivlangan (o'quvchidan yashirilgan) sertifikatlar — faqat admin ko'radi.
+          archivedCertificates: certificates
+            .filter((c) => c.examType === type && c.archivedAt !== null)
+            .map((c) => ({ certificateNumber: c.certificateNumber, averagePercent: c.averagePercent, issuedAt: c.issuedAt, fullName: c.fullName, archivedAt: c.archivedAt })),
         };
       }),
     };

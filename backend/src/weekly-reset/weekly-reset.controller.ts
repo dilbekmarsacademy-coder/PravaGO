@@ -5,7 +5,7 @@ import { safeEqual } from "../admin/admin-config";
 import { AdminGuard, CurrentAdmin, RequestIp, RequirePermission } from "../admin/admin.guard";
 import type { RequestWithUser } from "../auth/session.middleware";
 import { PrismaService } from "../prisma/prisma.service";
-import { ArchiveUserParamDto, ArchiveWeekParamDto, ExemptDto, ManualResetDto, ProgressResetDto, WeekParamDto, WeekUsersQueryDto } from "./weekly-reset.dto";
+import { ArchiveUserParamDto, ArchiveWeekParamDto, ExemptDto, FullResetDto, ManualResetDto, ProgressResetDto, WeekParamDto, WeekUsersQueryDto } from "./weekly-reset.dto";
 import { WeeklyArchiveService } from "./weekly-archive.service";
 import { WeeklyResetService } from "./weekly-reset.service";
 
@@ -72,6 +72,21 @@ export class AdminWeeklyResetController {
     const result = await this.reset.manual(admin.id, Boolean(body.dryRun));
     if (!result.dryRun) await this.archive.logManual(admin, ip, result);
     return result;
+  }
+
+  /**
+   * Bir martalik TO'LIQ nollash — hamma foydalanuvchi (exempt ham), yakuniy imtihon
+   * va sertifikatlar ham arxivlanadi. "HAMMASINI NOLLASH" iborasisiz 400.
+   * dryRun — faqat sanaydi. Idempotent (FULL_RESET_KEY): ikkinchi chaqiruv skipped.
+   * Xuddi shu amal CLI orqali: `npm run reset:all-now -- --dry-run | --confirm`.
+   */
+  @Post("full")
+  @HttpCode(200)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  async full(@Body() body: FullResetDto, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    const result = await this.reset.fullReset({ dryRun: Boolean(body.dryRun), adminId: admin.id });
+    if (!result.dryRun) await this.archive.logFull(admin, ip, result);
+    return { ...result, previous: result.dryRun ? await this.reset.resetState(result.weekKey) : null };
   }
 
   @Get(":weekKey/users")

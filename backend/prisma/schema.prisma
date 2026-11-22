@@ -937,8 +937,16 @@ model Certificate {
   issuedAt          DateTime      @default(now()) @db.Timestamptz(3)
   /// O'quvchi tabrik ekranini (xat + sertifikat) ko'rgan vaqt; null — keyingi kirishda ko'rsatiladi.
   celebratedAt      DateTime?     @db.Timestamptz(3)
+  /// To'liq nollashda arxivlangan: kabinetda ko'rinmaydi, o'chirilmaydi (admin arxivida bor).
+  archivedAt        DateTime?     @db.Timestamptz(3)
+  archiveWeekKey    String?       @db.VarChar(40)
 
-  @@unique([userId, examType])
+  /// Bir turga bitta FAOL sertifikat: qisman unikal indeks
+  /// "Certificate_active_userId_examType_key" (WHERE "archivedAt" IS NULL) —
+  /// migratsiya 20261122090000_full_reset_certificate_archive'da qo'lda yaratilgan
+  /// (Prisma sxemasida ifodalanmaydi). Yangi migratsiya yaratilganda uni o'chirib
+  /// yubormasligiga e'tibor bering.
+  @@index([userId, examType])
 }
 
 // ───────────────────────── Haftalik natijalar yangilanishi ─────────────────────────
@@ -947,11 +955,12 @@ model Certificate {
 /// "initial-launch"). weekKey unikal — bir kalit uchun ikki marta ishlamaydi.
 model WeeklyReset {
   id            String    @id @default(uuid())
-  /// "2026-W46" | "initial-launch" | "manual-<ISO vaqt>" | "tester-reset" | "user-<ISO vaqt>"
+  /// "week-2026-11-28" (shanba jadvali) | "2026-W46" (eski dushanba jadvali) | "initial-launch" |
+  /// "manual-<ISO vaqt>" | "tester-reset" | "user-<ISO vaqt>" | "full-2026-11-22" (to'liq nollash)
   weekKey       String    @unique @db.VarChar(40)
   /// running | done | failed | covered ("initial-launch" shu haftani qoplagan)
   status        String    @db.VarChar(20)
-  /// cron | catchup | manual | initial | tester | user
+  /// cron | catchup | manual | initial | tester | user | full
   triggeredBy   String    @db.VarChar(20)
   startedAt     DateTime  @default(now()) @db.Timestamptz(3)
   finishedAt    DateTime? @db.Timestamptz(3)
@@ -973,7 +982,8 @@ model WeeklyReset {
 model WeeklyResultArchive {
   id              String   @id @default(uuid())
   userId          String
-  /// topic_test | random_test | answer | ai_insight | video_progress | keywords_progress
+  /// topic_test | random_test | answer | ai_insight | video_progress | keywords_progress |
+  /// final_exam | certificate (faqat to'liq nollashda)
   kind            String   @db.VarChar(20)
   /// Manba yozuv id'si (TopicTestAttempt, RandomTestAttempt, AnswerLog).
   sourceId        String

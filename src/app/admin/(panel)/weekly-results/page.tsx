@@ -109,7 +109,7 @@ export default function AdminWeeklyResultsPage() {
     <>
       <PageHeader
         title="Haftalik natijalar"
-        subtitle="Har dushanba 22:00 (Toshkent) da o'quvchilar test natijalari, video va kalit so'zlar progressi nolga tushadi; eskilari shu yerda arxivda saqlanadi."
+        subtitle="Har shanba 22:00 (Toshkent) da o'quvchilar test natijalari, video va kalit so'zlar progressi nolga tushadi; eskilari shu yerda arxivda saqlanadi."
         actions={
           <Button variant="danger" size="sm" onClick={() => setConfirmOpen(true)} data-testid="weekly-reset-now">
             <RefreshCwIcon className="size-4" />
