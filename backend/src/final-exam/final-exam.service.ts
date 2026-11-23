@@ -751,4 +751,31 @@ export class FinalExamService {
     });
     return { userId, type, archived: result };
   }
+
+  /**
+   * To'liq restart (admin tugmasi): Q20 va Q50 — barcha urinishlar (jarayondagisi
+   * EXPIRED bo'lib), o'rtacha va faol sertifikatlar arxivlanadi. Hech narsa
+   * o'chirilmaydi: admin arxivda ko'radi, sertifikatning ommaviy tekshiruvi ishlaydi.
+   * O'quvchi imtihonni boshidan (10 ta urinish bilan) topshiradi va yangi sertifikat oladi.
+   */
+  async adminRestart(admin: AdminUser, ip: string, userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!user) throw new NotFoundException("Foydalanuvchi topilmadi");
+    const now = new Date();
+    return this.prisma.$transaction(async (tx) => {
+      await tx.finalExamAttempt.updateMany({ where: { userId, status: "IN_PROGRESS" }, data: { status: "EXPIRED", finishedAt: now } });
+      const attempts = await tx.finalExamAttempt.updateMany({ where: { userId, archivedAt: null }, data: { archivedAt: now } });
+      const certificates = await tx.certificate.updateMany({
+        where: { userId, ...ACTIVE_CERT },
+        data: { archivedAt: now, archiveWeekKey: `admin-restart-${now.toISOString().slice(0, 19)}` },
+      });
+      await this.audit.log(
+        admin,
+        ip,
+        { action: "final_exam.restart", entityType: "user", entityId: userId, after: { attempts: attempts.count, certificates: certificates.count } },
+        tx,
+      );
+      return { userId, attempts: attempts.count, certificates: certificates.count };
+    });
+  }
 }

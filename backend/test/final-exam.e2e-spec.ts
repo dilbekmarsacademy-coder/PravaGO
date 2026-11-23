@@ -446,6 +446,42 @@ describe("Yakuniy imtihon — admin", () => {
     expect((await http().get(`/admin/final-exam/users/${user.userId}`).set(admin).expect(200)).body.types[0]).toMatchObject({ attemptsUsed: 1, archivedCount: 10 });
   });
 
+  it("restart: ikkala tur urinishlari, o'rtacha va sertifikat nolga; yangi sertifikat olish mumkin", async () => {
+    const user = await newUser({ firstName: "Restart", lastName: "Sinov" });
+    await completeCourse(user.userId);
+    await seedFinished(user.userId, "Q20", Array(10).fill(100));
+    await seedFinished(user.userId, "Q50", [...Array(9).fill(95), 90]);
+    const before = (await http().get("/final-exam").set(user.auth).expect(200)).body;
+    const oldNumber = before.types[0].certificate.certificateNumber as string;
+    const active = (await http().post("/final-exam").set(user.auth).send({ type: "Q20" }).expect(409)).body;
+    expect(active.code).toBe("FINAL_EXAM_NO_ATTEMPTS");
+
+    await http().post(`/admin/final-exam/users/${user.userId}/restart`).expect(403);
+    const other = await newUser();
+    await seedFinished(other.userId, "Q20", Array(10).fill(100));
+    const res = (await http().post(`/admin/final-exam/users/${user.userId}/restart`).set(admin).send({}).expect(200)).body;
+    expect(res).toMatchObject({ attempts: 20, certificates: 1 });
+    expect(await prisma.auditLog.count({ where: { action: "final_exam.restart", entityId: user.userId } })).toBe(1);
+
+    const after = (await http().get("/final-exam").set(user.auth).expect(200)).body;
+    for (const t of after.types) expect(t).toMatchObject({ attemptsUsed: 0, attemptsLeft: 10, average: null, certificate: null, outcome: "in_progress" });
+    expect((await http().get("/certificates").set(user.auth).expect(200)).body).toHaveLength(0);
+    await http().get(`/certificates/${oldNumber}`).set(user.auth).expect(404);
+    // Ommaviy tekshiruv va admin arxivi saqlanadi.
+    await http().get(`/public/certificates/${oldNumber}`).expect(200);
+    const detail = (await http().get(`/admin/final-exam/users/${user.userId}`).set(admin).expect(200)).body;
+    expect(detail.types[0]).toMatchObject({ attemptsUsed: 0, archivedCount: 10, certificate: null });
+    expect(detail.types[0].archivedCertificates[0].certificateNumber).toBe(oldNumber);
+    // Boshqa o'quvchiga tegmaydi.
+    expect((await http().get("/final-exam").set(other.auth).expect(200)).body.types[0].certificate).not.toBeNull();
+
+    // Qayta topshirib, yangi sertifikat oladi.
+    await seedFinished(user.userId, "Q20", Array(10).fill(100));
+    const again = (await http().get("/final-exam").set(user.auth).expect(200)).body.types[0];
+    expect(again.outcome).toBe("passed");
+    expect(again.certificate.certificateNumber).not.toBe(oldNumber);
+  });
+
   it("urinish tafsiloti: sarflangan vaqt, xato va javobsiz savollar; faol urinishda 409", async () => {
     const user = await newUser();
     await completeCourse(user.userId);

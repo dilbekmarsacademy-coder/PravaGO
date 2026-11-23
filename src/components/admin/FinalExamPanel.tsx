@@ -25,6 +25,7 @@ export interface AdminFinalExamUser {
     average: number | null;
     attempts: AttemptSummary[];
     archivedCount: number;
+    archivedCertificates?: { certificateNumber: string; averagePercent: number; issuedAt: string; fullName: string; archivedAt: string }[];
     certificate: { certificateNumber: string; averagePercent: number; issuedAt: string; fullName: string } | null;
   }[];
 }
@@ -56,7 +57,7 @@ export const FINAL_STATUS: Record<AttemptSummary["status"], { label: string; ton
 /** Foydalanuvchi sahifasi: yakuniy imtihon urinishlari, o'rtacha, sertifikat va "nolga qaytarish". */
 export function UserFinalExamPanel({ userId }: { userId: string }) {
   const [data, setData] = useState<AdminFinalExamUser | null>(null);
-  const [confirming, setConfirming] = useState<FinalExamType | null>(null);
+  const [confirming, setConfirming] = useState<FinalExamType | "all" | null>(null);
   const [busy, setBusy] = useState(false);
   const [openAttempt, setOpenAttempt] = useState<string | null>(null);
 
@@ -85,6 +86,26 @@ export function UserFinalExamPanel({ userId }: { userId: string }) {
     }
   }
 
+  /** Ikkala tur: urinishlar, o'rtacha va sertifikat — nolga (POST …/restart). */
+  async function restart() {
+    setBusy(true);
+    try {
+      const res = await adminFetch<{ attempts: number; certificates: number }>(`final-exam/users/${userId}/restart`, { json: {} });
+      showToast({
+        tone: "success",
+        message: `Yakuniy imtihon qayta boshlandi: ${res.attempts} ta urinish${res.certificates ? `, ${res.certificates} ta sertifikat` : ""} arxivlandi`,
+      });
+      setConfirming(null);
+      load();
+    } catch (err) {
+      showToast({ tone: "danger", message: err instanceof Error ? err.message : "Bajarib bo'lmadi" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const hasResults = !!data?.types.some((t) => t.attemptsUsed > 0 || t.certificate);
+
   return (
     <Panel title="Yakuniy ichki imtihon" className="mb-6">
       {!data ? (
@@ -95,6 +116,39 @@ export function UserFinalExamPanel({ userId }: { userId: string }) {
             {data.unlocked ? "Imtihon ochiq." : "Imtihon yopiq."}{" "}
             {data.remainingTopics > 0 ? `1–6-kunda ${data.remainingTopics} ta mavzu hali tugatilmagan.` : "1–6-kun mavzulari tugagan."}
           </p>
+          {hasResults && (
+            <div className="rounded-2xl border border-danger/30 bg-danger/5 p-4" data-testid="final-restart-box">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold text-foreground">Imtihonni qayta boshlash (restart)</p>
+                  <p className="text-xs text-muted-foreground">
+                    20 va 50 savollik: barcha urinishlar, o&apos;rtacha natija va sertifikat nolga tushadi.
+                  </p>
+                </div>
+                {confirming === "all" ? (
+                  <div className="flex gap-2">
+                    <Button variant="danger" size="sm" disabled={busy} onClick={restart} data-testid="final-restart-confirm">
+                      Ha, restart qilish
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={() => setConfirming(null)}>
+                      Bekor
+                    </Button>
+                  </div>
+                ) : (
+                  <Button variant="danger" size="sm" onClick={() => setConfirming("all")} data-testid="final-restart">
+                    Restart qilish
+                  </Button>
+                )}
+              </div>
+              {confirming === "all" && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Ma&apos;lumot o&apos;chirilmaydi: urinishlar va sertifikat arxivga o&apos;tadi (bu yerda ko&apos;rinadi, sertifikatning ommaviy
+                  tekshiruvi ishlayveradi). O&apos;quvchi kabinetida natijalar 0 bo&apos;ladi, imtihonni yana 10 urinish bilan boshidan topshiradi va
+                  o&apos;tsa yangi sertifikat oladi.
+                </p>
+              )}
+            </div>
+          )}
           {data.types.map((t) => (
             <div key={t.type} className="rounded-2xl border border-border p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -112,6 +166,11 @@ export function UserFinalExamPanel({ userId }: { userId: string }) {
                     <Badge tone="warning">O&apos;tmadi</Badge>
                   ) : null}
                   {t.archivedCount > 0 && <span className="text-xs text-muted-foreground">arxivda: {t.archivedCount}</span>}
+                  {t.archivedCertificates?.map((c) => (
+                    <span key={c.certificateNumber} className="text-xs text-muted-foreground">
+                      arxiv sertifikat: {c.certificateNumber}
+                    </span>
+                  ))}
                 </div>
                 {t.attemptsUsed > 0 &&
                   (confirming === t.type ? (

@@ -137,4 +137,11 @@ export class AdminFinalExamController {
   reset(@Param() params: AdminFinalUserParamDto, @Body() body: AdminFinalResetDto, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
     return this.service.adminReset(admin, ip, params.userId, body.type);
   }
+
+  /** Ikkala tur: urinishlar, o'rtacha va sertifikat — nolga. */
+  @Post("users/:userId/restart")
+  @HttpCode(200)
+  restart(@Param() params: AdminFinalUserParamDto, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    return this.service.adminRestart(admin, ip, params.userId);
+  }
 }
