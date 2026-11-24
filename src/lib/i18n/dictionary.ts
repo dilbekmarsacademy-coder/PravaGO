@@ -670,4 +670,19 @@ export interface Dictionary {
     recheck: string;
     stillClosed: string;
   };
+  /** Onlayn to'lov (Payme): /tariflar tugmalari va /kabinet/tolov-natija. */
+  onlinePay: {
+    payme: string;
+    soon: string;
+    resultTitle: string;
+    paid: { title: string; desc: string };
+    pending: { title: string; desc: string };
+    cancelled: { title: string; desc: string };
+    notFound: { title: string; desc: string };
+    offline: { title: string; desc: string };
+    toKabinet: string;
+    toTariffs: string;
+    recheck: string;
+    errors: { alreadyOpen: string; disabled: string; generic: string };
+  };
 }

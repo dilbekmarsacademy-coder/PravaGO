@@ -217,6 +217,12 @@ model User {
   randomTestAttempts     RandomTestAttempt[]
   finalExamAttempts      FinalExamAttempt[]
   certificates           Certificate[]
+  /// Onlayn obuna: Subscription yozuvlaridan hisoblanadi (OrdersService.replaySubscriptions).
+  /// Qo'lda tasdiqlangan to'lov (paymentStatus=PAID) bundan mustaqil — muddatsiz.
+  subscriptionTariff     Tariff?
+  subscriptionUntil      DateTime?             @db.Timestamptz(3)
+  orders                 Order[]
+  subscriptions          Subscription[]
   createdAt              DateTime              @default(now()) @db.Timestamptz(3)
 
   @@index([registeredAt])
@@ -996,4 +1002,81 @@ model WeeklyResultArchive {
   @@unique([kind, sourceId])
   @@index([userId, weekKey])
   @@index([weekKey, kind])
+}
+
+enum Tariff {
+  STANDARD
+  PRO
+  MAX
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+/// Onlayn to'lov provayderi. Yangisi (CLICK, UZUM) shu yerga qo'shiladi va o'z
+/// tranzaksiya jadvalini oladi; Order/Subscription umumiy.
+enum PaymentProvider {
+  PAYME
+}
+
+/// Onlayn buyurtma. Narx va muddat serverda (payments/tariffs.ts) belgilanadi va shu yerda muhrlanadi.
+model Order {
+  id                String             @id @default(uuid())
+  userId            String
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          PaymentProvider
+  tariff            Tariff
+  /// tiyin
+  amount            Int
+  durationDays      Int
+  status            OrderStatus        @default(PENDING)
+  createdAt         DateTime           @default(now()) @db.Timestamptz(3)
+  paidAt            DateTime?          @db.Timestamptz(3)
+  cancelledAt       DateTime?          @db.Timestamptz(3)
+  paymeTransactions PaymeTransaction[]
+  subscription      Subscription?
+
+  @@index([userId, createdAt])
+}
+
+/// Payme Merchant API tranzaksiyasi. Vaqtlar — millisekund (epoch).
+model PaymeTransaction {
+  id          String  @id @default(uuid())
+  paymeId     String  @unique @db.VarChar(64)
+  orderId     String
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  /// tiyin
+  amount      Int
+  /// 1 — yaratilgan, 2 — bajarilgan, -1 — bekor (yaratilgandan keyin), -2 — bekor (bajarilgandan keyin)
+  state       Int
+  reason      Int?
+  /// Payme tomonidagi yaratilgan vaqt (params.time) — GetStatement shu bo'yicha.
+  paymeTime   BigInt
+  createTime  BigInt
+  performTime BigInt  @default(0)
+  cancelTime  BigInt  @default(0)
+
+  @@index([orderId])
+  @@index([paymeTime])
+}
+
+/// To'langan buyurtma bergan kirish muddati. Bir nechta bo'lsa ketma-ket ulanadi (uzaytirish).
+model Subscription {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId      String    @unique
+  order        Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  tariff       Tariff
+  durationDays Int
+  activatedAt  DateTime  @db.Timestamptz(3)
+  startsAt     DateTime  @db.Timestamptz(3)
+  endsAt       DateTime  @db.Timestamptz(3)
+  /// To'lov bekor qilingan (qaytarilgan).
+  revokedAt    DateTime? @db.Timestamptz(3)
+
+  @@index([userId])
 }

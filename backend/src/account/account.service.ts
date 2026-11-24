@@ -17,6 +17,8 @@ export interface MeDto {
   registered: boolean;
   profile: { firstName: string; lastName: string; age: number | null; examStatus: string | null; preferredLanguage: string | null } | null;
   payment: { status: "NONE" | "PENDING" | "PAID"; amount: number; pendingSince: Date | null };
+  /** Onlayn obuna (Payme) — bo'lmasa null. Tugagan bo'lsa `until` o'tmishda. */
+  subscription: { tariff: "STANDARD" | "PRO" | "MAX" | null; until: Date } | null;
   /** Kurs kontentiga kirish (backend tekshiruvi bilan bir xil). */
   access: boolean;
   paymentRequired: boolean;
@@ -56,6 +58,7 @@ export class AccountService {
         amount: user.payments[0]?.amount ?? coursePrice(user.examStatus),
         pendingSince: user.payments[0]?.createdAt ?? null,
       },
+      subscription: user.subscriptionUntil ? { tariff: user.subscriptionTariff, until: user.subscriptionUntil } : null,
       access: computeCourseAccess(user),
       paymentRequired: user.type === "CENTER" ? false : paymentEnforced(),
       type: user.type,
