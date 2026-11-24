@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { Prisma, type Order, type PaymeTransaction } from "@prisma/client";
 import { createHash, timingSafeEqual } from "crypto";
 import { PrismaService } from "../../prisma/prisma.service";
+import { addsAccess } from "../tariffs";
 import { cancelOrder, lockOrder, markOrderPaid } from "../orders.service";
 import { paymeKey } from "./payme.config";
 import { PaymeError, paymeErrors } from "./payme.errors";
@@ -199,6 +200,8 @@ export class PaymeService {
     if (!order) throw paymeErrors.orderNotFound();
     if (amount !== order.amount) throw paymeErrors.wrongAmount();
     if (order.status !== "PENDING") throw paymeErrors.orderUnavailable();
+    // Buyurtma ochiq turganda foydalanuvchi boshqa to'lov bilan shu (yoki yuqori) kirishni olgan bo'lsa.
+    if (!addsAccess(await tx.user.findUniqueOrThrow({ where: { id: order.userId } }), order.tariff)) throw paymeErrors.orderUnavailable();
     if (await tx.paymeTransaction.count({ where: { orderId: order.id, state: { in: [STATE.CREATED, STATE.PERFORMED] } } })) throw paymeErrors.orderUnavailable();
   }
 

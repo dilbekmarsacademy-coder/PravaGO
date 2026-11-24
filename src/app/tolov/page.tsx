@@ -5,17 +5,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ClockIcon, Loader2Icon, SendIcon, ShieldCheckIcon, TriangleAlertIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatSom } from "@/config/prices";
+import { formatPrice, tariffById } from "@/config/tariffs";
+import { useLocale } from "@/lib/i18n/useLocale";
 import { requestPayment, type Me } from "@/lib/api/account";
 import { track } from "@/lib/analytics";
 import { getRegistration, syncAccount, useRegistration } from "@/lib/registration-store";
-import PaymentSummary from "@/components/payment/PaymentSummary";
+import TariffCards from "@/components/tariffs/TariffCards";
 import PaymentResult from "@/components/payment/PaymentResult";
 import { Logo } from "@/components/shared/Logo";
 
-// Payme/Click hozircha ulanmagan: foydalanuvchi to'lov so'rovini yuboradi,
-// administrator to'lovni qabul qilib, admin panelda tasdiqlaydi. Kursga kirish
-// faqat backend'dagi tasdiqlangan to'lov bilan ochiladi.
+// Tarif tanlanib Payme orqali to'lanadi (backend PAYMENTS_ENABLED). Zaxira yo'l:
+// administratorga so'rov — u to'lovni qabul qilib, admin panelda tasdiqlaydi.
+// Kursga kirish faqat backend'dagi holat bilan ochiladi.
 
 /** Kutilayotgan so'rov holatini qayta tekshirish oralig'i. */
 const POLL_MS = 15_000;
@@ -24,6 +25,9 @@ type Stage = "loading" | "form" | "pending" | "success" | "blocked" | "error";
 
 export default function TolovPage() {
   const router = useRouter();
+  const { t } = useLocale();
+  const p = t.onlinePay.tolov;
+  const som = (n: number) => `${formatPrice(n)} ${t.pricing.somLabel}`;
   const registration = useRegistration();
   const [stage, setStage] = useState<Stage>("loading");
   const [me, setMe] = useState<Me | null>(null);
@@ -66,7 +70,7 @@ export default function TolovPage() {
       track("payment_request");
       await refresh();
     } catch {
-      setSendError("So’rovni yuborib bo’lmadi. Qayta urinib ko’ring.");
+      setSendError(p.sendError);
     } finally {
       setSending(false);
     }
@@ -84,7 +88,7 @@ export default function TolovPage() {
 
   return (
     <main className="min-h-screen bg-background px-5 py-10 sm:px-8">
-      <div className="mx-auto max-w-xl">
+      <div className="mx-auto max-w-5xl">
         <Link href="/" aria-label="PravaIshonch" className="mb-8 flex w-fit items-center">
           <Logo priority className="h-10" />
         </Link>
@@ -93,34 +97,39 @@ export default function TolovPage() {
           <div className="glass mb-6 flex items-start gap-3 rounded-xl border-neon-amber/30 bg-neon-amber/5 p-4">
             <TriangleAlertIcon className="mt-0.5 size-4 shrink-0 text-neon-amber" />
             <p className="text-sm text-foreground/90">
-              Akkauntingiz to&rsquo;lov tasdiqlangandan so&rsquo;ng faollashadi. To&rsquo;lovgacha o&rsquo;quv
-              kontentiga kirish yopiq.
+              {p.notice}
             </p>
           </div>
         )}
 
         <h1 className="mb-6 font-display text-2xl font-bold tracking-tight text-foreground">
-          {stage === "pending" ? "To’lov tasdiqlanishi kutilmoqda" : "To’lovni yakunlang"}
+          {stage === "pending" ? p.pendingTitle : p.title}
         </h1>
 
         <div className="flex flex-col gap-6">
-          {stage !== "success" && <PaymentSummary examStatus={registration.examStatus} />}
+          {(stage === "form" || stage === "pending") && (
+            <div className="flex flex-col gap-4">
+              <TariffCards />
+              <Link href="/tariflar" className="self-center text-sm font-semibold text-neon-cyan underline-offset-2 hover:underline" data-testid="tolov-tariffs-link">
+                {p.allTariffs}
+              </Link>
+            </div>
+          )}
 
           {stage === "form" && (
             <div className="glass rounded-2xl p-6 sm:p-7">
-              <h2 className="mb-2 font-display text-base font-bold text-foreground">To&rsquo;lov so&rsquo;rovi</h2>
+              <h2 className="mb-2 font-display text-base font-bold text-foreground">{p.manualTitle}</h2>
               <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
-                So&rsquo;rov yuborilgach, administrator siz bilan bog&rsquo;lanib to&rsquo;lovni qabul qiladi va kursni
-                ochib beradi. Onlayn to&rsquo;lov (Payme, Click) tez orada qo&rsquo;shiladi.
+                {p.manualDesc(som(tariffById("premium").options[0].price))}
               </p>
               <label htmlFor="payment-note" className="mb-1.5 block text-sm font-medium text-foreground/90">
-                Izoh (ixtiyoriy)
+                {p.noteLabel}
               </label>
               <textarea
                 id="payment-note"
                 value={note}
                 onChange={(e) => setNote(e.target.value.slice(0, 500))}
-                placeholder="Masalan: qaysi kartadan o'tkazdingiz yoki qachon qo'ng'iroq qilish qulay"
+                placeholder={p.notePlaceholder}
                 className="min-h-20 w-full rounded-xl border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
               />
               {sendError && <p className="mt-2 text-sm text-destructive">{sendError}</p>}
@@ -131,7 +140,7 @@ export default function TolovPage() {
                 className="glow-orange-hover mt-5 h-auto w-full rounded-full border-0 bg-gradient-to-r from-neon-orange to-neon-orange-2 py-3 text-sm font-bold text-background sm:w-auto sm:px-8"
               >
                 {sending ? <Loader2Icon className="size-4 animate-spin" /> : <SendIcon className="size-4" />}
-                To&rsquo;lov so&rsquo;rovini yuborish
+                {p.send}
               </Button>
             </div>
           )}
@@ -143,31 +152,30 @@ export default function TolovPage() {
                   <ClockIcon className="size-5" />
                 </span>
                 <div>
-                  <p className="font-display text-base font-bold text-foreground">So&rsquo;rovingiz qabul qilindi</p>
-                  {amount !== undefined && <p className="text-sm text-muted-foreground">Summa: {formatSom(amount)}</p>}
+                  <p className="font-display text-base font-bold text-foreground">{p.requestAccepted}</p>
+                  {amount !== undefined && <p className="text-sm text-muted-foreground">{p.amount}: {som(amount)}</p>}
                 </div>
               </div>
               <p className="text-sm leading-relaxed text-muted-foreground">
-                Administrator to&rsquo;lovni tasdiqlashi bilan kurs ochiladi — bu sahifa o&rsquo;zi yangilanadi.
+                {p.pendingDesc}
               </p>
               <Button type="button" variant="outline" onClick={refresh} className="self-start rounded-full">
-                Holatni tekshirish
+                {t.onlinePay.recheck}
               </Button>
             </div>
           )}
 
           {stage === "blocked" && (
             <div className="glass rounded-2xl border-destructive/30 p-6 text-sm leading-relaxed text-foreground/90">
-              Bu raqam bilan boshqa qurilmada ro&rsquo;yxatdan o&rsquo;tilgan. Shu qurilmani akkauntingizga ulash uchun
-              administratorga murojaat qiling.
+              {p.phoneTaken}
             </div>
           )}
 
           {stage === "error" && (
             <div className="glass flex flex-col gap-3 rounded-2xl p-6 text-sm">
-              <p className="text-destructive">Server bilan aloqa yo&rsquo;q.</p>
+              <p className="text-destructive">{p.noConnection}</p>
               <Button type="button" variant="outline" onClick={refresh} className="self-start rounded-full">
-                Qayta urinish
+                {p.retry}
               </Button>
             </div>
           )}
@@ -180,17 +188,17 @@ export default function TolovPage() {
         <div className="mt-8 flex flex-col items-center gap-3 text-center">
           <div className="flex items-center gap-1.5 font-mono text-xs tracking-wide text-neon-green uppercase">
             <ShieldCheckIcon className="size-3.5" />
-            Xavfsiz to&rsquo;lov
+            {p.secure}
           </div>
           <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">
-            To&rsquo;lovni amalga oshirish orqali siz{" "}
-            <Link href="/#biz-haqimizda" className="underline underline-offset-2 hover:text-neon-cyan">
-              ommaviy oferta
+            {p.offerPre}{" "}
+            <Link href="/oferta" className="underline underline-offset-2 hover:text-neon-cyan">
+              {p.offerLink}
             </Link>{" "}
-            shartlariga rozilik bildirasiz.
+            {p.offerPost}
           </p>
           <p className="text-xs text-muted-foreground">
-            Savollar bo&rsquo;yicha:{" "}
+            {p.questions}{" "}
             <a href="tel:+998712000000" className="text-neon-cyan">
               +998 71 200 00 00
             </a>

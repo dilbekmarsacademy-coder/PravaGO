@@ -673,6 +673,8 @@ export interface Dictionary {
   /** Onlayn to'lov (Payme): /tariflar tugmalari va /kabinet/tolov-natija. */
   onlinePay: {
     payme: string;
+    buy: string;
+    buySoon: string;
     soon: string;
     resultTitle: string;
     paid: { title: string; desc: string };
@@ -684,5 +686,31 @@ export interface Dictionary {
     toTariffs: string;
     recheck: string;
     errors: { alreadyOpen: string; disabled: string; generic: string };
+    /** Onlayn Standart: dars sahifasida video o'rniga. */
+    noVideo: { title: string; desc: string; keywordsHint: string };
+    /** /tolov sahifasi. */
+    tolov: {
+      title: string;
+      pendingTitle: string;
+      notice: string;
+      allTariffs: string;
+      manualTitle: string;
+      manualDesc: (price: string) => string;
+      noteLabel: string;
+      notePlaceholder: string;
+      send: string;
+      sendError: string;
+      requestAccepted: string;
+      amount: string;
+      pendingDesc: string;
+      phoneTaken: string;
+      noConnection: string;
+      retry: string;
+      secure: string;
+      offerPre: string;
+      offerLink: string;
+      offerPost: string;
+      questions: string;
+    };
   };
 }

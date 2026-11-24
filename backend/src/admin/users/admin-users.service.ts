@@ -222,6 +222,8 @@ export class AdminUsersService {
       createdAt: user.createdAt,
       paymentStatus: user.paymentStatus,
       accessGrantedAt: user.accessGrantedAt,
+      subscription: user.subscriptionUnlimited || user.subscriptionUntil ? { tariff: user.subscriptionTariff, expiresAt: user.subscriptionUnlimited ? null : user.subscriptionUntil } : null,
+      mentorUnassigned: (await this.prisma.subscription.count({ where: { userId: id, tariff: "MENTOR", revokedAt: null, mentorAssignedAt: null } })) > 0,
       progress,
       // Oxirgi kirilgan 3 ta qurilma (faqat ko'rinish; "bitta qurilma" qoidasi sessiyalarda alohida ishlaydi).
       devices: [...user.sessions]

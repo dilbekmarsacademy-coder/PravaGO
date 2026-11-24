@@ -8,6 +8,7 @@ import { formatDateTime, formatPhone, formatSom } from "@/lib/admin/format";
 import { fullName, type AdminPayment, type Paged } from "@/lib/admin/types";
 import { Button } from "@/components/shared/Button";
 import AddPaymentForm from "@/components/admin/AddPaymentForm";
+import MentorPanel from "@/components/admin/MentorPanel";
 import PaymentActions from "@/components/admin/PaymentActions";
 import { PaymentBadge } from "@/components/admin/StatusBadges";
 import { EmptyState, ErrorBlock, LoadingBlock, PageHeader, Pagination, Panel, Table, Tabs, Td, Th } from "@/components/admin/ui";
@@ -47,6 +48,7 @@ export default function AdminPaymentsPage() {
           </Button>
         }
       />
+      <MentorPanel />
       {adding && (
         <Panel title="Yangi to'lov" className="mb-6">
           <AddPaymentForm

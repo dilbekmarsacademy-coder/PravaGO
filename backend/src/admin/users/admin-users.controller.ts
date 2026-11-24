@@ -3,7 +3,7 @@ import { AdminGuard, CurrentAdmin, RequestIp, RequirePermission } from "../admin
 import type { AdminUser } from "../admin-request";
 import { AuditService } from "../audit.service";
 import { PaymentsService } from "../../payments/payments.service";
-import { CreatePaymentDto, PaymentActionDto, PaymentsQueryDto, SiteAccessDto, UnlockAllDto, UserIdParamDto, UsersQueryDto } from "./admin-users.dto";
+import { CreatePaymentDto, MentorAssignDto, PaymentActionDto, PaymentsQueryDto, SiteAccessDto, UnlockAllDto, UserIdParamDto, UsersQueryDto } from "./admin-users.dto";
 import { AdminUsersService } from "./admin-users.service";
 
 @Controller("admin/users")
@@ -69,6 +69,18 @@ export class AdminPaymentsController {
   @Get()
   list(@Query() query: PaymentsQueryDto) {
     return this.payments.list(query);
+  }
+
+  @Get("mentor")
+  mentor() {
+    return this.payments.mentorList();
+  }
+
+  /** Jonli dars tayinlandi / belgini qaytarish (faqat belgi va izoh). */
+  @Post("mentor/:id")
+  @HttpCode(200)
+  mentorAssign(@Param() params: UserIdParamDto, @Body() body: MentorAssignDto, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    return this.payments.setMentorAssigned(admin, ip, params.id, body.assigned, body.note);
   }
 
   /** Qo'lda to'lov qo'shish (masalan naqd yoki o'tkazma bilan to'langan). */

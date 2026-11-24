@@ -33,6 +33,7 @@ export default function KabinetPage() {
   const [centerBlocked, setCenterBlocked] = useState(false);
   // Admin hamma narsani ochib qo'ygan o'quvchi (oxirgi ma'lum holat, keyin serverdan).
   const [unlockAll, setUnlockAll] = useState(false);
+  const [withoutVideo, setWithoutVideo] = useState(false);
   const { t } = useLocale();
 
   // Kirish huquqi serverdan (to'lov admin tomonidan tasdiqlangan bo'lishi kerak);
@@ -45,6 +46,7 @@ export default function KabinetPage() {
       .then((me) => {
         if (cancelled) return;
         setUnlockAll(Boolean(me.unlockAll));
+        setWithoutVideo(me.access && me.videoAccess === false);
         const local = getRegistration();
         if (!me.registered && !local) router.replace("/");
         else if (me.type === "CENTER" && !me.access) setCenterBlocked(true);
@@ -167,6 +169,7 @@ export default function KabinetPage() {
             data={data}
             examStatus={registration.examStatus}
             unlockAll={unlockAll}
+            withoutVideo={withoutVideo}
           />
         )}
       </main>
@@ -178,13 +181,15 @@ function DashboardContent({
   data,
   examStatus,
   unlockAll,
+  withoutVideo,
 }: {
   data: DashboardData;
   examStatus: ExamStatus;
   unlockAll: boolean;
+  withoutVideo: boolean;
 }) {
   const { t } = useLocale();
-  const courseState = buildCourseState(data.days, data.topics, data.topicProgress, data.examProgress, { unlockAll });
+  const courseState = buildCourseState(data.days, data.topics, data.topicProgress, data.examProgress, { unlockAll, withoutVideo });
 
   return (
     <div className="flex flex-col gap-6">

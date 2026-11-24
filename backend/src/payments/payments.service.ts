@@ -4,6 +4,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { AuditService } from "../admin/audit.service";
 import type { AdminUser } from "../admin/admin-request";
 import { coursePrice } from "../common/prices";
+import { MANUAL_REQUEST_PRICE } from "./tariffs";
 
 /**
  * Foydalanuvchining umumiy to'lov holati to'lovlar jadvalidan hisoblanadi:
@@ -59,7 +60,7 @@ export class PaymentsService {
     }
     const payment = await this.prisma.$transaction(async (tx) => {
       const created = await tx.payment.create({
-        data: { userId, amount: coursePrice(user.examStatus), status: "PENDING", method: "manual", userNote: userNote || null },
+        data: { userId, amount: MANUAL_REQUEST_PRICE, status: "PENDING", method: "manual", userNote: userNote || null },
       });
       await syncUserPaymentStatus(tx, userId);
       return created;
@@ -96,6 +97,30 @@ export class PaymentsService {
       }),
     ]);
     return { total, pendingCount, page: params.page, pageSize: params.pageSize, items: rows };
+  }
+
+  /** Mentor to'lovlari: jonli dars tayinlanmaganlar tepada. Dars qo'lda kelishiladi — bu faqat belgi. */
+  async mentorList() {
+    const rows = await this.prisma.subscription.findMany({
+      where: { tariff: "MENTOR", revokedAt: null },
+      orderBy: [{ mentorAssignedAt: { sort: "desc", nulls: "first" } }, { activatedAt: "asc" }],
+      take: 500,
+      select: { id: true, activatedAt: true, mentorAssignedAt: true, mentorNote: true, user: { select: { id: true, firstName: true, lastName: true, phone: true } } },
+    });
+    return { unassigned: rows.filter((r) => !r.mentorAssignedAt).length, items: rows };
+  }
+
+  async setMentorAssigned(admin: AdminUser, ip: string, id: string, assigned: boolean, note?: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const before = await tx.subscription.findFirst({ where: { id, tariff: "MENTOR", revokedAt: null } });
+      if (!before) throw new NotFoundException("Mentor obunasi topilmadi");
+      const after = await tx.subscription.update({
+        where: { id },
+        data: { mentorAssignedAt: assigned ? (before.mentorAssignedAt ?? new Date()) : null, ...(note !== undefined ? { mentorNote: note.trim() || null } : {}) },
+      });
+      await this.audit.log(admin, ip, { action: assigned ? "mentor.assigned" : "mentor.unassigned", entityType: "subscription", entityId: id, before, after }, tx);
+      return { id, mentorAssignedAt: after.mentorAssignedAt, mentorNote: after.mentorNote };
+    });
   }
 
   async create(

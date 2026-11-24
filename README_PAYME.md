@@ -15,6 +15,18 @@ Endpoint: `POST https://pravatayyor-backend.vercel.app/payments/payme` (JSON-RPC
 
 Env o'zgargach backend qayta deploy qilinadi. Frontendda yangi env kerak emas.
 
+## Tariflar (`backend/src/payments/tariffs.ts`)
+
+| Tarif | So'm | Payme summasi (tiyin) | Muddat | Video |
+|---|---|---|---|---|
+| `STANDART_7` | 25 000 | 2 500 000 | 7 kun | yo'q |
+| `STANDART_14` | 48 000 | 4 800 000 | 14 kun | yo'q |
+| `STANDART_30` | 75 000 | 7 500 000 | 30 kun | yo'q |
+| `PREMIUM` | 300 000 | 30 000 000 | muddatsiz (`expiresAt = null`) | bor |
+| `MENTOR` | 500 000 | 50 000 000 | muddatsiz (`expiresAt = null`) | bor + jonli dars (admin qo'lda tayinlaydi) |
+
+Saytdagi nusxa — `src/config/tariffs.ts`; mosligini `src/config/tariffs.test.ts` tekshiradi.
+
 ## Ishga tushirish
 
 1. DB zaxirasi (pg_dump).
@@ -28,7 +40,9 @@ Env o'zgargach backend qayta deploy qilinadi. Frontendda yangi env kerak emas.
 - Har doim HTTP 200; xato `error` da. `-32504` avtorizatsiya, `-31001` summa, `-31003` tranzaksiya yo'q, `-31008` bajarib bo'lmaydi, `-31050` buyurtma yo'q, `-31099` buyurtma band/to'langan/bekor.
 - Bajarilmagan tranzaksiya 12 soatdan keyin bekor (reason 4): keyingi Create/Perform yoki holat so'rovida yoziladi.
 - Tranzaksiya bekor bo'lsa buyurtma ham `CANCELLED` — qayta to'lash uchun yangi buyurtma.
-- Bir nechta to'lov muddatlari ketma-ket qo'shiladi; qaytarilganda faqat o'sha to'lov muddati olinadi.
+- Standart muddatlari ketma-ket qo'shiladi; qaytarilganda faqat o'sha to'lov muddati olinadi.
+- Premium/Mentor muddatsiz va Standart to'lovi bilan pasaymaydi. Muddatsiz kirishi borga Standart yoki o'sha tarif sotilmaydi (409 / -31099).
+- Videosiz cheklov faqat kirishi onlayn Standart bilangina ochilgan foydalanuvchiga tegishli.
 - Admin qo'lda tasdiqlagan to'lov muddatsiz va bundan mustaqil.
 
 ## curl (lokal)
@@ -40,12 +54,12 @@ rpc() { curl -s -u "$AUTH" -H 'Content-Type: application/json' "$API/payments/pa
 NOW=$(($(date +%s) * 1000))
 
 # Buyurtma (foydalanuvchi tokeni)
-curl -s -X POST "$API/payments/create-order" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d '{"tariff":"STANDARD"}'
+curl -s -X POST "$API/payments/create-order" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d '{"tariff":"STANDART_14"}'
 ORDER=<javobdagi id>
 curl -s "$API/payments/order/$ORDER" -H "Authorization: Bearer $TOKEN"
 
-rpc '{"id":1,"method":"CheckPerformTransaction","params":{"amount":30000000,"account":{"order_id":"'$ORDER'"}}}'
-rpc '{"id":2,"method":"CreateTransaction","params":{"id":"test-1","time":'$NOW',"amount":30000000,"account":{"order_id":"'$ORDER'"}}}'
+rpc '{"id":1,"method":"CheckPerformTransaction","params":{"amount":4800000,"account":{"order_id":"'$ORDER'"}}}'
+rpc '{"id":2,"method":"CreateTransaction","params":{"id":"test-1","time":'$NOW',"amount":4800000,"account":{"order_id":"'$ORDER'"}}}'
 rpc '{"id":3,"method":"PerformTransaction","params":{"id":"test-1"}}'
 rpc '{"id":4,"method":"CheckTransaction","params":{"id":"test-1"}}'
 rpc '{"id":5,"method":"CancelTransaction","params":{"id":"test-1","reason":5}}'
