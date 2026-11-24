@@ -20,12 +20,14 @@ export interface AccessFields {
   type: UserType;
   centerAccess: boolean;
   paymentStatus: UserPaymentStatus;
+  /** Onlayn obuna (Payme) tugash vaqti. */
+  subscriptionUntil: Date | null;
 }
 
 /** Kirish huquqi — AccessService va GET /me shu bitta funksiyadan foydalanadi. */
 export function computeCourseAccess(user: AccessFields): boolean {
   if (user.type === "CENTER") return user.centerAccess;
-  return !paymentEnforced() || user.paymentStatus === "PAID";
+  return !paymentEnforced() || user.paymentStatus === "PAID" || (user.subscriptionUntil !== null && user.subscriptionUntil.getTime() > Date.now());
 }
 
 @Injectable()
@@ -34,7 +36,7 @@ export class AccessService {
 
   async hasCourseAccess(userId: string | undefined): Promise<boolean> {
     if (!userId) return !paymentEnforced();
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { paymentStatus: true, type: true, centerAccess: true } });
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { paymentStatus: true, type: true, centerAccess: true, subscriptionUntil: true } });
     if (!user) return !paymentEnforced();
     return computeCourseAccess(user);
   }

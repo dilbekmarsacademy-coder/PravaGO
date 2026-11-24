@@ -696,4 +696,18 @@ export const uzLatn: Dictionary = {
     recheck: "Qayta tekshirish",
     stillClosed: "Sayt hali ham yopiq",
   },
+  onlinePay: {
+    payme: "Payme orqali toʻlash",
+    soon: "Tez orada",
+    resultTitle: "Toʻlov natijasi",
+    paid: { title: "Toʻlov qabul qilindi", desc: "Obunangiz faollashdi. Darslarni boshlashingiz mumkin." },
+    pending: { title: "Toʻlov kutilmoqda", desc: "Toʻlov tasdiqlanishi bilan bu sahifa oʻzi yangilanadi." },
+    cancelled: { title: "Toʻlov bekor qilindi", desc: "Toʻlov amalga oshmadi yoki qaytarildi. Tarifni qayta tanlab, yana urinib koʻring." },
+    notFound: { title: "Buyurtma topilmadi", desc: "Toʻlovni boshlagan brauzer va akkauntdan kiring." },
+    offline: { title: "Aloqa yoʻq", desc: "Holatni tekshirib boʻlmadi. Qayta urinilmoqda…" },
+    toKabinet: "Kabinetga oʻtish",
+    toTariffs: "Tariflarga qaytish",
+    recheck: "Holatni tekshirish",
+    errors: { alreadyOpen: "Sizda kursga kirish allaqachon bor.", disabled: "Onlayn toʻlov hozircha oʻchiq.", generic: "Toʻlovni boshlab boʻlmadi. Qayta urinib koʻring." },
+  },
 };
