@@ -1,15 +1,16 @@
 // Onlayn to'lov (Payme): narxlar, buyurtma yaratish va holati. Narx faqat
 // serverdan keladi; to'lov natijasi faqat buyurtma holatidan o'qiladi.
 
+import type { OnlineTariffId } from "@/config/tariffs";
 import { authFetch, currentSessionToken } from "./session";
 
-export type OnlineTariffId = "STANDARD" | "PRO" | "MAX";
+export type { OnlineTariffId };
 export type OrderStatus = "PENDING" | "PAID" | "CANCELLED";
 
 export interface OnlineTariffs {
   enabled: boolean;
-  /** price — so'm */
-  tariffs: { id: OnlineTariffId; price: number; durationDays: number }[];
+  /** price — so'm; durationDays null — muddatsiz */
+  tariffs: { id: OnlineTariffId; price: number; durationDays: number | null }[];
 }
 
 export interface Order {

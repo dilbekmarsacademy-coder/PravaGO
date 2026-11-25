@@ -29,7 +29,7 @@ export class LessonsController {
 
   @Get(":lessonId/video")
   async video(@CurrentUser() user: SessionUser, @Param() params: LessonIdParamDto): Promise<{ videoId: string }> {
-    await this.access.assertCourseAccess(user.id);
+    await this.access.assertVideoAccess(user.id);
     return this.lessons.video(params.lessonId);
   }
 

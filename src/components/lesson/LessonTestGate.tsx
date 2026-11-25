@@ -38,6 +38,8 @@ interface LessonTestGateProps {
   unlockAll?: boolean;
   /** Yangi oqim majburiy (GET /me → topicFlowGating). */
   flowGating?: boolean;
+  /** Tarifda video yo'q (onlayn Standart): video qadami ko'rsatilmaydi va talab qilinmaydi. */
+  withoutVideo?: boolean;
   className?: string;
 }
 
@@ -49,6 +51,7 @@ export function LessonTestGate({
   keywordProgress = null,
   unlockAll = false,
   flowGating = false,
+  withoutVideo = false,
   className,
 }: LessonTestGateProps) {
   const { t } = useLocale();
@@ -56,7 +59,7 @@ export function LessonTestGate({
   const [soonOpen, setSoonOpen] = useState(false);
 
   if (flowGating && !unlockAll && status && testHref && keywordsHref) {
-    return <FlowGate status={status} testHref={testHref} keywordsHref={keywordsHref} keywordProgress={keywordProgress} className={className} />;
+    return <FlowGate status={status} testHref={testHref} keywordsHref={keywordsHref} keywordProgress={keywordProgress} withoutVideo={withoutVideo} className={className} />;
   }
 
   if (!status && !unavailable) {
@@ -74,7 +77,7 @@ export function LessonTestGate({
   }
 
   // Videosi hali ulanmagan mavzuda test banki bo'lsa — video sharti yo'q (backend ham testni beradi).
-  const noVideoGate = unavailable && Boolean(testHref);
+  const noVideoGate = (unavailable || withoutVideo) && Boolean(testHref);
   const completed = Boolean(status?.completed) || noVideoGate || (unlockAll && Boolean(testHref));
   // Video ko'rilgan, lekin hali hamma savol bilan tanishilmagan — test yopiq.
   const studying =
@@ -233,31 +236,34 @@ function FlowGate({
   testHref,
   keywordsHref,
   keywordProgress,
+  withoutVideo,
   className,
 }: {
   status: LessonStatus;
   testHref: string;
   keywordsHref: string;
   keywordProgress: KeywordProgress | null;
+  withoutVideo: boolean;
   className?: string;
 }) {
   const { t } = useLocale();
   const flow = t.lesson.gate.flow;
-  const videoDone = status.completed;
+  const videoDone = status.completed || withoutVideo;
   const keywordsDone = videoDone && Boolean(keywordProgress?.viewed);
   const ready = videoDone && keywordsDone;
+  const lockedHint = withoutVideo ? t.onlinePay.noVideo.keywordsHint : flow.lockedHint;
   const steps: { key: string; label: string; state: StepState }[] = [
-    { key: "video", label: flow.steps.video, state: videoDone ? "done" : "current" },
+    ...(withoutVideo ? [] : [{ key: "video", label: flow.steps.video, state: (videoDone ? "done" : "current") as StepState }]),
     { key: "keywords", label: flow.steps.keywords, state: keywordsDone ? "done" : videoDone ? "current" : "locked" },
     { key: "test", label: flow.steps.test, state: ready ? "current" : "locked" },
   ];
-  const title = ready ? flow.readyTitle : videoDone ? flow.keywordsTitle : flow.videoTitle;
+  const title = withoutVideo ? (ready ? t.lesson.gate.startTest : t.onlinePay.noVideo.keywordsHint) : ready ? flow.readyTitle : videoDone ? flow.keywordsTitle : flow.videoTitle;
   const lockedButton = (
     <button
       type="button"
       disabled
       aria-disabled="true"
-      title={flow.lockedHint}
+      title={lockedHint}
       className={buttonClasses({ variant: "secondary", size: "lg", className: "w-full sm:w-auto" })}
       data-testid="flow-test-locked"
     >
@@ -294,7 +300,7 @@ function FlowGate({
         </div>
       </div>
 
-      <ol className="grid grid-cols-3 gap-2" aria-label={title}>
+      <ol className={cn("grid gap-2", withoutVideo ? "grid-cols-2" : "grid-cols-3")} aria-label={title}>
         {steps.map((step, i) => (
           <li
             key={step.key}
@@ -324,7 +330,7 @@ function FlowGate({
 
       {!ready && (
         <p className="text-sm text-muted-foreground" data-testid="flow-locked-hint">
-          {flow.lockedHint}
+          {lockedHint}
         </p>
       )}
 

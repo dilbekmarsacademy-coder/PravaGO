@@ -6,7 +6,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftIcon, PlayCircleIcon } from "lucide-react";
+import { ArrowLeftIcon, LockIcon, PlayCircleIcon } from "lucide-react";
 import type { Topic } from "@/lib/course-types";
 import { keywordsHref, testHref, topicDayNumber } from "@/data/curriculum";
 import { LESSON_NOT_FOUND_CODE, getLessonStatus, type LessonStatus } from "@/lib/api/lessons";
@@ -19,6 +19,7 @@ import { getRegistration, getUnlockAll } from "@/lib/registration-store";
 import { getMe } from "@/lib/api/account";
 import { AppHeader } from "@/components/shared/AppHeader";
 import { buttonClasses } from "@/components/shared/Button";
+import { Card } from "@/components/shared/Card";
 import LanguageSwitcher from "@/components/shared/LanguageSwitcher";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import { showToast } from "@/components/shared/Toast";
@@ -57,12 +58,15 @@ export function LessonView({ topic }: LessonViewProps) {
   }, []);
   // Yangi oqim (video → kalit so'zlar → test) — serverdan (GET /me); backend ham tekshiradi.
   const [flowGating, setFlowGating] = useState(false);
+  // Onlayn Standart — videosiz tarif: video o'rniga izoh, test video shartisiz (backend ham tekshiradi).
+  const [noVideo, setNoVideo] = useState(false);
   useEffect(() => {
     let cancelled = false;
     getMe()
       .then((me) => {
         if (cancelled) return;
         setFlowGating(Boolean(me.topicFlowGating));
+        setNoVideo(me.access && me.videoAccess === false);
         if (me.unlockAll !== undefined) setUnlockAll(Boolean(me.unlockAll));
       })
       .catch(() => undefined);
@@ -70,7 +74,7 @@ export function LessonView({ topic }: LessonViewProps) {
       cancelled = true;
     };
   }, []);
-  const videoCompleted = Boolean(status?.completed);
+  const videoCompleted = Boolean(status?.completed) || noVideo;
   useEffect(() => {
     if (!testSlug || !videoCompleted) return;
     let cancelled = false;
@@ -138,6 +142,16 @@ export function LessonView({ topic }: LessonViewProps) {
           <h1 className="mt-1.5 font-display text-xl font-bold text-foreground sm:text-2xl">{title}</h1>
         </div>
 
+        {noVideo ? (
+          <Card className="flex flex-col items-center gap-3 p-8 text-center" data-testid="video-not-included">
+            <LockIcon className="size-8 text-brand" />
+            <p className="font-display font-bold text-foreground">{t.onlinePay.noVideo.title}</p>
+            <p className="max-w-md text-sm text-muted-foreground">{t.onlinePay.noVideo.desc}</p>
+            <Link href="/tariflar" className={buttonClasses({ size: "md" })}>
+              {t.onlinePay.toTariffs}
+            </Link>
+          </Card>
+        ) : (
         <SecureVideoPlayer
           lessonId={topic.lessonId}
           title={title}
@@ -146,15 +160,16 @@ export function LessonView({ topic }: LessonViewProps) {
           onUnavailable={() => setUnavailable(true)}
           onCompleted={() => showToast({ tone: "success", message: hasTest ? t.lesson.gate.videoDone : t.lesson.gate.unlocked })}
         />
+        )}
 
-        {!unavailable && (
+        {!unavailable && !noVideo && (
           <p className="hidden text-center text-xs text-muted-foreground pointer-fine:block">
             {unlockAll || canSeekFreely(status) ? t.lesson.player.keyboardHintReview : t.lesson.player.keyboardHint}
           </p>
         )}
 
         {/* Test sahifasi ulanmagan bo'lsa tugma "tez orada" modalini ochadi. */}
-        <LessonTestGate
+        {(!noVideo || hasTest) && <LessonTestGate
           status={status}
           unavailable={unavailable}
           testHref={hasTest && testSlug ? testHref(testSlug) : null}
@@ -162,7 +177,8 @@ export function LessonView({ topic }: LessonViewProps) {
           keywordProgress={keywordProgress}
           unlockAll={unlockAll}
           flowGating={flowGating}
-        />
+          withoutVideo={noVideo}
+        />}
       </main>
     </>
   );

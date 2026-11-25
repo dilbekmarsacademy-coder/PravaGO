@@ -1,6 +1,6 @@
 // Tariflar — saytdagi narxlarning yagona manbai (/tariflar, bosh sahifa
-// "Tariflar" bo'limi, oferta, JSON-LD). To'lov integratsiyasi (keyingi bosqich)
-// ham shundan oladi. Narx formati — faqat formatSom()/formatPrice().
+// "Tariflar" bo'limi, oferta, JSON-LD). Olinadigan summa serverda (backend
+// payments/tariffs.ts); mosligini tariffs.test.ts tekshiradi. Narx formati — faqat formatSom()/formatPrice().
 
 export type TariffId = "standart" | "premium" | "mentor";
 
@@ -97,6 +97,15 @@ export const TARIFF_RULES = {
 
 export function tariffById(id: TariffId): Tariff {
   return TARIFFS.find((t) => t.id === id)!;
+}
+
+export type OnlineTariffId = "STANDART_7" | "STANDART_14" | "STANDART_30" | "PREMIUM" | "MENTOR";
+
+/** Saytdagi variant → serverdagi tarif identifikatori (create-order). */
+export function onlineTariffId(id: TariffId, durationDays: number | null): OnlineTariffId {
+  if (id === "premium") return "PREMIUM";
+  if (id === "mentor") return "MENTOR";
+  return `STANDART_${durationDays}` as OnlineTariffId;
 }
 
 /** "Standartdagi hamma narsa +" / "Standart va Premiumdagi hamma narsa +"; meros bo'lmasa null. */

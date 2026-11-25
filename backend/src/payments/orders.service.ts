@@ -3,7 +3,7 @@ import type { Order, OrderStatus, Prisma, Tariff } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { paymeCheckoutUrl, paymentsAvailableFor } from "./payme/payme.config";
 import { PaymeService } from "./payme/payme.service";
-import { ONLINE_TARIFFS, TARIFF_IDS, toTiyin } from "./tariffs";
+import { ONLINE_TARIFFS, TARIFF_IDS, addsAccess, tariffRank, toTiyin } from "./tariffs";
 
 type Tx = Prisma.TransactionClient;
 const DAY_MS = 86_400_000;
@@ -23,7 +23,7 @@ export async function markOrderPaid(tx: Tx, order: Order, now: Date): Promise<vo
   await tx.order.update({ where: { id: order.id }, data: { status: "PAID", paidAt: now } });
   await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${order.userId} FOR UPDATE`;
   await tx.subscription.create({
-    data: { userId: order.userId, orderId: order.id, tariff: order.tariff, durationDays: order.durationDays, activatedAt: now, startsAt: now, endsAt: now },
+    data: { userId: order.userId, orderId: order.id, tariff: order.tariff, durationDays: order.durationDays, activatedAt: now, startsAt: now },
   });
   await replaySubscriptions(tx, order.userId);
 }
@@ -37,18 +37,28 @@ export async function cancelOrder(tx: Tx, order: Order, now: Date): Promise<void
   await replaySubscriptions(tx, order.userId);
 }
 
-/** Obunalarni faollashgan tartibda ketma-ket ulaydi: har biri oldingisi tugagach (yoki to'langan paytdan) boshlanadi. */
+/**
+ * Obunalardan kirishni qayta hisoblaydi. Standart muddatlari faollashgan tartibda
+ * ketma-ket ulanadi (uzaytirish); Premium/Mentor muddatsiz va alohida — Standart
+ * to'lovi yoki uning tugashi/bekor bo'lishi ularni pasaytirmaydi.
+ */
 async function replaySubscriptions(tx: Tx, userId: string): Promise<void> {
   const rows = await tx.subscription.findMany({ where: { userId, revokedAt: null }, orderBy: [{ activatedAt: "asc" }, { id: "asc" }] });
   let end = 0;
+  let top: Tariff | null = null;
   for (const s of rows) {
+    if (!top || tariffRank(s.tariff) >= tariffRank(top)) top = s.tariff;
+    if (s.durationDays === null) {
+      await tx.subscription.update({ where: { id: s.id }, data: { startsAt: s.activatedAt, expiresAt: null } });
+      continue;
+    }
     const start = Math.max(s.activatedAt.getTime(), end);
     end = start + s.durationDays * DAY_MS;
-    await tx.subscription.update({ where: { id: s.id }, data: { startsAt: new Date(start), endsAt: new Date(end) } });
+    await tx.subscription.update({ where: { id: s.id }, data: { startsAt: new Date(start), expiresAt: new Date(end) } });
   }
   await tx.user.update({
     where: { id: userId },
-    data: { subscriptionUntil: rows.length ? new Date(end) : null, subscriptionTariff: rows.at(-1)?.tariff ?? null },
+    data: { subscriptionUntil: end ? new Date(end) : null, subscriptionUnlimited: rows.some((s) => s.durationDays === null), subscriptionTariff: top },
   });
 }
 
@@ -86,8 +96,8 @@ export class OrdersService {
       throw new ConflictException({ statusCode: 409, code: "CENTER_ACCOUNT", message: "Markaz o'quvchisiga onlayn to'lov kerak emas" });
     }
     if (!user.registeredAt) throw new BadRequestException({ statusCode: 400, code: "NOT_REGISTERED", message: "Avval ro'yxatdan o'ting" });
-    // Admin tasdiqlagan to'lov — muddatsiz kirish; ortiqcha pul olinmasin.
-    if (user.paymentStatus === "PAID") throw new ConflictException({ statusCode: 409, code: "ALREADY_PAID", message: "Kurs allaqachon ochiq" });
+    // Muddatsiz kirishi borga Standart yoki o'sha tarif sotilmaydi — ortiqcha pul olinmasin.
+    if (!addsAccess(user, tariff)) throw new ConflictException({ statusCode: 409, code: "ALREADY_PAID", message: "Kurs allaqachon ochiq" });
 
     const { price, durationDays } = ONLINE_TARIFFS[tariff];
     const amount = toTiyin(price);

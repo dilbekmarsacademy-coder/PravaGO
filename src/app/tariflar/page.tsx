@@ -6,7 +6,6 @@ import { getRequisites } from "@/config/requisites.server";
 import { TARIFFS, TARIFF_RULES, UNTIL_PASSED_LABEL, formatSom, inheritsLabel, minPrice } from "@/config/tariffs";
 import { organizationLd } from "@/lib/json-ld";
 import { SITE_URL } from "@/lib/seo";
-import OnlineTariffs from "@/components/tariffs/OnlineTariffs";
 import TariffCards from "@/components/tariffs/TariffCards";
 import { DocSection, PublicPage } from "@/components/legal/PublicPage";
 
@@ -58,7 +57,7 @@ export default function TariffsPage() {
       </div>
 
       <div className="mt-8">
-        <OnlineTariffs fallback={<TariffCards />} />
+        <TariffCards />
       </div>
 
       <div className="mt-10 grid gap-4 sm:grid-cols-3">

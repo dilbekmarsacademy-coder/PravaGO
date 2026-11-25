@@ -67,6 +67,8 @@ interface UserDetail {
   createdAt: string;
   paymentStatus: UserPaymentStatus;
   accessGrantedAt: string | null;
+  subscription?: { tariff: string | null; expiresAt: string | null } | null;
+  mentorUnassigned?: boolean;
   progress: UserProgress;
   devices: { id: string; type: "mobile" | "tablet" | "desktop"; label: string; createdAt: string; lastSeenAt: string | null; expired: boolean }[];
   payments: AdminPayment[];
@@ -116,6 +118,12 @@ export default function AdminUserPage({ params }: { params: Promise<{ id: string
       <PageHeader title={fullName(data)} subtitle={<span className="font-mono">{formatPhone(data.phone)}</span>} actions={
           <>
             {data.type === "CENTER" ? <Badge tone="brand">markaz o&apos;quvchisi</Badge> : <UserPaymentBadge status={data.paymentStatus} />}
+            {data.subscription && (
+              <Badge tone={data.subscription.expiresAt && new Date(data.subscription.expiresAt) < new Date() ? "muted" : "success"}>
+                {data.subscription.tariff} · {data.subscription.expiresAt ? formatDateTime(data.subscription.expiresAt) : "muddatsiz"}
+              </Badge>
+            )}
+            {data.mentorUnassigned && <Badge tone="warning">Mentor: jonli dars tayinlanmagan</Badge>}
             <DeleteButton label="Foydalanuvchini o'chirish" confirmLabel="Ha, butunlay o'chirish" onDelete={remove} testId="user-delete" />
           </>
         }

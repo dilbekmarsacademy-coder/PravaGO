@@ -13,6 +13,10 @@ export interface Me {
   payment: { status: PaymentState; amount: number; pendingSince: string | null };
   access: boolean;
   paymentRequired: boolean;
+  /** Videodarslar ochiqmi (onlayn Standart — faqat testlar). Yo'q — ochiq deb olinadi. */
+  videoAccess?: boolean;
+  /** Onlayn obuna; expiresAt null — muddatsiz. */
+  subscription?: { tariff: string | null; expiresAt: string | null } | null;
   /** "CENTER" — o'quv markaz o'quvchisi (login + parol, bitta faol qurilma). */
   type?: "SELF" | "CENTER";
   /** Admin hamma narsani ochib qo'ygan: kun/mavzu qulfi, video va kalit so'z sharti yo'q. */

@@ -173,7 +173,7 @@ export function buildCourseState(
   topicProgress: TopicProgress[],
   _examProgress: ExamProgress,
   /** Admin hamma narsani ochib qo'ygan o'quvchi — barcha kun va mavzular ochiq. */
-  options: { unlockAll?: boolean } = {},
+  options: { unlockAll?: boolean; /** Tarifda video yo'q (onlayn Standart). */ withoutVideo?: boolean } = {},
 ): CourseState {
   void _examProgress;
 
@@ -217,7 +217,7 @@ export function buildCourseState(
         stage: getTopicStage(progress),
       };
 
-      if (!continueTarget && topicUnlocked && !completed && isTopicStudyable(topic, progress)) {
+      if (!continueTarget && topicUnlocked && !completed && isTopicStudyable(topic, progress) && !(options.withoutVideo && !topic.testSlug)) {
         continueTarget = { dayNumber: day.number, topic: state };
       }
 

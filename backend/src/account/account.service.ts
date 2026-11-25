@@ -1,10 +1,10 @@
 import { BadRequestException, ConflictException, HttpException, HttpStatus, Injectable } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import { Prisma, type Tariff } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { normalizePhone } from "../common/phone";
 import { OFFER_VERSION, registrationsPerIpPerHour } from "../common/registration";
-import { coursePrice } from "../common/prices";
-import { computeCourseAccess, paymentEnforced } from "../access/access.service";
+import { MANUAL_REQUEST_PRICE } from "../payments/tariffs";
+import { computeCourseAccess, computeVideoAccess, paymentEnforced } from "../access/access.service";
 import { syncUserPaymentStatus } from "../payments/payments.service";
 import { skipsAnswerConfirm } from "../common/answer-confirm";
 import type { RegisterDto } from "./account.dto";
@@ -17,10 +17,12 @@ export interface MeDto {
   registered: boolean;
   profile: { firstName: string; lastName: string; age: number | null; examStatus: string | null; preferredLanguage: string | null } | null;
   payment: { status: "NONE" | "PENDING" | "PAID"; amount: number; pendingSince: Date | null };
-  /** Onlayn obuna (Payme) — bo'lmasa null. Tugagan bo'lsa `until` o'tmishda. */
-  subscription: { tariff: "STANDARD" | "PRO" | "MAX" | null; until: Date } | null;
+  /** Onlayn obuna (Payme) — bo'lmasa null. `expiresAt` null — muddatsiz; o'tmishda — tugagan. */
+  subscription: { tariff: Tariff | null; expiresAt: Date | null } | null;
   /** Kurs kontentiga kirish (backend tekshiruvi bilan bir xil). */
   access: boolean;
+  /** Videodarslar ochiqmi (onlayn Standart — faqat testlar). */
+  videoAccess: boolean;
   paymentRequired: boolean;
   /** "CENTER" — markaz o'quvchisi (login + parol, bitta faol qurilma). */
   type: "SELF" | "CENTER";
@@ -55,11 +57,12 @@ export class AccountService {
         : null,
       payment: {
         status: user.paymentStatus,
-        amount: user.payments[0]?.amount ?? coursePrice(user.examStatus),
+        amount: user.payments[0]?.amount ?? MANUAL_REQUEST_PRICE,
         pendingSince: user.payments[0]?.createdAt ?? null,
       },
-      subscription: user.subscriptionUntil ? { tariff: user.subscriptionTariff, until: user.subscriptionUntil } : null,
+      subscription: user.subscriptionUnlimited || user.subscriptionUntil ? { tariff: user.subscriptionTariff, expiresAt: user.subscriptionUnlimited ? null : user.subscriptionUntil } : null,
       access: computeCourseAccess(user),
+      videoAccess: computeVideoAccess(user),
       paymentRequired: user.type === "CENTER" ? false : paymentEnforced(),
       type: user.type,
       unlockAll: user.unlockAll,
@@ -121,7 +124,7 @@ export class AccountService {
           await tx.payment.create({
             data: {
               userId,
-              amount: coursePrice(input.examStatus),
+              amount: MANUAL_REQUEST_PRICE,
               status: "PENDING",
               method: "manual",
               userNote: "Avvalgi versiyada (sinov to'lovi) faollashtirilgan — tekshirib tasdiqlang",

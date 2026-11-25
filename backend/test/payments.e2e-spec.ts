@@ -73,7 +73,7 @@ describe("ro'yxatdan o'tish", () => {
     const before = await http().get("/me").set(auth).expect(200);
     expect(before.body).toMatchObject({ registered: false, access: false, paymentRequired: true });
     const res = await http().post("/me/register").set(auth).send({ ...profile, phone: "+998 90 000 00 01" }).expect(200);
-    expect(res.body).toMatchObject({ registered: true, profile: { firstName: "Test" }, payment: { status: "NONE", amount: 350000 } });
+    expect(res.body).toMatchObject({ registered: true, profile: { firstName: "Test" }, payment: { status: "NONE", amount: 300000 } });
     expect(JSON.stringify(res.body)).not.toContain("000 00 01");
     expect(JSON.stringify(res.body)).not.toContain("900000001");
     const user = await prisma.user.findUniqueOrThrow({ where: { phone: "+998900000001" } });
@@ -138,7 +138,7 @@ describe("to'lov va kirish huquqi", () => {
     await http().post(`/questions/${questionId}/check-answer`).set(auth).send({ optionId }).expect(403);
 
     const requested = await http().post("/payments/request").set(auth).send({ note: "Kartadan o'tkazdim" }).expect(200);
-    expect(requested.body).toMatchObject({ status: "PENDING", amount: 350000 });
+    expect(requested.body).toMatchObject({ status: "PENDING", amount: 300000 });
     // Takroriy so'rov yangi yozuv yaratmaydi.
     await http().post("/payments/request").set(auth).send({}).expect(200);
     const user = await prisma.user.findUniqueOrThrow({ where: { phone: "+998900000003" } });

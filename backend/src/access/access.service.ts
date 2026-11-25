@@ -22,13 +22,27 @@ export interface AccessFields {
   paymentStatus: UserPaymentStatus;
   /** Onlayn obuna (Payme) tugash vaqti. */
   subscriptionUntil: Date | null;
+  /** Premium/Mentor (muddatsiz). */
+  subscriptionUnlimited: boolean;
 }
 
 /** Kirish huquqi — AccessService va GET /me shu bitta funksiyadan foydalanadi. */
 export function computeCourseAccess(user: AccessFields): boolean {
   if (user.type === "CENTER") return user.centerAccess;
-  return !paymentEnforced() || user.paymentStatus === "PAID" || (user.subscriptionUntil !== null && user.subscriptionUntil.getTime() > Date.now());
+  return !paymentEnforced() || user.paymentStatus === "PAID" || user.subscriptionUnlimited || (user.subscriptionUntil !== null && user.subscriptionUntil.getTime() > Date.now());
 }
+
+/**
+ * Videodarslarga kirish. Cheklov FAQAT onlayn Standart obunasiga: kirishi shu
+ * obuna bilangina ochilgan foydalanuvchi videoni ko'rmaydi. Markaz o'quvchilari,
+ * qo'lda tasdiqlanganlar, Premium/Mentor va admin ochib qo'yganlar (unlockAll) — avvalgidek.
+ */
+export function computeVideoAccess(user: AccessFields & { unlockAll: boolean }): boolean {
+  if (!computeCourseAccess(user)) return false;
+  return user.type === "CENTER" || !paymentEnforced() || user.paymentStatus === "PAID" || user.subscriptionUnlimited || user.unlockAll;
+}
+
+const ACCESS_SELECT = { paymentStatus: true, type: true, centerAccess: true, subscriptionUntil: true, subscriptionUnlimited: true, unlockAll: true } as const;
 
 @Injectable()
 export class AccessService {
@@ -36,9 +50,23 @@ export class AccessService {
 
   async hasCourseAccess(userId: string | undefined): Promise<boolean> {
     if (!userId) return !paymentEnforced();
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { paymentStatus: true, type: true, centerAccess: true, subscriptionUntil: true } });
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: ACCESS_SELECT });
     if (!user) return !paymentEnforced();
     return computeCourseAccess(user);
+  }
+
+  /** Kirishi bor, lekin videosiz (onlayn Standart): test video shartisiz ochiladi. */
+  async isTestsOnly(userId: string | undefined): Promise<boolean> {
+    if (!userId) return false;
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: ACCESS_SELECT });
+    return user !== null && computeCourseAccess(user) && !computeVideoAccess(user);
+  }
+
+  async assertVideoAccess(userId: string): Promise<void> {
+    await this.assertCourseAccess(userId);
+    if (await this.isTestsOnly(userId)) {
+      throw new ForbiddenException({ statusCode: 403, code: "VIDEO_NOT_INCLUDED", message: "Videodarslar Premium va Mentor tariflarida" });
+    }
   }
 
   /** Admin bu o'quvchiga hamma narsani ochib qo'ygan (video va kalit so'z sharti yo'q). */

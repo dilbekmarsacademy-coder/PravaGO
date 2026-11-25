@@ -88,6 +88,16 @@ export class CreatePaymentDto {
   note?: string;
 }
 
+export class MentorAssignDto {
+  @IsBoolean()
+  assigned: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  note?: string;
+}
+
 export class PaymentActionDto {
   @IsOptional()
   @IsString()

@@ -218,6 +218,8 @@ export class LessonsService {
     if (!lessonId) return;
     // Admin ochib qo'ygan o'quvchi — videoni ko'rmasdan ham test ochiq.
     if (await this.access.hasUnlockAll(userId)) return;
+    // Onlayn Standart — videosiz tarif: test video shartisiz (kalit so'zlar sharti qoladi).
+    if (await this.access.isTestsOnly(userId)) return;
     const completed =
       userId !== undefined &&
       (await this.prisma.lessonProgress.count({
