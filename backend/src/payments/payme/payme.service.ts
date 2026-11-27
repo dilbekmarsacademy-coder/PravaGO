@@ -1,10 +1,10 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, type OnModuleInit } from "@nestjs/common";
 import { Prisma, type Order, type PaymeTransaction } from "@prisma/client";
 import { createHash, timingSafeEqual } from "crypto";
 import { PrismaService } from "../../prisma/prisma.service";
 import { addsAccess } from "../tariffs";
 import { cancelOrder, lockOrder, markOrderPaid } from "../orders.service";
-import { paymeKey } from "./payme.config";
+import { paymeEnv, paymeKey } from "./payme.config";
 import { PaymeError, paymeErrors } from "./payme.errors";
 
 type Tx = Prisma.TransactionClient;
@@ -37,15 +37,34 @@ function orderIdOf(params: Params): string {
   return id;
 }
 
+/** Logda qiymati yashiriladigan kalitlar (ichma-ich obyektlarda ham). */
+const SECRET_KEY = /pass(word|wd)?|key|secret|token|authori[sz]ation/i;
+const REDACTED = "[REDACTED]";
+
+/** Log uchun nusxa: maxfiy kalitli maydonlar "[REDACTED]". Asl obyekt o'zgarmaydi. */
+export function redactForLog(value: unknown, depth = 0): unknown {
+  if (depth > 8) return REDACTED;
+  if (Array.isArray(value)) return value.map((v) => redactForLog(v, depth + 1));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, SECRET_KEY.test(k) ? REDACTED : redactForLog(v, depth + 1)]));
+  }
+  return value;
+}
+
 function isExpired(t: PaymeTransaction): boolean {
   return t.state === STATE.CREATED && Date.now() - Number(t.createTime) > PAYME_TIMEOUT_MS;
 }
 
 @Injectable()
-export class PaymeService {
+export class PaymeService implements OnModuleInit {
   private readonly log = new Logger("Payme");
 
   constructor(private readonly prisma: PrismaService) {}
+
+  onModuleInit() {
+    // Qiymatning o'zi yozilmaydi.
+    if (!paymeEnv()) this.log.warn('PAYME_ENV noto\'g\'ri: faqat "test" yoki "prod" bo\'lishi kerak. Payme to\'lovlari o\'chiq (webhook -32504, create-order 503).');
+  }
 
   async handle(authorization: string | undefined, body: unknown) {
     const req = (body && typeof body === "object" && !Array.isArray(body) ? body : null) as Params | null;
@@ -62,9 +81,12 @@ export class PaymeService {
       if (e !== err) this.log.error(err instanceof Error ? (err.stack ?? err.message) : String(err));
       reply = { jsonrpc: "2.0", id, error: { code: e.code, message: e.text, ...(e.data ? { data: e.data } : {}) } };
     }
-    // Sarlavhalar (kalit) hech qachon yozilmaydi; tana JSON — log qatorini soxtalashtirib bo'lmaydi.
+    // Sarlavhalar (Authorization) hech qachon yozilmaydi; params va javobdagi maxfiy maydonlar
+    // (password, key, secret, token, authorization...) yashiriladi. Tana JSON — log qatorini soxtalashtirib bo'lmaydi.
     const { method, params } = req ?? {};
-    this.log.log(`${JSON.stringify({ id, method, params }).slice(0, 2000)} -> ${JSON.stringify({ result: reply.result, error: reply.error }).slice(0, 2000)}`);
+    const logReq = redactForLog({ id, method, params });
+    const logRes = redactForLog({ result: reply.result, error: reply.error });
+    this.log.log(`${JSON.stringify(logReq).slice(0, 2000)} -> ${JSON.stringify(logRes).slice(0, 2000)}`);
     return reply;
   }
 
