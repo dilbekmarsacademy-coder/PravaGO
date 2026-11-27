@@ -471,7 +471,7 @@ function VideosUnlockedPanel({ userId, enabled, onChange }: { userId: string; en
             Barcha videolar ochiq {enabled ? <Badge tone="success">yoqilgan</Badge> : <Badge tone="muted">o&apos;chiq</Badge>}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Barcha kunlardagi videodarslar ochiladi (tarifda video bo&apos;lmasa ham, mavzu tartibini kutmasdan). Test odatiy shart bilan: avval video, keyin kalit so&apos;zlar. Faqat shu o&apos;quvchiga.
+            Barcha kunlardagi videodarslar ochiladi (tarifda video bo&apos;lmasa ham, mavzu tartibini kutmasdan), videoni oldinga/orqaga erkin surish mumkin. Test odatiy shart bilan: avval video, keyin kalit so&apos;zlar. Faqat shu o&apos;quvchiga.
           </p>
         </div>
         <Button variant={enabled ? "secondary" : "primary"} size="sm" disabled={busy} onClick={toggle} data-testid="videos-unlocked-toggle">

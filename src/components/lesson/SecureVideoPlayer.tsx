@@ -72,7 +72,10 @@ interface SecureVideoPlayerProps {
   /** Darsga hali video ulanmagan (serverdagi xaritada yo'q). */
   onUnavailable?: () => void;
   className?: string;
-  /** Admin hamma narsani ochib qo'ygan o'quvchi — videoni istalgan joyga o'tkaza oladi ("ko'rildi" belgilanmaydi). */
+  /**
+   * Admin ochib qo'ygan o'quvchi (unlockAll yoki videosUnlocked) — videoni istalgan
+   * joyga oldinga/orqaga o'tkaza oladi. Sakrab o'tilgan qism "ko'rildi" hisoblanmaydi.
+   */
   freeSeek?: boolean;
 }
 
@@ -152,6 +155,11 @@ export function SecureVideoPlayer({
   const reportingRef = useRef(false);
   const completedRef = useRef(false);
   const callbacksRef = useRef({ onCompleted, onProgress, onUnavailable });
+  // O'lchov (sample) callback'i qayta yaratilmasligi uchun — joriy qiymat ref'da.
+  const freeSeekRef = useRef(freeSeek);
+  useEffect(() => {
+    freeSeekRef.current = freeSeek;
+  }, [freeSeek]);
   /** Qalqon tushganda video o'ynayotgan edi — "Davom etish" ijroni qaytaradi. */
   const resumeAfterShieldRef = useRef(false);
   const stateHandlerRef = useRef<(state: number) => void>(() => undefined);
@@ -305,7 +313,7 @@ export function SecureVideoPlayer({
     if (!player) return;
     const now = currentTimeOf(player, lastTimeRef.current);
     const playing = player.getPlayerState() === PlayerState.PLAYING;
-    const result = tick(tallyRef.current, lastTimeRef.current, now, playing);
+    const result = tick(tallyRef.current, lastTimeRef.current, now, playing, freeSeekRef.current);
     if (result.kind === "rewind") {
       player.seekTo(result.to, true);
       lastTimeRef.current = result.to;

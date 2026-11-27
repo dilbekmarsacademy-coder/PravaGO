@@ -33,13 +33,19 @@ export type TickResult =
 /**
  * Bitta o'lchov: `previous` → `current` (soniya). Faqat ijro paytidagi tabiiy
  * oldinga siljish ko'rilgan vaqt sifatida hisoblanadi; sakrashlar hisoblanmaydi.
+ *
+ * `allowJump` (admin videolarni ochgan — erkin surish): ko'rilmagan qismga
+ * sakrash qaytarilmaydi, lekin u yerda ko'rilgan vaqt eng uzoq nuqtani ham,
+ * ko'rilgan soniyalarni ham oshirmaydi — "ko'rildi" faqat ketma-ket ko'rib
+ * yetib kelinganda bo'ladi (test sharti saqlanadi).
  */
-export function tick(tally: WatchTally, previous: number, current: number, playing: boolean): TickResult {
-  if (current > tally.maxPosition + FORWARD_SEEK_TOLERANCE_SEC) {
+export function tick(tally: WatchTally, previous: number, current: number, playing: boolean, allowJump = false): TickResult {
+  const frontier = tally.maxPosition + FORWARD_SEEK_TOLERANCE_SEC;
+  if (current > frontier && !allowJump) {
     return { kind: "rewind", to: tally.maxPosition, tally };
   }
   const step = current - previous;
-  if (!playing || step <= 0 || step > MAX_NATURAL_STEP_SEC) return { kind: "ok", tally };
+  if (!playing || step <= 0 || step > MAX_NATURAL_STEP_SEC || previous > frontier) return { kind: "ok", tally };
   return {
     kind: "ok",
     tally: {
@@ -51,7 +57,7 @@ export function tick(tally: WatchTally, previous: number, current: number, playi
 
 /**
  * Erkin surish (oldinga ham) ruxsatmi: faqat server mavzuni tugatilgan deb aytgan
- * bo'lsa (`topicCompleted === true`) yoki admin hammasini ochgan (`freeSeek`).
+ * bo'lsa (`topicCompleted === true`) yoki admin ochgan (`freeSeek`: unlockAll yoki videosUnlocked).
  * Holat noma'lum/yuklanmagan — cheklov saqlanadi.
  */
 export function canSeekFreely(status: { topicCompleted?: boolean; completed?: boolean } | null | undefined, freeSeek = false): boolean {

@@ -29,6 +29,23 @@ describe("tick", () => {
     const tally = { maxPosition: 300, pendingSeconds: 0 };
     expect(tick(tally, 10, 200, true)).toEqual({ kind: "ok", tally });
   });
+
+  it("erkin surish (allowJump): oldinga sakrash qaytarilmaydi, lekin ko'rilgan hisoblanmaydi", () => {
+    const tally = { maxPosition: 30, pendingSeconds: 1 };
+    // Sakrash — qaytarilmaydi, hisob o'zgarmaydi.
+    expect(tick(tally, 30, 300, true, true)).toEqual({ kind: "ok", tally });
+    // Sakralgan joyda o'ynash — eng uzoq nuqta ham, ko'rilgan soniya ham oshmaydi.
+    expect(tick(tally, 300, 300.25, true, true)).toEqual({ kind: "ok", tally });
+    // Ko'rilgan chegaraga qaytib ketma-ket ko'rsa — odatdagidek hisoblanadi.
+    expect(tick(tally, 30, 30.25, true, true)).toEqual({ kind: "ok", tally: { maxPosition: 30.25, pendingSeconds: 1.25 } });
+    // Orqaga surish ham ishlaydi.
+    expect(tick(tally, 300, 5, true, true)).toEqual({ kind: "ok", tally });
+  });
+
+  it("allowJump'siz odatiy qoida o'zgarmaydi", () => {
+    const tally = { maxPosition: 30, pendingSeconds: 1 };
+    expect(tick(tally, 30, 300, true)).toEqual({ kind: "rewind", to: 30, tally });
+  });
 });
 
 describe("clampSeek", () => {
