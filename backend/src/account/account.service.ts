@@ -28,6 +28,8 @@ export interface MeDto {
   type: "SELF" | "CENTER";
   /** Admin hamma narsani ochib qo'ygan: kunlar/mavzular qulfsiz, test video va kalit so'zsiz. */
   unlockAll: boolean;
+  /** Admin barcha videodarslarni ochib qo'ygan: kunlar/mavzular video uchun qulfsiz (test sharti o'zgarmaydi). */
+  videosUnlocked: boolean;
   /** Kunlik mavzu oqimi majburiy: video → kalit so'zlar → test. */
   topicFlowGating: boolean;
   /** Javobni tasdiqlash paneli ko'rsatilmaydi (ANSWER_CONFIRM_SKIP_USERS ro'yxati, serverda hisoblanadi). */
@@ -66,6 +68,7 @@ export class AccountService {
       paymentRequired: user.type === "CENTER" ? false : paymentEnforced(),
       type: user.type,
       unlockAll: user.unlockAll,
+      videosUnlocked: user.videosUnlocked,
       topicFlowGating: user.topicFlowGatingEnabled,
       skipAnswerConfirm: skipsAnswerConfirm(user),
     };

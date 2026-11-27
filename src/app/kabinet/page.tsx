@@ -34,6 +34,8 @@ export default function KabinetPage() {
   // Admin hamma narsani ochib qo'ygan o'quvchi (oxirgi ma'lum holat, keyin serverdan).
   const [unlockAll, setUnlockAll] = useState(false);
   const [withoutVideo, setWithoutVideo] = useState(false);
+  // Admin barcha videodarslarni ochib qo'ygan (serverdan; video endpoint'i ham tekshiradi).
+  const [videosUnlocked, setVideosUnlocked] = useState(false);
   const { t } = useLocale();
 
   // Kirish huquqi serverdan (to'lov admin tomonidan tasdiqlangan bo'lishi kerak);
@@ -47,6 +49,7 @@ export default function KabinetPage() {
         if (cancelled) return;
         setUnlockAll(Boolean(me.unlockAll));
         setWithoutVideo(me.access && me.videoAccess === false);
+        setVideosUnlocked(Boolean(me.videosUnlocked));
         const local = getRegistration();
         if (!me.registered && !local) router.replace("/");
         else if (me.type === "CENTER" && !me.access) setCenterBlocked(true);
@@ -170,6 +173,7 @@ export default function KabinetPage() {
             examStatus={registration.examStatus}
             unlockAll={unlockAll}
             withoutVideo={withoutVideo}
+            videosUnlocked={videosUnlocked}
           />
         )}
       </main>
@@ -182,14 +186,16 @@ function DashboardContent({
   examStatus,
   unlockAll,
   withoutVideo,
+  videosUnlocked,
 }: {
   data: DashboardData;
   examStatus: ExamStatus;
   unlockAll: boolean;
   withoutVideo: boolean;
+  videosUnlocked: boolean;
 }) {
   const { t } = useLocale();
-  const courseState = buildCourseState(data.days, data.topics, data.topicProgress, data.examProgress, { unlockAll, withoutVideo });
+  const courseState = buildCourseState(data.days, data.topics, data.topicProgress, data.examProgress, { unlockAll, withoutVideo, videosUnlocked });
 
   return (
     <div className="flex flex-col gap-6">

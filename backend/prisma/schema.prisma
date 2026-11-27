@@ -177,6 +177,9 @@ model User {
   /// Admin yoqadi (alohida o'quvchiga): barcha kun va mavzular ochiq, test videoni
   /// ko'rmasdan va kalit so'zlar bilan tanishmasdan yechiladi. Standart — o'chiq.
   unlockAll              Boolean               @default(false)
+  /// Admin yoqadi (alohida o'quvchiga): barcha kunlardagi videodarslar ochiq (tarifda
+  /// video bo'lmasa ham, mavzu tartibini kutmasdan). Test sharti (video → kalit so'zlar → test) o'zgarmaydi.
+  videosUnlocked         Boolean               @default(false)
   createdByAdminId       String?
   lastLoginAt            DateTime?             @db.Timestamptz(3)
   /// Faqat CENTER: yagona faol sessiya (Session.id). Boshqa sessiyalar 401 SESSION_REPLACED oladi.

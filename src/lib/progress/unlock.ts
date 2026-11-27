@@ -173,7 +173,13 @@ export function buildCourseState(
   topicProgress: TopicProgress[],
   _examProgress: ExamProgress,
   /** Admin hamma narsani ochib qo'ygan o'quvchi — barcha kun va mavzular ochiq. */
-  options: { unlockAll?: boolean; /** Tarifda video yo'q (onlayn Standart). */ withoutVideo?: boolean } = {},
+  options: {
+    unlockAll?: boolean;
+    /** Tarifda video yo'q (onlayn Standart). */
+    withoutVideo?: boolean;
+    /** Admin barcha videodarslarni ochgan — videoli mavzular (va ularning kunlari) tartibni kutmasdan ochiq. */
+    videosUnlocked?: boolean;
+  } = {},
 ): CourseState {
   void _examProgress;
 
@@ -200,12 +206,18 @@ export function buildCourseState(
   let continueTarget: ContinueTarget | null = null;
   const dayStates: DayViewState[] = sortedDays.map((day) => {
     const dayTopics = topicsByDayId[day.id] ?? [];
-    const unlocked = Boolean(options.unlockAll) || isDayUnlocked(day, sortedDays, topicsByDayId, progressByTopicId);
+    const videosOpen = Boolean(options.videosUnlocked) && !options.withoutVideo;
+    const unlocked =
+      Boolean(options.unlockAll) ||
+      (videosOpen && dayTopics.some((t) => t.lessonId)) ||
+      isDayUnlocked(day, sortedDays, topicsByDayId, progressByTopicId);
 
     const topicStates: TopicViewState[] = dayTopics.map((topic) => {
       const progress = progressByTopicId[topic.id];
       const completed = isTopicDone(topic, progress);
-      const topicUnlocked = Boolean(options.unlockAll) || isTopicUnlocked(topic, dayTopics, progressByTopicId, unlocked);
+      // Videolar ochiq bo'lsa ham test o'z sharti bilan qoladi: avval video, keyin kalit so'zlar (sahifada va backend'da).
+      const topicUnlocked =
+        Boolean(options.unlockAll) || (videosOpen && Boolean(topic.lessonId)) || isTopicUnlocked(topic, dayTopics, progressByTopicId, unlocked);
 
       const state: TopicViewState = {
         topic,
