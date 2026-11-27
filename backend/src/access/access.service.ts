@@ -35,14 +35,15 @@ export function computeCourseAccess(user: AccessFields): boolean {
 /**
  * Videodarslarga kirish. Cheklov FAQAT onlayn Standart obunasiga: kirishi shu
  * obuna bilangina ochilgan foydalanuvchi videoni ko'rmaydi. Markaz o'quvchilari,
- * qo'lda tasdiqlanganlar, Premium/Mentor va admin ochib qo'yganlar (unlockAll) — avvalgidek.
+ * qo'lda tasdiqlanganlar, Premium/Mentor va admin ochib qo'yganlar (unlockAll yoki
+ * videosUnlocked) — avvalgidek.
  */
-export function computeVideoAccess(user: AccessFields & { unlockAll: boolean }): boolean {
+export function computeVideoAccess(user: AccessFields & { unlockAll: boolean; videosUnlocked: boolean }): boolean {
   if (!computeCourseAccess(user)) return false;
-  return user.type === "CENTER" || !paymentEnforced() || user.paymentStatus === "PAID" || user.subscriptionUnlimited || user.unlockAll;
+  return user.type === "CENTER" || !paymentEnforced() || user.paymentStatus === "PAID" || user.subscriptionUnlimited || user.unlockAll || user.videosUnlocked;
 }
 
-const ACCESS_SELECT = { paymentStatus: true, type: true, centerAccess: true, subscriptionUntil: true, subscriptionUnlimited: true, unlockAll: true } as const;
+const ACCESS_SELECT = { paymentStatus: true, type: true, centerAccess: true, subscriptionUntil: true, subscriptionUnlimited: true, unlockAll: true, videosUnlocked: true } as const;
 
 @Injectable()
 export class AccessService {

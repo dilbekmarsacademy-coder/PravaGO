@@ -203,6 +203,7 @@ export class AdminUsersService {
       isActive: user.isActive,
       centerAccess: user.centerAccess,
       unlockAll: user.unlockAll,
+      videosUnlocked: user.videosUnlocked,
       siteAccessBlocked: user.siteAccessBlocked,
       blockedAt: user.blockedAt,
       blockReason: user.blockReason,
@@ -255,6 +256,15 @@ export class AdminUsersService {
     if (!before) throw new NotFoundException("Foydalanuvchi topilmadi");
     const after = await this.prisma.user.update({ where: { id }, data: { unlockAll: enabled }, select: { id: true, unlockAll: true } });
     await this.audit.log(admin, ip, { action: "user.unlock_all", entityType: "user", entityId: id, before, after });
+    return after;
+  }
+
+  /** Shu o'quvchiga barcha videodarslarni ochish/yopish (test sharti o'zgarmaydi). */
+  async setVideosUnlocked(admin: AdminUser, ip: string, id: string, enabled: boolean): Promise<{ id: string; videosUnlocked: boolean }> {
+    const before = await this.prisma.user.findUnique({ where: { id }, select: { id: true, videosUnlocked: true } });
+    if (!before) throw new NotFoundException("Foydalanuvchi topilmadi");
+    const after = await this.prisma.user.update({ where: { id }, data: { videosUnlocked: enabled }, select: { id: true, videosUnlocked: true } });
+    await this.audit.log(admin, ip, { action: "user.videos_unlocked", entityType: "user", entityId: id, before, after });
     return after;
   }
 

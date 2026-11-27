@@ -47,6 +47,7 @@ interface UserDetail {
   centerAccess?: boolean;
   /** Hamma narsa ochiq: kun/mavzu qulfi, video va kalit so'z sharti yo'q. */
   unlockAll?: boolean;
+  videosUnlocked?: boolean;
   siteAccessBlocked?: boolean;
   blockedAt?: string | null;
   blockReason?: string | null;
@@ -138,6 +139,7 @@ export default function AdminUserPage({ params }: { params: Promise<{ id: string
 
       <SiteAccessPanel user={data} onDone={load} />
       <UnlockAllPanel userId={data.id} enabled={Boolean(data.unlockAll)} onChange={(unlockAll) => setData((d) => (d ? { ...d, unlockAll } : d))} />
+      <VideosUnlockedPanel userId={data.id} enabled={Boolean(data.videosUnlocked)} onChange={(videosUnlocked) => setData((d) => (d ? { ...d, videosUnlocked } : d))} />
       <ProgressResetPanel user={data} onDone={load} />
 
       <div className="mb-6 grid gap-6 lg:grid-cols-2">
@@ -437,6 +439,43 @@ function UnlockAllPanel({ userId, enabled, onChange }: { userId: string; enabled
         </div>
         <Button variant={enabled ? "secondary" : "primary"} size="sm" disabled={busy} onClick={toggle} data-testid="unlock-all-toggle">
           {enabled ? "O'chirish" : "Hammasini ochish"}
+        </Button>
+      </div>
+    </Panel>
+  );
+}
+
+/**
+ * Shu o'quvchiga barcha kunlardagi videodarslarni ochish (tarifda video bo'lmasa
+ * ham, mavzu tartibini kutmasdan). Test sharti o'zgarmaydi. Faqat shu foydalanuvchi uchun.
+ */
+function VideosUnlockedPanel({ userId, enabled, onChange }: { userId: string; enabled: boolean; onChange: (enabled: boolean) => void }) {
+  const [busy, setBusy] = useState(false);
+  async function toggle() {
+    setBusy(true);
+    try {
+      const res = await adminFetch<{ videosUnlocked: boolean }>(`users/${userId}/videos-unlocked`, { json: { enabled: !enabled } });
+      onChange(res.videosUnlocked);
+      showToast({ tone: "success", message: res.videosUnlocked ? "Barcha videolar ochildi — o'quvchi sahifani yangilashi kerak" : "Videolar odatiy tartibga qaytarildi" });
+    } catch (err) {
+      showToast({ tone: "danger", message: err instanceof Error ? err.message : "Bajarib bo'lmadi" });
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Panel className="mb-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" data-testid="videos-unlocked-panel">
+        <div>
+          <p className="flex items-center gap-2 font-semibold text-foreground">
+            Barcha videolar ochiq {enabled ? <Badge tone="success">yoqilgan</Badge> : <Badge tone="muted">o&apos;chiq</Badge>}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Barcha kunlardagi videodarslar ochiladi (tarifda video bo&apos;lmasa ham, mavzu tartibini kutmasdan). Test odatiy shart bilan: avval video, keyin kalit so&apos;zlar. Faqat shu o&apos;quvchiga.
+          </p>
+        </div>
+        <Button variant={enabled ? "secondary" : "primary"} size="sm" disabled={busy} onClick={toggle} data-testid="videos-unlocked-toggle">
+          {enabled ? "O'chirish" : "Videolarni ochish"}
         </Button>
       </div>
     </Panel>

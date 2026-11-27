@@ -21,6 +21,8 @@ export interface Me {
   type?: "SELF" | "CENTER";
   /** Admin hamma narsani ochib qo'ygan: kun/mavzu qulfi, video va kalit so'z sharti yo'q. */
   unlockAll?: boolean;
+  /** Admin barcha videodarslarni ochgan: videoli mavzular tartibsiz ochiq (test sharti o'zgarmaydi). */
+  videosUnlocked?: boolean;
   /** Kunlik mavzu oqimi majburiy: video → kalit so'zlar ("Tanishib chiqdim") → test. */
   topicFlowGating?: boolean;
   /** Javobni tasdiqlash paneli o'tkazib yuboriladi (serverda hisoblanadi). Yo'q — panel chiqadi. */

@@ -35,6 +35,8 @@ export interface StudentRow {
   centerAccess: boolean;
   /** Admin hamma narsani ochib qo'ygan. */
   unlockAll: boolean;
+  /** Admin barcha videodarslarni ochib qo'ygan. */
+  videosUnlocked: boolean;
   siteAccessBlocked: boolean;
   blockedAt: Date | null;
   blockReason: string | null;
@@ -56,6 +58,7 @@ const ROW_SELECT = {
   isActive: true,
   centerAccess: true,
   unlockAll: true,
+  videosUnlocked: true,
   siteAccessBlocked: true,
   blockedAt: true,
   blockReason: true,

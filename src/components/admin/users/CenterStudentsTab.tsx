@@ -206,6 +206,7 @@ export default function CenterStudentsTab() {
                       {u.isActive ? <Badge tone="success">faol</Badge> : <Badge tone="danger">faolsiz</Badge>}
                       {u.online && u.isActive && <span className="text-[0.65rem] text-success">qurilmada kirgan</span>}
                       {u.unlockAll && <Badge tone="brand">hammasi ochiq</Badge>}
+                      {u.videosUnlocked && !u.unlockAll && <Badge tone="brand">videolar ochiq</Badge>}
                     </span>
                   </Td>
                   <Td className="whitespace-nowrap">

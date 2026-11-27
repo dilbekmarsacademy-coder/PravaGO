@@ -36,6 +36,7 @@ export interface StudentRow {
   centerAccess: boolean;
   /** Admin hamma narsani ochib qo'ygan. */
   unlockAll?: boolean;
+  videosUnlocked?: boolean;
   siteAccessBlocked?: boolean;
   blockedAt?: string | null;
   blockReason?: string | null;

@@ -393,4 +393,25 @@ describe("buildCourseState (admin hamma narsani ochgan)", () => {
     const normal = buildCourseState(COURSE_DAYS, TOPICS_WITH_CONTENT, MOCK_TOPIC_PROGRESS, MOCK_EXAM_PROGRESS);
     expect(normal.days.some((d) => d.topics.some((t) => !t.unlocked))).toBe(true);
   });
+
+  it("videosUnlocked — progresssiz ham barcha videoli mavzular ochiq, videosizlar odatiy qoidada", () => {
+    const open = buildCourseState(COURSE_DAYS, TOPICS_WITH_CONTENT, [], MOCK_EXAM_PROGRESS, { videosUnlocked: true });
+    const normal = buildCourseState(COURSE_DAYS, TOPICS_WITH_CONTENT, [], MOCK_EXAM_PROGRESS);
+    const all = (s: typeof open) => s.days.flatMap((d) => d.topics);
+    const withVideo = all(open).filter((t) => t.topic.lessonId);
+    expect(withVideo.length).toBeGreaterThan(1);
+    expect(withVideo.every((t) => t.unlocked)).toBe(true);
+    expect(all(normal).filter((t) => t.topic.lessonId).some((t) => !t.unlocked)).toBe(true);
+    for (const [i, t] of all(open).entries()) if (!t.topic.lessonId) expect(t.unlocked).toBe(all(normal)[i].unlocked);
+    expect(open.days.filter((d) => d.topics.some((t) => t.topic.lessonId)).every((d) => d.unlocked)).toBe(true);
+    // Yakuniy imtihon va "davom ettirish" nishoni videolar ochilgani bilan o'zgarmaydi.
+    expect(open.finalExamUnlocked).toBe(normal.finalExamUnlocked);
+    expect(open.continueTarget?.topic.topic.id).toBe(normal.continueTarget?.topic.topic.id);
+  });
+
+  it("videosUnlocked videosiz tarifda (withoutVideo) hech narsani ochmaydi", () => {
+    const a = buildCourseState(COURSE_DAYS, TOPICS_WITH_CONTENT, [], MOCK_EXAM_PROGRESS, { videosUnlocked: true, withoutVideo: true });
+    const b = buildCourseState(COURSE_DAYS, TOPICS_WITH_CONTENT, [], MOCK_EXAM_PROGRESS, { withoutVideo: true });
+    expect(a.days.map((d) => [d.unlocked, d.topics.map((t) => t.unlocked)])).toEqual(b.days.map((d) => [d.unlocked, d.topics.map((t) => t.unlocked)]));
+  });
 });

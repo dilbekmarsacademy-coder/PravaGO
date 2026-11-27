@@ -52,6 +52,13 @@ export class AdminUsersController {
     return this.users.setUnlockAll(admin, ip, params.id, body.enabled);
   }
 
+  /** Shu o'quvchiga barcha kunlardagi videodarslarni ochish/yopish (test sharti o'zgarmaydi). */
+  @Post(":id/videos-unlocked")
+  @HttpCode(200)
+  videosUnlocked(@Param() params: UserIdParamDto, @Body() body: UnlockAllDto, @CurrentAdmin() admin: AdminUser, @RequestIp() ip: string) {
+    return this.users.setVideosUnlocked(admin, ip, params.id, body.enabled);
+  }
+
   /** Foydalanuvchini butunlay o'chirish: sessiyalari, progressi, saqlanganlari va to'lovlari bilan. */
   @Delete(":id")
   @HttpCode(204)
