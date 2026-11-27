@@ -4,14 +4,21 @@ export function paymentsEnabled(): boolean {
   return process.env.PAYMENTS_ENABLED === "true";
 }
 
-/** Faqat aniq "prod" — jonli rejim; qolgan hammasi sandbox. */
-export function paymeEnv(): "test" | "prod" {
-  return process.env.PAYME_ENV === "prod" ? "prod" : "test";
+/**
+ * Faqat aniq "test" (sandbox) yoki "prod" (jonli). Boshqa har qanday qiymat
+ * ("production", "PROD", bo'sh, xato yozilgan) — null: to'lov butunlay yopiq,
+ * jimgina sandbox'ga o'tilmaydi.
+ */
+export function paymeEnv(): "test" | "prod" | null {
+  const env = process.env.PAYME_ENV;
+  return env === "test" || env === "prod" ? env : null;
 }
 
-/** Joriy muhit kaliti; o'rnatilmagan bo'lsa null (hamma so'rov -32504 oladi). */
+/** Joriy muhit kaliti; muhit noto'g'ri yoki kalit o'rnatilmagan bo'lsa null (hamma so'rov -32504 oladi). */
 export function paymeKey(): string | null {
-  return (paymeEnv() === "prod" ? process.env.PAYME_KEY : process.env.PAYME_TEST_KEY)?.trim() || null;
+  const env = paymeEnv();
+  if (!env) return null;
+  return (env === "prod" ? process.env.PAYME_KEY : process.env.PAYME_TEST_KEY)?.trim() || null;
 }
 
 export function paymeMerchantId(): string | null {
@@ -24,7 +31,7 @@ export function paymeMerchantId(): string | null {
  * kishi haqiqiy pulsiz obuna olardi.
  */
 export function paymentsAvailableFor(userId: string | undefined): boolean {
-  if (!paymentsEnabled() || !paymeMerchantId() || !paymeKey()) return false;
+  if (!paymentsEnabled() || !paymeEnv() || !paymeMerchantId() || !paymeKey()) return false;
   if (paymeEnv() === "prod" || process.env.VERCEL_ENV !== "production") return true;
   const allowed = (process.env.PAYME_TEST_USERS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   return userId !== undefined && allowed.includes(userId);

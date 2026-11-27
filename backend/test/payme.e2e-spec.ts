@@ -107,6 +107,104 @@ describe("avtorizatsiya va protokol", () => {
   });
 });
 
+describe("xavfsizlik: log yashirish va PAYME_ENV", () => {
+  const logText = async (fn: () => Promise<unknown>) => {
+    const spy = vi.spyOn(Logger.prototype, "log").mockImplementation(() => undefined);
+    try {
+      await fn();
+      return JSON.stringify(spy.mock.calls);
+    } finally {
+      spy.mockRestore();
+    }
+  };
+
+  it("ChangePassword: params.password logga tushmaydi; Authorization sarlavhasi yozilmaydi", async () => {
+    const secret = "Maxfiy-Parol-12345";
+    const text = await logText(async () => {
+      expect((await rpc("ChangePassword", { password: secret })).error.code).toBe(-32601);
+    });
+    expect(text).toContain("ChangePassword");
+    expect(text).toContain("[REDACTED]");
+    expect(text).not.toContain(secret);
+    expect(text).not.toContain(TEST_KEY);
+    expect(text).not.toContain(basic(TEST_KEY));
+    expect(text).not.toContain(basic(TEST_KEY).slice(6));
+    expect(text.toLowerCase()).not.toContain("basic ");
+  });
+
+  it("ichma-ich password/key/secret/token/authorization maydonlari yashiriladi, oddiy maydonlar qoladi", async () => {
+    const vals = ["p-111-sir", "k-222-sir", "s-333-sir", "t-444-sir", "a-555-sir", "pk-666-sir"];
+    const text = await logText(async () => {
+      await rpc("CheckPerformTransaction", {
+        amount: 100,
+        account: { order_id: "yashirin-yoq", password: vals[0], nested: [{ api_key: vals[1], Client_Secret: vals[2] }] },
+        token: vals[3],
+        Authorization: vals[4],
+        extra: { deep: { PAYME_KEY: vals[5] } },
+      });
+    });
+    for (const v of vals) expect(text, v).not.toContain(v);
+    expect(text).toContain("yashirin-yoq");
+    expect(text.match(/\[REDACTED\]/g)?.length).toBe(vals.length);
+  });
+
+  it.each(["production", "PROD", "", " prod", "tset"])("PAYME_ENV=%j — to'lov yopiq: webhook -32504, create-order 503", async (env) => {
+    const u = await newUser();
+    const orderId = await newOrder(u);
+    process.env.PAYME_ENV = env;
+    for (const key of [TEST_KEY, PROD_KEY]) {
+      expect((await rpc("CheckPerformTransaction", { amount: STANDARD, account: account(orderId) }, basic(key))).error.code).toBe(-32504);
+      expect((await rpc("CreateTransaction", { id: randomUUID(), time: Date.now(), amount: STANDARD, account: account(orderId) }, basic(key))).error.code).toBe(-32504);
+    }
+    expect((await http().post("/payments/create-order").set(u.auth).send({ tariff: "STANDART_14" }).expect(503)).body.code).toBe("PAYMENTS_DISABLED");
+    expect((await http().get("/payments/tariffs").set(u.auth).expect(200)).body.enabled).toBe(false);
+    expect((await order(orderId)).status).toBe("PENDING");
+  });
+
+  it("PAYME_ENV o'rnatilmagan — to'lov yopiq", async () => {
+    const u = await newUser();
+    delete process.env.PAYME_ENV;
+    expect((await rpc("CheckTransaction", { id: "x" })).error.code).toBe(-32504);
+    await http().post("/payments/create-order").set(u.auth).send({ tariff: "STANDART_14" }).expect(503);
+  });
+
+  it("ishga tushganda noto'g'ri PAYME_ENV ogohlantiradi (qiymat yozilmaydi); to'g'risida jim", async () => {
+    const { PaymeService } = await import("../src/payments/payme/payme.service");
+    const svc = app.get(PaymeService);
+    const spy = vi.spyOn(Logger.prototype, "warn").mockImplementation(() => undefined);
+    try {
+      process.env.PAYME_ENV = "production";
+      svc.onModuleInit();
+      expect(spy).toHaveBeenCalledTimes(1);
+      const text = JSON.stringify(spy.mock.calls);
+      expect(text).toContain("PAYME_ENV noto'g'ri");
+      expect(text).not.toContain("production");
+      for (const env of ["test", "prod"]) {
+        process.env.PAYME_ENV = env;
+        svc.onModuleInit();
+      }
+      expect(spy).toHaveBeenCalledTimes(1);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("test va prod rejimlari avvalgidek: o'z kaliti bilan to'liq to'lov, checkout manzili mos", async () => {
+    for (const [env, key, host] of [["test", TEST_KEY, "https://test.paycom.uz/"], ["prod", PROD_KEY, "https://checkout.paycom.uz/"]] as const) {
+      process.env.PAYME_ENV = env;
+      const u = await newUser();
+      const res = (await http().post("/payments/create-order").set(u.auth).send({ tariff: "STANDART_14" }).expect(201)).body;
+      expect(res.checkoutUrl.startsWith(host), env).toBe(true);
+      const id = randomUUID();
+      expect((await rpc("CheckPerformTransaction", { amount: STANDARD, account: account(res.id) }, basic(key))).result).toEqual({ allow: true });
+      expect((await rpc("CreateTransaction", { id, time: Date.now(), amount: STANDARD, account: account(res.id) }, basic(key))).result.state).toBe(1);
+      expect((await rpc("PerformTransaction", { id }, basic(key))).result.state).toBe(2);
+      expect((await order(res.id)).status).toBe("PAID");
+      expect(await until(u)).not.toBeNull();
+    }
+  });
+});
+
 describe("CheckPerformTransaction", () => {
   it("mumkin; summa -31001; buyurtma yo'q -31050; band/to'langan -31099", async () => {
     const u = await newUser();
