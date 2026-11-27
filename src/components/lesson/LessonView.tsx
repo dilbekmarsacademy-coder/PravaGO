@@ -56,6 +56,8 @@ export function LessonView({ topic }: LessonViewProps) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setUnlockAll(getUnlockAll());
   }, []);
+  // Admin barcha videolarni ochgan — videoni erkin surish ("ko'rildi" baribir ketma-ket ko'rishni talab qiladi).
+  const [videosUnlocked, setVideosUnlocked] = useState(false);
   // Yangi oqim (video → kalit so'zlar → test) — serverdan (GET /me); backend ham tekshiradi.
   const [flowGating, setFlowGating] = useState(false);
   // Onlayn Standart — videosiz tarif: video o'rniga izoh, test video shartisiz (backend ham tekshiradi).
@@ -68,6 +70,7 @@ export function LessonView({ topic }: LessonViewProps) {
         setFlowGating(Boolean(me.topicFlowGating));
         setNoVideo(me.access && me.videoAccess === false);
         if (me.unlockAll !== undefined) setUnlockAll(Boolean(me.unlockAll));
+        setVideosUnlocked(Boolean(me.videosUnlocked));
       })
       .catch(() => undefined);
     return () => {
@@ -155,7 +158,7 @@ export function LessonView({ topic }: LessonViewProps) {
         <SecureVideoPlayer
           lessonId={topic.lessonId}
           title={title}
-          freeSeek={unlockAll}
+          freeSeek={unlockAll || videosUnlocked}
           onProgress={setStatus}
           onUnavailable={() => setUnavailable(true)}
           onCompleted={() => showToast({ tone: "success", message: hasTest ? t.lesson.gate.videoDone : t.lesson.gate.unlocked })}
@@ -164,7 +167,7 @@ export function LessonView({ topic }: LessonViewProps) {
 
         {!unavailable && !noVideo && (
           <p className="hidden text-center text-xs text-muted-foreground pointer-fine:block">
-            {unlockAll || canSeekFreely(status) ? t.lesson.player.keyboardHintReview : t.lesson.player.keyboardHint}
+            {unlockAll || videosUnlocked || canSeekFreely(status) ? t.lesson.player.keyboardHintReview : t.lesson.player.keyboardHint}
           </p>
         )}
 
